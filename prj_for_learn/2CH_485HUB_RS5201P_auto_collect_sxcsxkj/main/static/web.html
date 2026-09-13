@@ -1,0 +1,2101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1,maximum-scale=1,user-scalable=no;"> -->
+    <meta name="browsermode" content="application">
+    <meta name="full-screen" content="yes">
+    <meta name="x5-fullscreen" content="true">
+    <meta name="x5-page-mode" content="app">
+    <!-- <link rel="icon" href="favicon.ico"> -->
+    <title>RS485-CM 模块在线配置系统</title>
+
+    <link rel="stylesheet" type="text/css" href="web.css">
+</head>
+
+<body data-theme="light">
+    <div id="app">
+        <div data-v-6f9f3e2e="" data-v-721c7581="" id="main" class="base-info">
+            <div data-v-6f9f3e2e="" class="navigation" id="nav">
+                <div class="logo-title">
+                                            <div class="title">RS485-CM 模块在线配置系统</div>
+                </div>
+                <div id="nav-list" class="nav-list">
+                    <a id="basicInfo" name="basicInfo" href="#/home" aria-current="page"
+                        class="nav-link router-link-exact-active router-link-active active">
+                        <span class="icon iconfont iconwenben">
+                        </span>
+                        <div class="name">基本信息</div>
+                    </a>
+                    
+                    <a id="serialConfig" name="serialConfig" href="#/serialConfig" class="nav-link"><span
+                            class="icon iconfont iconchuankou"></span>
+                        <div class="name">串口管理</div>
+                    </a>
+                    <a id="netConfig" name="netConfig" href="#/WiFiConfig" class="nav-link"><span
+                            class="icon iconfont iconWi-Fi"></span>
+                        <div class="name">网络管理</div>
+                    </a>
+                    <!-- <a id="protocolConfig" name="protocolConfig" href="#/protocolConfig" class="nav-link"><span
+                            class="icon iconfont iconxieyi"></span>
+                        <div class="name">协议管理</div>
+                    </a> -->
+
+                    <a id="sysConfig" name="sysConfig" href="#/sysConfig" class="nav-link"><span
+                            class="icon iconfont iconanquan"></span>
+                        <div class="name">系统管理</div>
+                    </a>
+
+                </div>
+                <div class="version-div">
+                    <div class="version"></div>
+                </div>
+            </div>
+            <div data-v-6f9f3e2e="" class="nav-top nav-off" id="nav-top">
+                <div class="logo-title">
+                    <div class="flex-center-div">
+                        <div class="title">RS485-CM 模块在线配置系统</div>
+                    </div>
+                    <div class="close-icon"></div><button id="app-icon-btn" class="icon-btn"><span id="app-icon"
+                            class="icon iconfont icondaohang"></span></button>
+                </div>
+                <div id="nav-lists" class="nav-list">
+                    <div class="nav-container active">
+                        <div class="deliver-line" style="display: none;"></div><a id="basicInfo_m" name="basicInfo"
+                            href="#/home" aria-current="page"
+                            class="nav-link router-link-exact-active router-link-active active"><span
+                                class="icon iconfont iconwenben"></span>
+                            <div class="name">基本信息</div>
+                        </a>
+                    </div>
+                    <div class="nav-container">
+                        <a id="serialConfig_m" name="serialConfig" href="#/serialConfig" class="nav-link"><span
+                                class="icon iconfont iconchuankou"></span>
+                            <div class="name">串口管理</div>
+                        </a>
+                    </div>
+                    <div class="nav-container">
+                        <a id="netConfig_m" name="netConfig" href="#/WiFiConfig" class="nav-link"><span
+                                class="icon iconfont iconWi-Fi"></span>
+                            <div class="name">网络管理</div>
+                        </a>
+                    </div>
+                    <!-- <div class="nav-container">
+                        <a id="protocolConfig_m" name="protocolConfig" href="#/protocolConfig" class="nav-link"><span
+                                class="icon iconfont iconxieyi"></span>
+                            <div class="name">协议管理</div>
+                        </a>
+                    </div> -->
+                    
+
+
+
+
+                    <div class="nav-container">
+                        <a id="sysConfig_m" name="sysConfig" href="#/sysConfig" class="nav-link"><span
+                                class="icon iconfont iconanquan"></span>
+                            <div class="name">系统管理</div>
+                        </a>
+                    </div>
+
+
+
+                </div>
+                <div id="version-div" class="version-div">
+                    <div class="version"></div>
+                </div>
+            </div>
+            <div data-v-6f9f3e2e="" id="right" style="overflow: auto;">
+                <div data-v-4c63c112="" data-v-6f9f3e2e="" class="header" id="header">
+                    <div data-v-4c63c112="" class="title" id="mainTitle"
+                        style="width: auto;top: 10px;height: calc(var(--HEADER-HEIGHT) - 1px);margin-top: 35px;">基本信息
+                    </div>
+                    <div data-v-4c63c112="" class="user"></div>
+                </div>
+
+
+                <div id="infoView" name="infoView">
+                    <div data-v-6f9f3e2e="" id="content">
+                        <div data-v-721c7581="" data-v-6f9f3e2e="" class="card-view">
+                            <div data-v-721c7581="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">基本信息</div>
+                            </div>
+                            <div data-v-721c7581="" class="label-view label-view small mt-20" data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 设备名称 </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-721c7581="" class="base-text small" id="host_name"></div>
+                                    <!-- <button
+                                        data-v-721c7581="" class="main-btn base-main-btn small">
+                                        <div class="btn-container"> 编辑 </div>
+                                    </button> -->
+                                </div>
+                            </div>
+                            <div data-v-721c7581="" class="label-view label-view mt-6" data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 当前时间 </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-721c7581="" class="base-text" id='current_time'></div>
+                                </div>
+                            </div>
+                            <div data-v-721c7581="" class="label-view label-view mt-6" data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 系统运行时间 </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-721c7581="" class="base-text" id='uptime'></div>
+                                </div>
+                            </div>
+                            
+                            <div data-v-721c7581="" class="label-view label-view mt-6 " data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> WiFi MAC </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-721c7581="" class="base-text" id="sta_mac"></div>
+                                </div>
+                            </div>
+
+                            <div data-v-721c7581="" class="label-view label-view mt-6" data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> WiFi IP地址 </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-721c7581="" class="base-text" id="sta_ip"></div>
+                                </div>
+                            </div>
+
+                            <div data-v-721c7581="" class="label-view label-view mt-6 mb-20" data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> IP获取方式 </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-721c7581="" class="base-text" id="is_dhcps"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="serialView" name="serialView" style="display: none;">
+                    <form method='post' id="workModeForm" action='/mode_set'>
+                        <div data-v-6f9f3e2e="" id="content">
+                            <div data-v-2c53cae0="" data-v-6f9f3e2e="" class="card-view">
+                                <!-- 在串口设置前添加工作模式模块 -->
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="container">
+                                    <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">
+                                        工作模式
+                                        <span class="toggle-btn" id="workModeToggle">
+                                            <i class="iconfont iconxiajiantou2"></i>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div id="workModeContent" class="content-area">
+
+                                    <!-- 工作模式选择区域 - 重新布局 -->
+                                    <div data-v-2c53cae0="" class="work-mode-container" style="position: relative; padding: 20px 0 0 0;">
+                                        <!-- 左侧模式选择 -->
+                                        <div class="work-mode-options" style="display: flex; flex-direction: column; align-items: flex-start; margin-left: 0;">
+                                            <div data-v-2c53cae0="" class="radio-div" style="display: flex; flex-direction: column; align-items: flex-start;">
+                                            <!-- HIDDEN_WORK_MODE_START: 透传排队模式 -->
+                                            <!--
+                                            <div data-v-2c53cae0="" class="input-radio">
+                                                <input data-v-2c53cae0="" type="radio" id="tcp_transparent_mode"
+                                                    name="work_mode" value="transparent_queue" checked>
+                                                <label data-v-2c53cae0="" for="tcp_transparent_mode"
+                                                    class="circle"></label>
+                                                <label data-v-2c53cae0="" for="tcp_transparent_mode"
+                                                    class="name">透传排队模式</label>
+                                            </div>
+                                            -->
+                                            <!-- HIDDEN_WORK_MODE_END -->
+
+                                            <!-- HIDDEN_WORK_MODE_START: Modbus协议排队模式 -->
+                                            <!--
+                                            <div data-v-2c53cae0="" class="input-radio">
+                                                <input data-v-2c53cae0="" type="radio" id="modbus_tcp"
+                                                    name="work_mode" value="modbus_queue">
+                                                <label data-v-2c53cae0="" for="modbus_tcp" class="circle"></label>
+                                                <label data-v-2c53cae0="" for="modbus_tcp"
+                                                    class="name">Modbus协议排队模式</label>
+                                            </div>
+                                            -->
+                                            <!-- HIDDEN_WORK_MODE_END -->
+
+                                            <!-- HIDDEN_WORK_MODE_START: Modbus协议缓存模式 -->
+                                            <!--
+                                            <div data-v-2c53cae0="" class="input-radio">
+                                                <input data-v-2c53cae0="" type="radio" id="modbus_rtu"
+                                                    name="work_mode" value="modbus_cache">
+                                                <label data-v-2c53cae0="" for="modbus_rtu" class="circle"></label>
+                                                <label data-v-2c53cae0="" for="modbus_rtu"
+                                                    class="name">Modbus协议缓存模式</label>
+                                            </div>
+                                            <div data-v-2c53cae0="" id="auto_cache_control" class="auto-cache-control" style="display: none;">
+                                                <div class="auto-cache-title">自动智能缓存</div>
+                                                <div class="switch-btn on" id="autoTransparentCacheSwitch" onclick="toggleAutoTransparentCache()">
+                                                    <div class="circle"></div>
+                                                </div>
+                                            </div>
+                                            -->
+                                            <!-- HIDDEN_WORK_MODE_END -->
+
+                                            <!-- HIDDEN_WORK_MODE_START: 一主多从模式 -->
+                                            <!--
+                                            <div data-v-2c53cae0="" class="input-radio">
+                                                <input data-v-2c53cae0="" type="radio" id="master_slave_mode"
+                                                    name="work_mode" value="master_slave">
+                                                <label data-v-2c53cae0="" for="master_slave_mode" class="circle"></label>
+                                                <label data-v-2c53cae0="" for="master_slave_mode"
+                                                    class="name">一主多从模式</label>
+                                            </div>
+                                            -->
+                                            <!-- HIDDEN_WORK_MODE_END -->
+
+                                            <div data-v-2c53cae0="" class="input-radio">
+                                                <input data-v-2c53cae0="" type="radio" id="auto_collect_mode"
+                                                    name="work_mode" value="auto_collect">
+                                                <label data-v-2c53cae0="" for="auto_collect_mode" class="circle"></label>
+                                                <label data-v-2c53cae0="" for="auto_collect_mode"
+                                                    class="name">自动采集模式</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 工作模式设置按钮（靠近模式选择） -->
+                                    <div id="setModbusItemViews" class="work-mode-settings">
+                                        <!-- 设置按钮将通过JavaScript动态添加到这里 -->
+                                    </div>
+                                        
+                                        <!-- 自动采集配置块：CH2 / CH3 -->
+                                        <div id="auto_collect_config" style="display: none; margin-top: 12px;">
+                                            <div class="base-desc" style="margin-bottom: 12px;">
+                                                <div>自动采集模式说明：</div>
+                                                <div>1. 寄存器地址分布：0-49000 为映射从机数据，49001-49060 为错误标志位。</div>
+                                                <div>2. 映射行为：映射范围内可任意长度读取；写入映射范围将转发到对应真实从机。</div>
+                                                <div>3. 读取失败处理：若对应条目通信异常，读取返回 0。</div>
+                                                <div>4. 错误标志位：49001-49060 对应条目 1-60；正常返回 1，异常返回该条目的错误标记值。</div>
+                                            </div>
+                                            <div class="config-section">
+                                                <div class="section-title">CH2 自动采集</div>
+                                                <div class="label-view ac-maddr-row">
+                                                    <div class="label-name">映射从机地址</div>
+                                                    <div class="ac-maddr-controls">
+                                                        <input id="ac_ch2_maddr" type="number" class="base-input ac-maddr-input" min="1" max="247" value="2" />
+                                                        <div class="ac-exception-control">
+                                                            <span>允许该地址返回错误码</span>
+                                                            <button type="button" id="ac_ch2_exception_switch" class="switch-btn off ac-exception-switch" role="switch" aria-checked="false" aria-label="允许CH2映射地址返回错误码" onclick="toggleAutoCollectExceptionResponse('ch2')">
+                                                                <span class="circle"></span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div id="ac_ch2_items_container" class="modbus-table-container">
+                                                    <!-- JS填充条目 -->
+                                                </div>
+                                                <div class="button-group" style="margin-top: 8px;">
+                                                    <button type="button" class="main-btn" id="ac_ch2_add_item">
+                                                        <div class="btn-container">添加CH2条目</div>
+                                                    </button>
+                                                    <button type="button" class="main-btn" id="ac_ch2_remove_item">
+                                                        <div class="btn-container">删除选中</div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="config-section" style="margin-top: 16px;">
+                                                <div class="section-title">CH3 自动采集</div>
+                                                <div class="label-view ac-maddr-row">
+                                                    <div class="label-name">映射从机地址</div>
+                                                    <div class="ac-maddr-controls">
+                                                        <input id="ac_ch3_maddr" type="number" class="base-input ac-maddr-input" min="1" max="247" value="3" />
+                                                        <div class="ac-exception-control">
+                                                            <span>允许该地址返回错误码</span>
+                                                            <button type="button" id="ac_ch3_exception_switch" class="switch-btn off ac-exception-switch" role="switch" aria-checked="false" aria-label="允许CH3映射地址返回错误码" onclick="toggleAutoCollectExceptionResponse('ch3')">
+                                                                <span class="circle"></span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div id="ac_ch3_items_container" class="modbus-table-container">
+                                                    <!-- JS填充条目 -->
+                                                </div>
+                                                <div class="button-group" style="margin-top: 8px;">
+                                                    <button type="button" class="main-btn" id="ac_ch3_add_item">
+                                                        <div class="btn-container">添加CH3条目</div>
+                                                    </button>
+                                                    <button type="button" class="main-btn" id="ac_ch3_remove_item">
+                                                        <div class="btn-container">删除选中</div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="label-view" style="margin-top: 12px;">
+                                                <div class="view-container">
+                                                    <div class="button-group">
+                                                        <button type="button" class="main-btn" id="ac_import_btn">
+                                                            <div class="btn-container">导入</div>
+                                                        </button>
+                                                        <button type="button" class="main-btn" id="ac_export_btn">
+                                                            <div class="btn-container">导出</div>
+                                                        </button>
+                                                        <button type="button" class="main-btn" id="ac_save_btn">
+                                                            <div class="btn-container">应用更改并重启</div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Modbus-RTU 配置区域 -->
+                                    <div id="modbus_rtu_config" style="display: none;">
+                                        <div class="modbus-item">
+                                            <div id="modbus_items_container"></div>
+                                            <div class="modbus-manual-hint base-desc">
+                                                以上是集线器主动请求从站设备的寄存器和从站参数的配置，所有数值均为十进制。
+                                            </div>
+                                            <div data-v-2c53cae0="" class="label-view label-view">
+                                                <div class="label">
+                                                    <div class="title tip top"></div>
+                                                </div>
+                                                <div class="view-container">
+                                                    <div class="button-group">
+                                                        <button type="button" id="addModbusItem" class="main-btn">
+                                                            <div class="btn-container">添加</div>
+                                                        </button>
+                                                        <button type="button" id="removeModbusItem" class="main-btn">
+                                                            <div class="btn-container">删除</div>
+                                                        </button>
+                                                        <button type="button" id="importModbusItem" class="main-btn">
+                                                            <div class="btn-container">导入</div>
+                                                        </button>
+                                                        <button type="button" id="exportModbusItem" class="main-btn">
+                                                            <div class="btn-container">导出</div>
+                                                        </button>
+                                                        <button type="button" id="saveModbusItem" class="main-btn">
+                                                            <div class="btn-container">保存</div>
+                                                        </button>
+                                                        <button type="button" id="setModbusItem" class="main-btn">
+                                                            <div class="btn-container">配置</div>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </form>
+
+                    <div data-v-6f9f3e2e="" id="content">
+                        <div data-v-2c53cae0="" data-v-6f9f3e2e="" class="card-view">
+                            <div data-v-721c7581="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">
+                                    串口设置
+                                    <span class="toggle-btn" id="serialConfigToggle">
+                                        <i class="iconfont iconxiajiantou2"></i>
+                                    </span>
+                                </div>
+                            </div>
+                            <div id="serialConfigContent" class="content-area">
+                                <!-- 串口参数同步配置选择 -->
+                                <div class="serial-sync-config">
+                                    <div class="sync-config-title">
+                                        串口参数配置模式
+                                    </div>
+                                    <div class="sync-config-options">
+                                        <label class="sync-option">
+                                            <input type="radio" name="serialSyncMode" value="unified">
+                                            <span class="option-text">
+                                                <i class="iconfont iconzhengque sync-check-icon" style="display: none;"></i>
+                                                统一配置
+                                            </span>
+                                        </label>
+                                        <label class="sync-option">
+                                            <input type="radio" name="serialSyncMode" value="separate">
+                                            <span class="option-text">
+                                                <i class="iconfont iconzhengque sync-check-icon" style="display: none;"></i>
+                                                分别配置
+                                            </span>
+                                        </label>
+                                        <label class="sync-option">
+                                            <input type="radio" name="serialSyncMode" value="slave_follow">
+                                            <span class="option-text">
+                                                <i class="iconfont iconzhengque sync-check-icon" style="display: none;"></i>
+                                                从机跟随
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div class="sync-config-description">
+                                        <div id="unified-desc" class="sync-desc active">
+                                            所有串口通道使用相同的参数配置
+                                        </div>
+                                        <div id="separate-desc" class="sync-desc">
+                                            每个串口通道独立配置参数
+                                        </div>
+                                        <div id="slave_follow-desc" class="sync-desc">
+                                            CH3将自动使用与主站相同的参数配置，修改主站参数后从机通道会自动同步更新
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 串口标签页 (仅在分别配置模式下显示) -->
+                                <div class="serial-tabs" id="serialTabsContainer" style="display: none;">
+                                    <button id="serialTab1" class="serial-tab-button active">CH1</button>
+                                    <button id="serialTab2" class="serial-tab-button">CH2</button>
+                                    <button id="serialTab3" class="serial-tab-button">CH3</button>
+                                </div>
+
+
+                                <!-- 统一配置模式 -->
+                                <div id="serialUnifiedConfig" class="serial-config-panel unified-config-panel" style="display: none;">
+                                    <div class="unified-config-content">
+                                        <form method='post' id="serialUnifiedForm" action='/serial_set'>
+                                            <input type="hidden" name="serial_port" value="unified">
+                                            <div data-v-2c53cae0="" class="label-view label-view small mt-20" data-v-6f9f3e2e="">
+                                                <div class="label">
+                                                    <div class="title tip top"> 波特率</div>
+                                                </div>
+                                                <div class="view-container">
+                                                    <div data-v-2c53cae0="" class="baud-container"><select id="unified_baud_rate"
+                                                            name="baud_rate" data-v-2c53cae0="" class="base-input">
+                                                            <option data-v-2c53cae0="" value="1200"> 1200 </option>
+                                                            <option data-v-2c53cae0="" value="2400"> 2400 </option>
+                                                            <option data-v-2c53cae0="" value="4800"> 4800 </option>
+                                                            <option data-v-2c53cae0="" value="9600"> 9600 </option>
+                                                            <option data-v-2c53cae0="" value="19200"> 19200 </option>
+                                                            <option data-v-2c53cae0="" value="38400"> 38400 </option>
+                                                            <option data-v-2c53cae0="" value="57600"> 57600 </option>
+                                                            <option data-v-2c53cae0="" value="115200"> 115200 </option>
+                                                        </select></div>
+                                                </div>
+                                            </div>
+                                            <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                                <div class="label">
+                                                    <div class="title tip top"> 数据位</div>
+                                                </div>
+                                                <div class="view-container"><select id="unified_data_bit" name="data_bit"
+                                                        data-v-2c53cae0="" class="base-input">
+                                                        <option data-v-2c53cae0="" value="5"> 5 </option>
+                                                        <option data-v-2c53cae0="" value="6"> 6 </option>
+                                                        <option data-v-2c53cae0="" value="7"> 7 </option>
+                                                        <option data-v-2c53cae0="" value="8"> 8 </option>
+                                                    </select></div>
+                                            </div>
+                                            <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                                <div class="label">
+                                                    <div class="title tip top"> 校验位</div>
+                                                </div>
+                                                <div class="view-container"><select id="unified_check_bit" name="check_bit"
+                                                        data-v-2c53cae0="" class="base-input">
+                                                        <option data-v-2c53cae0="" value="0" selected> 无校验</option>
+                                                        <option data-v-2c53cae0="" value="1"> 奇校验</option>
+                                                        <option data-v-2c53cae0="" value="2"> 偶校验</option>
+                                                    </select></div>
+                                            </div>
+                                            <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                                <div class="label">
+                                                    <div class="title tip top"> 停止位</div>
+                                                </div>
+                                                <div class="view-container"><select id="unified_stop_bit" name="stop_bit"
+                                                        data-v-2c53cae0="" class="base-input">
+                                                        <option data-v-2c53cae0="" value="1"> 1位停止位 </option>
+                                                        <option data-v-2c53cae0="" value="1.5"> 1.5位停止位 </option>
+                                                        <option data-v-2c53cae0="" value="2"> 2位停止位 </option>
+                                                    </select></div>
+                                            </div>
+                                            <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                                <div class="label">
+                                                    <div class="title tip top"> 间隔时间 </div>
+                                                </div>
+                                                <div class="view-container">
+                                                    <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                            id="unified_frame_time" value="50" name="frame_time" placeholder="请输入间隔时间"
+                                                            type="text" class="base-input">
+                                                        <div class="err-text"></div>
+                                                    </div>
+                                                    <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                                </div>
+                                            </div>
+                                            <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                                <div class="label">
+                                                    <div class="title tip top"> 最大帧长度 </div>
+                                                </div>
+                                                <div class="view-container">
+                                                    <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                            id="unified_frame_len" value="512" name="frame_len" placeholder="请输入最大帧长度"
+                                                            type="text" class="base-input">
+                                                        <div class="err-text"></div>
+                                                    </div>
+                                                    <div data-v-2c53cae0="" class="unit-text">字节</div>
+                                                </div>
+                                            </div>
+                                            <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                                <div class="label">
+                                                    <div class="title tip top"> 回复超时时间 </div>
+                                                </div>
+                                                <div class="view-container">
+                                                    <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                            id="unified_reply_timeout" value="500" name="reply_timeout" placeholder="请输入回复超时时间"
+                                                            type="text" class="base-input">
+                                                        <div class="err-text"></div>
+                                                    </div>
+                                                    <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+
+                                <!-- 串口标签页 (仅在从机跟随模式下显示) -->
+                                <div class="serial-tabs" id="slaveFollowTabsContainer" style="display: none;">
+                                    <button id="slaveFollowTab1" class="serial-tab-button active">CH1</button>
+                                    <button id="slaveFollowTab2" class="serial-tab-button">CH2</button>
+                                </div>
+
+
+                                <!-- 串口1配置 -->
+                                <div id="serialConfig1" class="serial-config-panel separate-config-panel" style="display: none;">
+                                    <form method='post' id="serialDataForm1" action='/serial_set'>
+                                        <input type="hidden" name="serial_port" value="1">
+                                        <div data-v-2c53cae0="" class="label-view label-view small mt-20" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 波特率</div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="baud-container"><select id="baud_rate_1"
+                                                        name="baud_rate" data-v-2c53cae0="" class="base-input">
+                                                        <option data-v-2c53cae0="" value="1200"> 1200 </option>
+                                                        <option data-v-2c53cae0="" value="2400"> 2400 </option>
+                                                        <option data-v-2c53cae0="" value="4800"> 4800 </option>
+                                                        <option data-v-2c53cae0="" value="9600"> 9600 </option>
+                                                        <option data-v-2c53cae0="" value="19200"> 19200 </option>
+                                                        <option data-v-2c53cae0="" value="38400"> 38400 </option>
+                                                        <option data-v-2c53cae0="" value="57600"> 57600 </option>
+                                                        <option data-v-2c53cae0="" value="115200"> 115200 </option>
+                                                    </select></div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 数据位</div>
+                                            </div>
+                                            <div class="view-container"><select id="data_bit_1" name="data_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="5"> 5 </option>
+                                                    <option data-v-2c53cae0="" value="6"> 6 </option>
+                                                    <option data-v-2c53cae0="" value="7"> 7 </option>
+                                                    <option data-v-2c53cae0="" value="8"> 8 </option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 校验位</div>
+                                            </div>
+                                            <div class="view-container"><select id="check_bit_1" name="check_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="0" selected> 无校验</option>
+                                                    <option data-v-2c53cae0="" value="1"> 奇校验</option>
+                                                    <option data-v-2c53cae0="" value="2"> 偶校验</option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 停止位</div>
+                                            </div>
+                                            <div class="view-container"><select id="stop_bit_1" name="stop_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="1"> 1位停止位 </option>
+                                                    <option data-v-2c53cae0="" value="1.5"> 1.5位停止位 </option>
+                                                    <option data-v-2c53cae0="" value="2"> 2位停止位 </option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 间隔时间 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="frame_time_1" value="50" name="frame_time" placeholder="请输入间隔时间"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 最大帧长度 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="frame_len_1" value="512" name="frame_len" placeholder="请输入最大帧长度"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">字节</div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 回复超时时间 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="reply_timeout_1" value="500" name="reply_timeout" placeholder="请输入回复超时时间"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- 串口2配置 -->
+                                <div id="serialConfig2" class="serial-config-panel separate-config-panel" style="display: none;">
+                                    <form method='post' id="serialDataForm2" action='/serial_set'>
+                                        <input type="hidden" name="serial_port" value="2">
+                                        <div data-v-2c53cae0="" class="label-view label-view small mt-20" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 波特率</div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="baud-container"><select id="baud_rate_2"
+                                                        name="baud_rate" data-v-2c53cae0="" class="base-input">
+                                                        <option data-v-2c53cae0="" value="1200"> 1200 </option>
+                                                        <option data-v-2c53cae0="" value="2400"> 2400 </option>
+                                                        <option data-v-2c53cae0="" value="4800"> 4800 </option>
+                                                        <option data-v-2c53cae0="" value="9600"> 9600 </option>
+                                                        <option data-v-2c53cae0="" value="19200"> 19200 </option>
+                                                        <option data-v-2c53cae0="" value="38400"> 38400 </option>
+                                                        <option data-v-2c53cae0="" value="57600"> 57600 </option>
+                                                        <option data-v-2c53cae0="" value="115200"> 115200 </option>
+                                                    </select></div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 数据位</div>
+                                            </div>
+                                            <div class="view-container"><select id="data_bit_2" name="data_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="5"> 5 </option>
+                                                    <option data-v-2c53cae0="" value="6"> 6 </option>
+                                                    <option data-v-2c53cae0="" value="7"> 7 </option>
+                                                    <option data-v-2c53cae0="" value="8"> 8 </option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 校验位</div>
+                                            </div>
+                                            <div class="view-container"><select id="check_bit_2" name="check_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="0" selected> 无校验</option>
+                                                    <option data-v-2c53cae0="" value="1"> 奇校验</option>
+                                                    <option data-v-2c53cae0="" value="2"> 偶校验</option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 停止位</div>
+                                            </div>
+                                            <div class="view-container"><select id="stop_bit_2" name="stop_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="1"> 1位停止位 </option>
+                                                    <option data-v-2c53cae0="" value="1.5"> 1.5位停止位 </option>
+                                                    <option data-v-2c53cae0="" value="2"> 2位停止位 </option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 间隔时间 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="frame_time_2" value="50" name="frame_time" placeholder="请输入间隔时间"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 最大帧长度 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="frame_len_2" value="512" name="frame_len" placeholder="请输入最大帧长度"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">字节</div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 回复超时时间 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="reply_timeout_2" value="500" name="reply_timeout" placeholder="请输入回复超时时间"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- 串口3配置 -->
+                                <div id="serialConfig3" class="serial-config-panel separate-config-panel" style="display: none;">
+                                    <form method='post' id="serialDataForm3" action='/serial_set'>
+                                        <input type="hidden" name="serial_port" value="3">
+                                        <div data-v-2c53cae0="" class="label-view label-view small mt-20" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 波特率</div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="baud-container"><select id="baud_rate_3"
+                                                        name="baud_rate" data-v-2c53cae0="" class="base-input">
+                                                        <option data-v-2c53cae0="" value="1200"> 1200 </option>
+                                                        <option data-v-2c53cae0="" value="2400"> 2400 </option>
+                                                        <option data-v-2c53cae0="" value="4800"> 4800 </option>
+                                                        <option data-v-2c53cae0="" value="9600"> 9600 </option>
+                                                        <option data-v-2c53cae0="" value="19200"> 19200 </option>
+                                                        <option data-v-2c53cae0="" value="38400"> 38400 </option>
+                                                        <option data-v-2c53cae0="" value="57600"> 57600 </option>
+                                                        <option data-v-2c53cae0="" value="115200"> 115200 </option>
+                                                    </select></div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 数据位</div>
+                                            </div>
+                                            <div class="view-container"><select id="data_bit_3" name="data_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="5"> 5 </option>
+                                                    <option data-v-2c53cae0="" value="6"> 6 </option>
+                                                    <option data-v-2c53cae0="" value="7"> 7 </option>
+                                                    <option data-v-2c53cae0="" value="8"> 8 </option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 校验位</div>
+                                            </div>
+                                            <div class="view-container"><select id="check_bit_3" name="check_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="0" selected> 无校验</option>
+                                                    <option data-v-2c53cae0="" value="1"> 奇校验</option>
+                                                    <option data-v-2c53cae0="" value="2"> 偶校验</option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 停止位</div>
+                                            </div>
+                                            <div class="view-container"><select id="stop_bit_3" name="stop_bit"
+                                                    data-v-2c53cae0="" class="base-input">
+                                                    <option data-v-2c53cae0="" value="1"> 1位停止位 </option>
+                                                    <option data-v-2c53cae0="" value="1.5"> 1.5位停止位 </option>
+                                                    <option data-v-2c53cae0="" value="2"> 2位停止位 </option>
+                                                </select></div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 间隔时间 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="frame_time_3" value="50" name="frame_time" placeholder="请输入间隔时间"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 最大帧长度 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="frame_len_3" value="512" name="frame_len" placeholder="请输入最大帧长度"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">字节</div>
+                                            </div>
+                                        </div>
+                                        <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                            <div class="label">
+                                                <div class="title tip top"> 回复超时时间 </div>
+                                            </div>
+                                            <div class="view-container">
+                                                <div data-v-2c53cae0="" class="custom-input custom-input"><input
+                                                        id="reply_timeout_3" value="500" name="reply_timeout" placeholder="请输入回复超时时间"
+                                                        type="text" class="base-input">
+                                                    <div class="err-text"></div>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="unit-text">毫秒</div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- 保存按钮 -->
+                                <div data-v-2c53cae0="" class="label-view label-view mt-20" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div class="button-group">
+                                            <button id="serialButton" data-v-2c53cae0=""
+                                                class="main-btn">
+                                                <div class="btn-container"> 保存配置 </div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <!-- Modbus地址过滤配置区域 -->
+                        <div data-v-2c53cae0="" data-v-6f9f3e2e="" class="card-view" id="modbusFilterCard" style="display: none;">
+                            <div data-v-721c7581="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">Modbus地址过滤</div>
+                            </div>
+                            <div class="content-area">
+                                <div class="modbus-filter-section">
+                                    <!-- 启用开关 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top">启用地址过滤</div>
+                                        </div>
+                                        <div class="view-container">
+                                            <div class="custom-input">
+                                                <label style="display: flex; align-items: center;">
+                                                    <input type="checkbox" id="modbus_filter_enabled" onchange="toggleFilterMode()" style="margin-right: 8px;">
+                                                    <span>启用地址过滤</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 过滤模式 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top">过滤模式</div>
+                                        </div>
+                                        <div class="view-container">
+                                            <select id="modbus_filter_mode" onchange="changeFilterMode()" data-v-2c53cae0="" class="base-input">
+                                                <option value="1">白名单模式</option>
+                                                <option value="2">黑名单模式</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- 从机地址列表 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top">从机地址列表</div>
+                                        </div>
+                                        <div class="view-container">
+                                            <div class="custom-input">
+                                                <div id="modbus_filter_ranges" style="margin-bottom: 10px;">
+                                                    <!-- 从机地址将在这里动态生成 -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 按钮组 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top"></div>
+                                        </div>
+                                        <div class="view-container">
+                                            <div class="button-group">
+                                                <div class="button-left-group">
+                                                    <button type="button" onclick="addFilterRange()" class="main-btn">
+                                                        <div class="btn-container">添加从机地址</div>
+                                                    </button>
+                                                    <button type="button" onclick="exportFilterConfig()" class="main-btn">
+                                                        <div class="btn-container">导出配置</div>
+                                                    </button>
+                                                    <input type="file" id="filterConfigFile" accept=".json" style="display: none;" onchange="importFilterConfig(event)">
+                                                    <button type="button" onclick="document.getElementById('filterConfigFile').click()" class="main-btn">
+                                                        <div class="btn-container">导入配置</div>
+                                                    </button>
+                                                </div>
+                                                <div class="button-right-group">
+                                                    <button type="button" onclick="saveModbusFilterConfig()" class="main-btn save-btn">
+                                                        <div class="btn-container">保存过滤配置</div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modbus从机地址映射配置区域 -->
+                        <div data-v-2c53cae0="" data-v-6f9f3e2e="" class="card-view" id="modbusSlaveMapCard" style="display: none;">
+                            <div data-v-721c7581="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">Modbus从机地址映射</div>
+                            </div>
+                            <div class="content-area">
+                                <div class="modbus-mapping-section">
+                                    <!-- 启用开关 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top">启用从机地址映射</div>
+                                        </div>
+                                        <div class="view-container">
+                                            <div class="custom-input">
+                                                <label style="display: flex; align-items: center;">
+                                                    <input type="checkbox" id="modbus_mapping_enabled" onchange="toggleMappingMode()" style="margin-right: 8px;">
+                                                    <span>启用从机地址映射</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 映射说明 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top">映射说明</div>
+                                        </div>
+                                        <div class="view-container">
+                                            <div class="base-desc">
+                                                配置虚拟从机地址到真实从机地址的映射。主机访问虚拟地址时，系统自动转换为真实地址。<br>
+                                                最多支持247个映射条目（等于Modbus总线最大从机数量）。
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 映射条目 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top">映射条目</div>
+                                        </div>
+                                        <div class="view-container">
+                                            <div class="custom-input">
+                                                <div id="modbus_mapping_entries" style="margin-bottom: 10px;">
+                                                    <!-- 映射条目将在这里动态生成 -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 按钮组 -->
+                                    <div data-v-2c53cae0="" class="label-view label-view" data-v-6f9f3e2e="">
+                                        <div class="label">
+                                            <div class="title tip top"></div>
+                                        </div>
+                                        <div class="view-container">
+                                            <div class="button-group">
+                                                <div class="button-left-group">
+                                                    <button type="button" onclick="addMappingEntry()" class="main-btn">
+                                                        <div class="btn-container">添加映射</div>
+                                                    </button>
+                                                    <button type="button" onclick="exportMappingConfig()" class="main-btn">
+                                                        <div class="btn-container">导出配置</div>
+                                                    </button>
+                                                    <input type="file" id="mappingConfigFile" accept=".json" style="display: none;" onchange="importMappingConfig(event)">
+                                                    <button type="button" onclick="document.getElementById('mappingConfigFile').click()" class="main-btn">
+                                                        <div class="btn-container">导入配置</div>
+                                                    </button>
+                                                </div>
+                                                <div class="button-right-group">
+                                                    <button type="button" onclick="saveMappingConfig()" class="main-btn save-btn">
+                                                        <div class="btn-container">保存映射配置</div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div data-v-2c53cae0="" data-v-6f9f3e2e="" class="card-view">
+                            <div data-v-721c7581="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">串口调试</div>
+                            </div>
+                            <form id="serial_ctl" method='post' action='/serial_ctl'>
+
+                                <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 发送类型</div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div class="serial-send-type-row">
+                                            <div data-v-2c53cae0="" class="radio-div radio-horizontal">
+                                                <div data-v-2c53cae0="" class="input-radio">
+                                                    <input data-v-2c53cae0="" type="radio" id="tran" name="option" value="0"
+                                                        checked>
+                                                    <label data-v-2c53cae0="" for="tran" class="circle"></label>
+                                                    <label data-v-2c53cae0="" for="tran" class="name">十六进制</label>
+                                                </div>
+                                                <div data-v-2c53cae0="" class="input-radio">
+                                                    <input data-v-2c53cae0="" type="radio" id="mqt" name="option" value="2">
+                                                    <label data-v-2c53cae0="" for="mqt" class="circle"></label>
+                                                    <label data-v-2c53cae0="" for="mqt" class="name">字符</label>
+                                                </div>
+                                            </div>
+                                            <label class="serial-crc-toggle serial-crc-toggle-inline" for="serial_crc_enable">
+                                                <input type="checkbox" id="serial_crc_enable">
+                                                <span class="serial-crc-chip">CRC</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 显示过滤</div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div class="channel-filter-container">
+                                            <label class="channel-filter-item">
+                                                <input type="checkbox" id="filter_ch1" checked> 
+                                                <span class="channel-badge ch1">CH1</span>
+                                                <span class="filter-count" id="count_ch1">0</span>
+                                            </label>
+                                            <label class="channel-filter-item">
+                                                <input type="checkbox" id="filter_ch2" checked> 
+                                                <span class="channel-badge ch2">CH2</span>
+                                                <span class="filter-count" id="count_ch2">0</span>
+                                            </label>
+                                            <label class="channel-filter-item">
+                                                <input type="checkbox" id="filter_ch3" checked> 
+                                                <span class="channel-badge ch3">CH3</span>
+                                                <span class="filter-count" id="count_ch3">0</span>
+                                            </label>
+
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 接收 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-2c53cae0="" class="custom-input custom-input cus-uart">
+                                            <div id="devcie_report" contenteditable="false" style="height: 200px;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-2c53cae0="" class="label-view label-view mt-10" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div class="button-group">
+                                            <button id="clearResponse" data-v-2c53cae0="" class="main-btn">
+                                                <div class="btn-container">清空接收</div>
+                                            </button>
+                                            <button id="toggleReceive" data-v-2c53cae0="" class="main-btn">
+                                                <div class="btn-container">停止接收</div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 发送通道</div>
+                                    </div>
+                                    <div class="view-container">
+                                                                        <div class="debug-channel-horizontal">
+                                    <label class="debug-channel-item">
+                                        <input type="radio" id="debug_ch1" name="debug_channel" value="1" checked>
+                                        <span class="channel-badge ch1">CH1</span>
+                                    </label>
+                                    <label class="debug-channel-item">
+                                        <input type="radio" id="debug_ch2" name="debug_channel" value="2">
+                                        <span class="channel-badge ch2">CH2</span>
+                                    </label>
+                                    <label class="debug-channel-item">
+                                        <input type="radio" id="debug_ch3" name="debug_channel" value="3">
+                                        <span class="channel-badge ch3">CH3</span>
+                                    </label>
+                                </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-2c53cae0="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 发送</div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div class="send-with-button">
+                                            <div data-v-2c53cae0="" class="custom-input custom-input cus-uart">
+                                                <textarea id="instruction" name='instruction'
+                                                    placeholder="请输入要发送的数据"></textarea>
+                                                <div id="error-message" contenteditable="false"></div>
+                                            </div>
+                                            <div class="serial-crc-panel">
+                                                <span class="serial-crc-label">CRC</span>
+                                                <input id="serial_crc_value" class="serial-crc-value" type="text"
+                                                    readonly placeholder="-- --">
+                                            </div>
+                                            <button id="serialControl" data-v-2c53cae0="" class="main-btn send-button">
+                                                <div class="btn-container">下发</div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </form>
+
+                        </div>
+
+
+                    </div>
+                </div>
+
+                <div id="netView" name="netView" style="display: none;">
+                    <div data-v-6f9f3e2e="" id="content">
+                        <form id="net_set" method='post' action='/net_set'>
+                            <div data-v-721c7581="" data-v-6f9f3e2e="" class="card-view">
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="container theme" style="
+                                border-bottom: 1px solid var(--BG-2);">
+                                    <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">网络设置</div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view" data-v-6f9f3e2e=""
+                                    style="margin-top: 16px;">
+                                    <div class="label">
+                                        <div class="title tip"> 网络连接 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="base-text">
+                                            <div style="display: flex;">
+                                                <button data-v-721c7581="" class="main-btn network-btn" id="wifi"
+                                                    style="height: 26px;background: var(--BRAND);font-size: 12px;">
+                                                    <div> WiFi </div>
+                                                </button>
+                                                <input type="hidden" name='netconn' id="selectedNetwork" value="2">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-721c7581="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip"> 静态IP </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-481ccfe2="" data-v-721c7581="" class="switch-btn switch-btn off"
+                                            id="static_ip_switch" onclick="autoDHCP(this)"
+                                            style="margin: 4px 4px 0px 4px;">
+                                            <div data-v-481ccfe2="" class="circle"></div>
+                                        </div>
+                                        <input type="hidden" id="is_dhcp" name="is_dhcp" value="1">
+                                    </div>
+                                </div>
+
+                                <div data-v-721c7581="" class="label-view label-view mt-15 dhcp_hide" data-v-6f9f3e2e=""
+                                    id="wifi_ssid_div" style="display: flex;">
+                                    <div class="label">
+                                        <div class="title tip top"> WIFI名称 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input"><input
+                                                placeholder="请输入WIFI名称" id="wifi_ssid" name='wifi_ssid' type="text"
+                                                class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-721c7581="" class="label-view label-view mt-15 dhcp_hide" data-v-6f9f3e2e=""
+                                    id="wifi_password_div" style="display: flex;">
+                                    <div class="label">
+                                        <div class="title tip top"> WIFI密码 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input passwd-input"><input
+                                                placeholder="请输入WIFI密码" id="wifi_password" name='wifi_password'
+                                                type="password" class="base-input">
+                                            <svg id="wifieyeOpen" class="iconeye" viewBox="0 0 1024 1024" version="1.1"
+                                                xmlns="http://www.w3.org/2000/svg" p-id="6626" width="24" height="24"
+                                                style="display: none;">
+                                                <path
+                                                    d="M512 768c-183.466667 0-328.533333-85.333333-426.666667-256 98.133333-170.666667 243.2-256 426.666667-256s328.533333 85.333333 426.666667 256c-98.133333 170.666667-243.2 256-426.666667 256z m8.533333-426.666667c-128 0-256 55.466667-328.533333 170.666667 72.533333 115.2 200.533333 170.666667 328.533333 170.666667s238.933333-55.466667 311.466667-170.666667c-72.533333-115.2-183.466667-170.666667-311.466667-170.666667z m-8.533333 298.666667c-72.533333 0-128-55.466667-128-128s55.466667-128 128-128 128 55.466667 128 128-55.466667 128-128 128z m0-85.333333c25.6 0 42.666667-17.066667 42.666667-42.666667s-17.066667-42.666667-42.666667-42.666667-42.666667 17.066667-42.666667 42.666667 17.066667 42.666667 42.666667 42.666667z"
+                                                    fill="#bfbfbf" p-id="6627"></path>
+                                            </svg>
+                                            <svg id="wifieyeClosed" class="iconeye" viewBox="0 0 1024 1024"
+                                                version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5956" width="24"
+                                                height="24">
+                                                <path
+                                                    d="M422.4 776.533333l76.8-76.8h8.533333c145.066667 0 251.733333-55.466667 332.8-170.666666-25.6-34.133333-55.466667-64-85.333333-89.6L819.2 384c46.933333 38.4 85.333333 89.6 119.466667 145.066667-98.133333 170.666667-243.2 251.733333-426.666667 251.733333-29.866667 4.266667-59.733333 0-89.6-4.266667z m-238.933333-119.466666c-34.133333-34.133333-68.266667-76.8-98.133334-128 98.133333-170.666667 243.2-251.733333 426.666667-251.733334h46.933333l-85.333333 85.333334c-128 8.533333-226.133333 64-298.666667 166.4 17.066667 25.6 38.4 51.2 59.733334 68.266666l-51.2 59.733334zM755.2 213.333333l59.733333 59.733334L277.333333 810.666667l-59.733333-59.733334L755.2 213.333333z"
+                                                    fill="#bfbfbf" p-id="5957"></path>
+                                            </svg>
+                                            <div class="err-text"></div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div data-v-721c7581="" id="scanList" class="label-view label-view mt-15 label-view"
+                                    data-v-6f9f3e2e="" style="display: flex;">
+                                    <div class="label">
+                                        <div class="title tip"> 扫描列表 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="base-text" style="width: 210px;">
+                                            <table id="wifitable" style="color: var(--FG-3); width: 100%;">
+                                                <tr style="color: var(--FG-3);">
+                                                    <th style="text-align: left;">WIFI名称</th>
+                                                    <th style="text-align: left;">信号强度</th>
+                                                </tr>
+                                                <tr id="clusss" style="color: var(--FG-3);"></tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> IP 地址 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input"><input
+                                                placeholder="请输入IP 地址" id="static_ip" name='static_ip' type="text"
+                                                class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 子网掩码 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input"><input
+                                                                                                        placeholder="请输入子网掩码" id="static_netmask" name='static_netmask'
+                                                type="text" class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 网关 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input"><input
+                                                                                                        placeholder="请输入网关" id="static_gateway" name='static_gateway'
+                                                type="text" class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 首选DNS </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input"><input
+                                                placeholder="请输入首选DNS" id="static_dns1" name='static_dns1' type="text"
+                                                class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 备选DNS </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input"><input
+                                                placeholder="请输入备选DNS" id="static_dns2" name='static_dns2' type="text"
+                                                class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view mt-10 mb-20" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> </div>
+                                    </div>
+                                    <div class="view-container">
+
+                                        <div class="button-group">
+                                            <button data-v-721c7581="" class="main-btn" id="wifisearch"
+                                                style="background: #c30505a1;">
+                                                <div> 搜索 </div>
+                                            </button>
+                                            <button data-v-721c7581="" class="main-btn" id="netSetButton" type='submit'>
+                                                <div class="btn-container"> 保存配置 </div>
+                                            </button>
+
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- AP管理模块 -->
+                        <form id="ap_management_set" method='post' action='/ap_set'>
+                            <div data-v-721c7581="" data-v-6f9f3e2e="" class="card-view">
+                                <div data-v-721c7581="" data-v-6f9f3e2e="" class="container theme" style="
+                                border-bottom: 1px solid var(--BG-2);">
+                                    <div data-v-721c7581="" data-v-6f9f3e2e="" class="title-text">AP管理</div>
+                                </div>
+                                <div data-v-721c7581="" class="label-view label-view" data-v-6f9f3e2e=""
+                                    style="margin-top: 16px; margin-left: 12px; margin-right: 12px;">
+                                    <div class="label">
+                                        <div class="title tip"> AP关闭时间 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-721c7581="" class="custom-input custom-input">
+                                            <select id="ap_timeout" name='ap_timeout' class="base-input">
+                                                <option value="5">5分钟后关闭</option>
+                                                <option value="10" selected>10分钟后关闭</option>
+                                                <option value="15">15分钟后关闭</option>
+                                                <option value="30">30分钟后关闭</option>
+                                                <option value="60">1小时后关闭</option>
+                                                <option value="120">2小时后关闭</option>
+                                                <option value="360">6小时后关闭</option>
+                                                <option value="720">12小时后关闭</option>
+                                                <option value="1440">24小时后关闭</option>
+                                                <option value="0">从不关闭</option>
+                                            </select>
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-721c7581="" class="label-view label-view mt-10 mb-20" data-v-6f9f3e2e="" style="margin-left: 12px; margin-right: 12px;">
+                                    <div class="label">
+                                        <div class="title tip top"> </div>
+                                    </div>
+                                    <div class="view-container">
+
+                                        <div class="button-group">
+                                            <button data-v-721c7581="" class="main-btn" id="apSetButton" type='submit'>
+                                                <div class="btn-container"> 保存配置 </div>
+                                            </button>
+
+
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+
+                <div id="sysView" name="sysView" style="display: none;">
+                    <div data-v-6f9f3e2e="" id="content">
+                        <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view pw">
+                            <div data-v-4818d386="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-4818d386="" data-v-6f9f3e2e="" class="title-text">硬件参数</div>
+                            </div>
+
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 系统版本 </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="version"></div>
+                                </div>
+                            </div>
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 系统可用堆内存(内部RAM)</div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="free_heap_internal"></div>
+                                </div>
+                            </div>
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 最小可用堆大小(内部RAM)</div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="min_heap_internal"></div>
+                                </div>
+                            </div>
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 可用堆内存(PSRAM)</div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="free_heap_psram"></div>
+                                </div>
+                            </div>
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 最小可用堆大小(PSRAM)</div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="min_heap_psram"></div>
+                                </div>
+                            </div>
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip" data-translate="activeSockets"> 活跃套接字数量</div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="active_sockets"></div>
+                                </div>
+                            </div>
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 系统运行时间 </div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="time_since_boot"></div>
+                                </div>
+                            </div>
+                            <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
+                                data-v-6f9f3e2e="">
+                                <div class="label">
+                                    <div class="title tip"> 上一次重启原因</div>
+                                </div>
+                                <div class="view-container">
+                                    <div data-v-4818d386="" class="base-text" id="res_reason"></div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view pw">
+                            <form method='post' id="module_set" action='/module_set'>
+                                <div data-v-4818d386="" data-v-6f9f3e2e="" class="container">
+                                    <div data-v-4818d386="" data-v-6f9f3e2e="" class="title-text">登录设置</div>
+                                    <div class="button-group">
+                                        <button data-v-4818d386="" type='submit' disabled="disabled" id="moduleSetButton"
+                                            class="main-btn" data-v-6f9f3e2e="">
+                                            <div class="btn-container"> 保存配置 </div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div data-v-4818d386="" class="label-view label-view mt-20" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 设备名称 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-4818d386="" class="custom-input custom-input"><input id="host_names"
+                                                                                                    name='host_names' placeholder="请输入设备名称" type="text" class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div data-v-4818d386="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 用户名</div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-4818d386="" class="custom-input custom-input"><input id="lgname"
+                                                name='lgname' placeholder="请输入用户名" type="text" class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div data-v-4818d386="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 登录密码 </div>
+                                    </div>
+                                    <div class="view-container">
+
+                                        <div data-v-4818d386="" class="custom-input custom-input passwd-input"><input
+                                                id="lgpwd" name='lgpwd' placeholder="请输入新密码" type="password"
+                                                class="base-input">
+                                            <svg id="eyeOpen" class="iconeye" viewBox="0 0 1024 1024" version="1.1"
+                                                xmlns="http://www.w3.org/2000/svg" p-id="6626" width="24" height="24"
+                                                style="display: none;">
+                                                <path
+                                                    d="M512 768c-183.466667 0-328.533333-85.333333-426.666667-256 98.133333-170.666667 243.2-256 426.666667-256s328.533333 85.333333 426.666667 256c-98.133333 170.666667-243.2 256-426.666667 256z m8.533333-426.666667c-128 0-256 55.466667-328.533333 170.666667 72.533333 115.2 200.533333 170.666667 328.533333 170.666667s238.933333-55.466667 311.466667-170.666667c-72.533333-115.2-183.466667-170.666667-311.466667-170.666667z m-8.533333 298.666667c-72.533333 0-128-55.466667-128-128s55.466667-128 128-128 128 55.466667 128 128-55.466667 128-128 128z m0-85.333333c25.6 0 42.666667-17.066667 42.666667-42.666667s-17.066667-42.666667-42.666667-42.666667-42.666667 17.066667-42.666667 42.666667 17.066667 42.666667 42.666667 42.666667z"
+                                                    fill="#bfbfbf" p-id="6627"></path>
+                                            </svg>
+                                            <svg id="eyeClosed" class="iconeye" viewBox="0 0 1024 1024" version="1.1"
+                                                xmlns="http://www.w3.org/2000/svg" p-id="5956" width="24" height="24">
+                                                <path
+                                                    d="M422.4 776.533333l76.8-76.8h8.533333c145.066667 0 251.733333-55.466667 332.8-170.666666-25.6-34.133333-55.466667-64-85.333333-89.6L819.2 384c46.933333 38.4 85.333333 89.6 119.466667 145.066667-98.133333 170.666667-243.2 251.733333-426.666667 251.733333-29.866667 4.266667-59.733333 0-89.6-4.266667z m-238.933333-119.466666c-34.133333-34.133333-68.266667-76.8-98.133334-128 98.133333-170.666667 243.2-251.733333 426.666667-251.733334h46.933333l-85.333333 85.333334c-128 8.533333-226.133333 64-298.666667 166.4 17.066667 25.6 38.4 51.2 59.733334 68.266666l-51.2 59.733334zM755.2 213.333333l59.733333 59.733334L277.333333 810.666667l-59.733333-59.733334L755.2 213.333333z"
+                                                    fill="#bfbfbf" p-id="5957"></path>
+                                            </svg>
+                                            <div class="err-text"></div>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <!-- <div data-v-4818d386="" class="label-view label-view mt-15" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> 确认密码 </div>
+                                    </div>
+                                    <div class="view-container">
+
+                                        <div data-v-4818d386="" class="custom-input custom-input passwd-input"> <input
+                                                id="confirmPwd" placeholder="请再次输入新密码" type="password"
+                                                class="base-input">
+                                            <svg id="eyeOpenConfirm" class="iconeye" viewBox="0 0 1024 1024"
+                                                version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6626" width="24"
+                                                height="24" style="display: none;">
+                                                <path
+                                                    d="M512 768c-183.466667 0-328.533333-85.333333-426.666667-256 98.133333-170.666667 243.2-256 426.666667-256s328.533333 85.333333 426.666667 256c-98.133333 170.666667-243.2 256-426.666667 256z m8.533333-426.666667c-128 0-256 55.466667-328.533333 170.666667 72.533333 115.2 200.533333 170.666667 328.533333 170.666667s238.933333-55.466667 311.466667-170.666667c-72.533333-115.2-183.466667-170.666667-311.466667-170.666667z m-8.533333 298.666667c-72.533333 0-128-55.466667-128-128s55.466667-128 128-128 128 55.466667 128 128-55.466667 128-128 128z m0-85.333333c25.6 0 42.666667-17.066667 42.666667-42.666667s-17.066667-42.666667-42.666667-42.666667-42.666667 17.066667-42.666667 42.666667 17.066667 42.666667 42.666667 42.666667z"
+                                                    fill="#bfbfbf" p-id="6627"></path>
+                                            </svg>
+                                            <svg id="eyeClosedConfirm" class="iconeye" viewBox="0 0 1024 1024"
+                                                version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5956" width="24"
+                                                height="24">
+                                                <path
+                                                    d="M422.4 776.533333l76.8-76.8h8.533333c145.066667 0 251.733333-55.466667 332.8-170.666666-25.6-34.133333-55.466667-64-85.333333-89.6L819.2 384c46.933333 38.4 85.333333 89.6 119.466667 145.066667-98.133333 170.666667-243.2 251.733333-426.666667 251.733333-29.866667 4.266667-59.733333 0-89.6-4.266667z m-238.933333-119.466666c-34.133333-34.133333-68.266667-76.8-98.133334-128 98.133333-170.666667 243.2-251.733333 426.666667-251.733334h46.933333l-85.333333 85.333334c-128 8.533333-226.133333 64-298.666667 166.4 17.066667 25.6 38.4 51.2 59.733334 68.266666l-51.2 59.733334zM755.2 213.333333l59.733333 59.733334L277.333333 810.666667l-59.733333-59.733334L755.2 213.333333z"
+                                                    fill="#bfbfbf" p-id="5957"></path>
+                                            </svg>
+                                            <div class="err-text"></div>
+                                        </div>
+
+                                    </div>
+                                </div> -->
+                            </form>
+                        </div>
+
+                        <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view pw">
+                            <form id="otaDataForm" method='POST' action='/ota'>
+                                <div data-v-4818d386="" data-v-6f9f3e2e="" class="container">
+                                    <div data-v-4818d386="" data-v-6f9f3e2e="" class="title-text">OTA固件升级</div>
+                                    <button data-v-4818d386="" id="otaSubmitButton" type='submit' disabled="disabled"
+                                        class="main-btn" data-v-6f9f3e2e="">
+                                        <div class="btn-container"> 开始升级 </div>
+                                    </button>
+                                </div>
+                                <div data-v-4818d386="" class="label-view label-view mt-20" data-v-6f9f3e2e="">
+                                    <div class="label">
+                                        <div class="title tip top"> OTA地址 </div>
+                                    </div>
+                                    <div class="view-container">
+                                        <div data-v-4818d386="" class="custom-input custom-input">
+                                            <input placeholder="请输入OTA升级地址" id="ota_url" type='text' name='ota_url'
+                                                class="base-input">
+                                            <div class="err-text"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- 在你的HTML中添加或修改升级进度部分 -->
+                                <div class="ota-progress-container" id="otaProgress" style="display: none;">
+                                    <div class="progress-wrapper">
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" id="progressBar"></div>
+                                        </div>
+                                        <div class="progress-text" id="progressText">0%</div>
+                                    </div>
+                                    <div class="status-message" id="otaStatus">准备中..</div>
+                                </div>
+                            </form>
+                        </div>
+
+
+                        <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view re">
+                            <div data-v-4818d386="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-4818d386="" data-v-6f9f3e2e="" class="title-text">重启设备</div>
+                                <button id="restartButton" data-v-4818d386="" class="normal-btn" data-v-6f9f3e2e="">
+                                    <div class="btn-container">
+                                        <span class="icon iconfont iconguanbi"></span>
+                                        重启
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view re">
+                            <div data-v-4818d386="" data-v-6f9f3e2e="" class="container">
+                                <div data-v-4818d386="" data-v-6f9f3e2e="" class="title-text">重置设备</div>
+                                <button id="resetButton" data-v-4818d386="" class="normal-btn re" data-v-6f9f3e2e="">
+                                    <div class="btn-container">
+                                        <span class="icon iconfont iconguanbi"></span>
+                                        重置
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+        </div>
+
+        <div data-v-1e31b667="" id="deviceRestart" data-v-4818d386="" class="confirm" style="display: none;">
+            <div data-v-1e31b667="" class="bg"></div>
+            <div data-v-1e31b667="" class="container">
+                <div data-v-1e31b667="" class="content">
+                    <div data-v-1e31b667="" class="ani-icon"><svg data-v-1e31b667="" width="88" height="88"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <line data-v-1e31b667="" x1="44" y1="22" x2="44" y2="58" stroke="none" stroke-width="5"
+                                stroke-linecap="round">
+                                <animate data-v-1e31b667="" attributeName="stroke" begin="0.3s" values="orange" dur="0s"
+                                    repeatCount="1"></animate>
+                                <animate data-v-1e31b667="" attributeName="y1" begin="0.3s" values="2;2;30;22"
+                                    dur="0.4s" repeatCount="1"></animate>
+                                <animate data-v-1e31b667="" attributeName="y2" begin="0.3s" values="2;68.5;58"
+                                    dur="0.4s" repeatCount="1"></animate>
+                            </line>
+                            <circle data-v-1e31b667="" cx="44" cy="68" r="3" stroke="none" fill="orange"
+                                fill-opacity="0">
+                                <animate data-v-1e31b667="" attributeName="fill-opacity" begin="0.6s" from="0" to="1"
+                                    dur="0.1s" repeatCount="1" fill="freeze"></animate>
+                                <animate data-v-1e31b667="" attributeName="cy" begin="0.5s" values="68;62;68" dur="0.3s"
+                                    repeatCount="1" fill="freeze">
+                                </animate>
+                            </circle>
+                            <path data-v-1e31b667="" d="M 44 2 a 42 42 0 0 0 0 84 a 42 42 0 0 0 0 -84 Z" stroke="orange"
+                                stroke-opacity=".2" fill="none" stroke-width="4" stroke-dasharray="264"
+                                stroke-linecap="round">
+                                <animate data-v-1e31b667="" attributeName="stroke-dashoffset" from="264" to="0"
+                                    dur="0.3s" repeatCount="1"></animate>
+                                <animate data-v-1e31b667="" attributeName="stroke-opacity" values="1;1;0.2" dur="0.6s"
+                                    repeatCount="1"></animate>
+                            </path>
+                        </svg></div>
+                    <div data-v-1e31b667="" class="title">重启设备</div>
+                    <div data-v-1e31b667="" class="unit-text">是否确定重启？</div>
+                </div>
+                <div data-v-1e31b667="" class="footer"><button data-v-1e31b667="" id="cancelRestart" type='button'
+                        class="main-btn cancel big">
+                        <div class="btn-container"> 取消 </div>
+                    </button><button data-v-1e31b667="" id="restart" type='button' class="main-btn sure big">
+                        <div class="btn-container"> 确认 </div>
+                    </button></div>
+            </div>
+        </div>
+
+        <div data-v-1e31b667="" id="deviceReset" data-v-4818d386="" class="confirm" style="display: none;">
+            <div data-v-1e31b667="" class="bg"></div>
+            <div data-v-1e31b667="" class="container">
+                <div data-v-1e31b667="" class="content">
+                    <div data-v-1e31b667="" class="ani-icon"><svg data-v-1e31b667="" width="88" height="88"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <line data-v-1e31b667="" x1="44" y1="22" x2="44" y2="58" stroke="none" stroke-width="5"
+                                stroke-linecap="round">
+                                <animate data-v-1e31b667="" attributeName="stroke" begin="0.3s" values="red" dur="0s"
+                                    repeatCount="1"></animate>
+                                <animate data-v-1e31b667="" attributeName="y1" begin="0.3s" values="2;2;30;22"
+                                    dur="0.4s" repeatCount="1"></animate>
+                                <animate data-v-1e31b667="" attributeName="y2" begin="0.3s" values="2;68.5;58"
+                                    dur="0.4s" repeatCount="1"></animate>
+                            </line>
+                            <circle data-v-1e31b667="" cx="44" cy="68" r="3" stroke="none" fill="red" fill-opacity="0">
+                                <animate data-v-1e31b667="" attributeName="fill-opacity" begin="0.6s" from="0" to="1"
+                                    dur="0.1s" repeatCount="1" fill="freeze"></animate>
+                                <animate data-v-1e31b667="" attributeName="cy" begin="0.5s" values="68;62;68" dur="0.3s"
+                                    repeatCount="1" fill="freeze">
+                                </animate>
+                            </circle>
+                            <path data-v-1e31b667="" d="M 44 2 a 42 42 0 0 0 0 84 a 42 42 0 0 0 0 -84 Z" stroke="red"
+                                stroke-opacity=".2" fill="none" stroke-width="4" stroke-dasharray="264"
+                                stroke-linecap="round">
+                                <animate data-v-1e31b667="" attributeName="stroke-dashoffset" from="264" to="0"
+                                    dur="0.3s" repeatCount="1"></animate>
+                                <animate data-v-1e31b667="" attributeName="stroke-opacity" values="1;1;0.2" dur="0.6s"
+                                    repeatCount="1"></animate>
+                            </path>
+                        </svg></div>
+                    <div data-v-1e31b667="" class="title">重置设备</div>
+                    <div data-v-1e31b667="" class="unit-text">是否确定重置？确认后设备将被重置</div>
+                </div>
+                <div data-v-1e31b667="" class="footer"><button data-v-1e31b667="" id="cancelReset" type='button'
+                        class="main-btn cancel big">
+                        <div class="btn-container"> 取消 </div>
+                    </button><button data-v-1e31b667="" id="restore" type='button' class="main-btn sure big">
+                        <div class="btn-container"> 确认 </div>
+                    </button></div>
+            </div>
+        </div>
+
+
+        <div id="successMessage" class="message" style="display: none;">
+            <div class="ani-icon" style="width: 88px; height: 88px;"><svg width="88" height="88"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <line x1="23" y1="45" x2="37" y2="59" stroke="none" stroke-width="5" stroke-linecap="round">
+                        <animate attributeName="stroke" begin="a1.end" values="#A4DF7F" dur="0s" repeatCount="1">
+                        </animate>
+                        <animate attributeName="x1" begin="a1.end" values="7;7;27.5;23" dur="0.3s" repeatCount="1">
+                        </animate>
+                        <animate attributeName="y1" begin="a1.end" values="29;29;49.5;45" dur="0.3s" repeatCount="1">
+                        </animate>
+                        <animate attributeName="x2" begin="a1.end" values="7;37" dur="0.2s" repeatCount="1">
+                        </animate>
+                        <animate attributeName="y2" begin="a1.end" values="29;59" dur="0.2s" repeatCount="1">
+                        </animate>
+                    </line>
+                    <line x1="37" y1="59" x2="67" y2="30" stroke="none" stroke-width="5" stroke-linecap="round">
+                        <animate attributeName="stroke" begin="a1.end + 0.2s" values="#A4DF7F" dur="0s" repeatCount="1">
+                        </animate>
+                        <animate attributeName="x2" begin="a1.end + 0.2s" values="37;74;67" dur="0.3s" repeatCount="1">
+                        </animate>
+                        <animate attributeName="y2" begin="a1.end + 0.2s" values="59;23;30" dur="0.3s" repeatCount="1">
+                        </animate>
+                    </line>
+                    <path d="M 44 2 a 42 42 0 0 0 0 84 a 42 42 0 0 0 0 -84 Z" stroke="#A4DF7F" stroke-opacity="0"
+                        fill="none" stroke-width="4" stroke-dasharray="264" transform="rotate( -66 44 44)"
+                        stroke-linecap="round">
+                        <animate id="a1" attributeName="stroke-dashoffset" begin="0" from="264" to="0" dur="0.3s"
+                            repeatCount="1" fill="freeze"></animate>
+                        <animate attributeName="stroke-opacity" begin="a1.begin" values="1;1;0.2" dur="0.6s"
+                            repeatCount="1" fill="freeze"></animate>
+                    </path>
+                </svg></div>
+            <div class="title">操作成功</div>
+            <div id="msgValue" class="unit-text">设置参数成功</div>
+        </div>
+    </div>
+    </div>
+
+    <!-- 串口同步配置功能 -->
+    <script>
+        // 等待页面完全加载后再执行
+        window.addEventListener('load', function() {
+            console.log('页面完全加载，开始初始化串口同步配置功能');
+            
+            // 获取所有相关元素
+            const syncModeRadios = document.querySelectorAll('input[name="serialSyncMode"]');
+            const unifiedConfig = document.getElementById('serialUnifiedConfig');
+            const separateConfigs = document.querySelectorAll('.separate-config-panel');
+            const serialTabs = document.getElementById('serialTabsContainer');
+            const slaveFollowTabs = document.getElementById('slaveFollowTabsContainer');
+            const syncDescriptions = document.querySelectorAll('.sync-desc');
+            
+            console.log('找到的元素:', {
+                syncModeRadios: syncModeRadios.length,
+                unifiedConfig: !!unifiedConfig,
+                separateConfigs: separateConfigs.length,
+                serialTabs: !!serialTabs,
+                slaveFollowTabs: !!slaveFollowTabs,
+                syncDescriptions: syncDescriptions.length
+            });
+            
+            // 配置模式切换函数
+            window.switchSerialConfigMode = function(mode) {
+                
+                // 强制隐藏所有配置面板
+                if (unifiedConfig) {
+                    unifiedConfig.style.display = 'none';
+                }
+                separateConfigs.forEach(panel => {
+                    panel.style.display = 'none';
+                });
+                if (slaveFollowTabs) {
+                    slaveFollowTabs.style.display = 'none';
+                }
+                
+                // 显示对应的配置面板
+                switch(mode) {
+                    case 'unified':
+                        if (unifiedConfig) {
+                            unifiedConfig.style.display = 'block';
+                        }
+                        if (serialTabs) serialTabs.style.display = 'none';
+                        break;
+                    case 'separate':
+                        // 显示标签页容器
+                        if (serialTabs) {
+                            serialTabs.style.display = 'flex';
+                            console.log('✅ serialTabsContainer 已设置为 display: flex');
+                        } else {
+                            console.error('❌ 找不到 serialTabsContainer 元素');
+                        }
+                        
+                        // 显示当前选中的配置面板，默认显示CH1
+                        const currentPort = (typeof currentSerialPort !== 'undefined') ? currentSerialPort : 1;
+                        const targetPanel = document.getElementById(`serialConfig${currentPort}`);
+                        if (targetPanel) {
+                            targetPanel.style.display = 'block';
+                            console.log(`显示分别配置面板 CH${currentPort}`);
+                        } else {
+                            console.error(`找不到串口配置面板: serialConfig${currentPort}`);
+                        }
+                        
+                        // 确保对应的标签页是激活状态
+                        const serialTabButtons = document.querySelectorAll('#serialTabsContainer .serial-tab-button');
+                        serialTabButtons.forEach((btn, index) => {
+                            if (index + 1 === currentPort) {
+                                btn.classList.add('active');
+                                console.log(`激活标签页 CH${index + 1}`);
+                            } else {
+                                btn.classList.remove('active');
+                            }
+                        });
+                        
+                        // 强制调用switchSerialTab确保状态一致
+                        if (typeof switchSerialTab === 'function') {
+                            switchSerialTab(currentPort);
+                        }
+                        break;
+                    case 'slave_follow':
+                        if (slaveFollowTabs) {
+                            slaveFollowTabs.style.display = 'flex';
+                            console.log('显示从机跟随选项卡');
+                            
+                            // 强制切换到CH1（从机跟随模式只有CH1和CH2）
+                            const slaveFollowTabButtons = slaveFollowTabs.querySelectorAll('.serial-tab-button');
+                            if (slaveFollowTabButtons.length > 0) {
+                                // 移除所有活动状态
+                                slaveFollowTabButtons.forEach(btn => btn.classList.remove('active'));
+                                // 激活CH1
+                                slaveFollowTabButtons[0].classList.add('active');
+                                // 更新全局当前端口变量
+                                if (typeof currentSerialPort !== 'undefined') {
+                                    currentSerialPort = 1;
+                                }
+                                console.log('从机跟随模式：强制切换到CH1');
+                            }
+                        }
+                        // 显示当前选中的配置面板，默认显示CH1
+                        const slaveFollowCurrentPort = (typeof currentSerialPort !== 'undefined' && currentSerialPort <= 2) ? currentSerialPort : 1;
+                        const slaveFollowTargetPanel = document.getElementById(`serialConfig${slaveFollowCurrentPort}`);
+                        if (slaveFollowTargetPanel) {
+                            slaveFollowTargetPanel.style.display = 'block';
+                            console.log(`显示从机跟随配置面板 CH${slaveFollowCurrentPort}`);
+                        }
+                        // 隐藏其他配置面板
+                        separateConfigs.forEach((panel, index) => {
+                            if (index !== 0) {
+                                panel.style.display = 'none';
+                            }
+                        });
+                        if (serialTabs) serialTabs.style.display = 'none';
+                        break;
+                }
+                
+                // 更新描述文字
+                syncDescriptions.forEach(desc => desc.classList.remove('active'));
+                const descElement = document.getElementById(mode + '-desc');
+                if (descElement) {
+                    descElement.classList.add('active');
+                }
+            }
+            
+            // 监听配置模式切换
+            syncModeRadios.forEach((radio, index) => {
+                console.log('设置监听器', index, radio.value);
+                radio.addEventListener('change', function() {
+                    console.log('选择模式:', this.value, '选中状态:', this.checked);
+                    if (this.checked) {
+                        switchSerialConfigMode(this.value);
+                        // 更新对勾图标显示
+                        if (typeof updateSyncModeCheckIcon === 'function') {
+                            updateSyncModeCheckIcon(this.value);
+                        }
+                        // 实时保存配置模式到后端
+                        saveSerialConfigModeInstant(this.value);
+                    }
+                });
+            });
+            
+            // 实时保存配置模式（不显示成功消息）
+            async function saveSerialConfigModeInstant(mode) {
+                try {
+                    const data = {
+                        config_mode: mode
+                    };
+                    await postData('/serial_config_mode_set', data);
+                    console.log('串口配置模式实时保存成功:', mode);
+                } catch (error) {
+                    console.error('实时保存串口配置模式失败:', error);
+                }
+            }
+            
+            // 监听工作模式变化，控制分别配置中CH3选项卡的可用性
+            const workModeRadios = document.querySelectorAll('input[name="work_mode"]');
+            const serialTab3 = document.getElementById('serialTab3');
+            
+            function checkWorkModeAndDisableCH3() {
+                const checkedWorkMode = document.querySelector('input[name="work_mode"]:checked');
+                const autoCacheSwitch = document.getElementById('autoTransparentCacheSwitch');
+                
+                if (checkedWorkMode && serialTab3) {
+                    if (checkedWorkMode.value === 'modbus_cache') {
+                        // Modbus协议缓存模式下，检查自动智能缓存开关状态
+                        const isAutoMode = autoCacheSwitch && autoCacheSwitch.classList.contains('on');
+                        
+                        if (!isAutoMode) {
+                            // 手动模式下禁用CH3选项卡
+                            serialTab3.disabled = true;
+                            serialTab3.classList.add('disabled');
+                            
+                            // 如果当前CH3是激活状态，切换到CH1
+                            if (serialTab3.classList.contains('active')) {
+                                const serialTab1 = document.getElementById('serialTab1');
+                                if (serialTab1) {
+                                    // 移除所有活动状态
+                                    document.querySelectorAll('#serialTabsContainer .serial-tab-button').forEach(btn => {
+                                        btn.classList.remove('active');
+                                    });
+                                    // 设置CH1为活动状态
+                                    serialTab1.classList.add('active');
+                                    // 切换到CH1配置面板
+                                    const separateConfigs = document.querySelectorAll('.separate-config-panel');
+                    separateConfigs.forEach(panel => {
+                        panel.style.display = 'none';
+                    });
+                    const serialConfig1 = document.getElementById('serialConfig1');
+                    if (serialConfig1) {
+                        serialConfig1.style.display = 'block';
+                    }
+                                }
+                            }
+                        } else {
+                            // 自动模式下启用CH3选项卡
+                            serialTab3.disabled = false;
+                            serialTab3.classList.remove('disabled');
+                        }
+                    } else {
+                        // 其他模式下启用CH3选项卡
+                        serialTab3.disabled = false;
+                        serialTab3.classList.remove('disabled');
+                    }
+                }
+            }
+            
+            // 监听工作模式变化
+            workModeRadios.forEach(radio => {
+                radio.addEventListener('change', checkWorkModeAndDisableCH3);
+            });
+            
+            // 监听自动智能缓存开关变化
+            const autoCacheSwitch = document.getElementById('autoTransparentCacheSwitch');
+            if (autoCacheSwitch) {
+                autoCacheSwitch.addEventListener('click', function() {
+                    // 延迟执行，等待开关状态更新
+                    setTimeout(checkWorkModeAndDisableCH3, 100);
+                });
+            }
+            
+            // 初始化检查
+            checkWorkModeAndDisableCH3();
+            
+            // 初始化显示配置模式（等待从后端加载）
+            console.log('初始化串口同步配置功能');
+            
+            // 串口标签页切换功能（仅在分别配置模式下有效）
+            const serialTabButtons = document.querySelectorAll('#serialTabsContainer .serial-tab-button');
+            serialTabButtons.forEach((button, index) => {
+                button.addEventListener('click', function() {
+                    const portNumber = index + 1; // CH1=1, CH2=2, CH3=3
+                    console.log('切换到标签页:', portNumber);
+                    
+                    // 检查按钮是否被禁用
+                    if (this.disabled || this.classList.contains('disabled')) {
+                        console.log('按钮被禁用，无法点击');
+                        return;
+                    }
+                    
+                    // 检查当前是否在分别配置模式
+                    const checkedMode = document.querySelector('input[name="serialSyncMode"]:checked');
+                    if (checkedMode && checkedMode.value === 'separate') {
+                        // 移除所有活动状态
+                        serialTabButtons.forEach(btn => btn.classList.remove('active'));
+                        separateConfigs.forEach(panel => {
+                            panel.style.display = 'none';
+                        });
+                        
+                        // 设置当前按钮为活动状态
+                        this.classList.add('active');
+                        // 使用portNumber来正确映射到对应的配置面板
+                        const targetPanel = document.getElementById(`serialConfig${portNumber}`);
+                        if (targetPanel) {
+                            targetPanel.style.display = 'block';
+                            console.log(`显示CH${portNumber}配置面板`);
+                        }
+                        
+                        // 更新全局当前端口变量
+                        if (typeof currentSerialPort !== 'undefined') {
+                            currentSerialPort = portNumber;
+                        }
+                    }
+                });
+            });
+            
+            // 从机跟随选项卡切换功能（使用现有的serialConfig）
+            const slaveFollowTabButtons = document.querySelectorAll('#slaveFollowTabsContainer .serial-tab-button');
+            slaveFollowTabButtons.forEach((button, index) => {
+                button.addEventListener('click', function() {
+                    const portNumber = index + 1; // CH1=1, CH2=2
+                    console.log('切换到从机跟随标签页:', portNumber);
+                    // 检查当前是否在从机跟随模式
+                    const checkedMode = document.querySelector('input[name="serialSyncMode"]:checked');
+                    if (checkedMode && checkedMode.value === 'slave_follow') {
+                        // 移除所有活动状态
+                        slaveFollowTabButtons.forEach(btn => btn.classList.remove('active'));
+                        separateConfigs.forEach(panel => {
+                            panel.style.display = 'none';
+                        });
+                        
+                        // 设置当前按钮为活动状态
+                        this.classList.add('active');
+                        // 使用portNumber来正确映射到对应的配置面板
+                        const targetPanel = document.getElementById(`serialConfig${portNumber}`);
+                        if (targetPanel) {
+                            targetPanel.style.display = 'block';
+                            console.log(`显示从机跟随CH${portNumber}配置面板`);
+                        }
+                        
+                        // 更新全局当前端口变量
+                        if (typeof currentSerialPort !== 'undefined') {
+                            currentSerialPort = portNumber;
+                        }
+                    }
+                });
+            });
+            
+            // 重写原有的串口标签页切换函数，确保所有模式下都能正常工作
+            if (typeof switchSerialTab === 'function') {
+                const originalSwitchSerialTab = switchSerialTab;
+            window.switchSerialTab = function(portNumber) {
+                const checkedMode = document.querySelector('input[name="serialSyncMode"]:checked');
+                    
+                    if (checkedMode && checkedMode.value === 'separate') {
+                        // 在分别配置模式下，使用原有逻辑
+                        originalSwitchSerialTab(portNumber);
+                    } else if (checkedMode && checkedMode.value === 'slave_follow') {
+                        // 在从机跟随模式下，只允许切换CH1和CH2
+                        if (portNumber <= 2) {
+                            originalSwitchSerialTab(portNumber);
+                        }
+                    } else {
+                        // 在统一配置模式下，不执行任何操作
+                        return;
+                    }
+                };
+            }
+        });
+    </script>
+
+    <script src="web.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "mapping_config": {
+    "enabled": true,
+    "mappings": [
+      {
+        "original": 1,
+        "mapped": 10
+      },
+      {
+        "original": 2,
+        "mapped": 20
+      },
+      {
+        "original": 3,
+        "mapped": 30
+      }
+    ]
+  }
+}
+

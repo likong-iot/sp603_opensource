@@ -1,0 +1,6 @@
+source "/home/master/esp/v5.5/esp-idf/components/bootloader/Kconfig.projbuild"
+source "/home/master/esp/v5.5/esp-idf/components/esp_app_format/Kconfig.projbuild"
+source "/home/master/esp/v5.5/esp-idf/components/esp_rom/Kconfig.projbuild"
+source "/home/master/esp/v5.5/esp-idf/components/esptool_py/Kconfig.projbuild"
+source "/home/master/esp/v5.5/esp-idf/components/partition_table/Kconfig.projbuild"
+source "/home/master/project/sp603_iotGateWay_v1.0/managed_components/espressif__ethernet_init/Kconfig.projbuild"

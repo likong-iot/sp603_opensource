@@ -1,0 +1,24 @@
+{
+  "enabled": true,
+  "mode": 1,
+  "ranges": [
+    {
+      "slave_id": 1,
+      "start": 0,
+      "end": 65535
+    },
+    {
+      "slave_id": 2,
+      "start": 0,
+      "end": 65535
+    },
+    {
+      "slave_id": 3,
+      "start": 0,
+      "end": 65535
+    }
+  ],
+  "exportTime": "2025-01-15T10:30:00.000Z",
+  "version": "2.0"
+}
+

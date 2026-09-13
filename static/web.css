@@ -1,0 +1,6559 @@
+* {
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0)
+}
+
+body,
+html {
+    width: 100%;
+    height: 100%;
+    margin: 0
+}
+
+body {
+    font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
+    position: relative;
+    /* -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none */
+}
+
+#sp603NetworkForm .view-container {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#sp603NetworkForm select.base-input {
+    width: 180px;
+}
+
+#sp603NetworkForm input.base-input.small {
+    width: 150px;
+}
+
+#sp603_serial_ports {
+    line-height: 24px;
+    overflow-wrap: anywhere;
+}
+
+@media screen and (max-width:750px) {
+    #sp603NetworkForm select.base-input,
+    #sp603NetworkForm input.base-input.small {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+}
+
+.flex-center-div {
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+.card-view {
+    width: var(--CONTENT-S-WIDTH);
+    margin: 2px;
+    background: var(--BG-1);
+    border-radius: var(--RADIUS-0);
+    border: 1px solid var(--BG-2)
+}
+
+input.base-input {
+    outline: none;
+    width: 308px;
+    height: 30px;
+    background: var(--BG-1);
+    border-radius: var(--RADIUS-1);
+    border: 1px solid var(--BG-3);
+    padding: 0 10px;
+    font-size: 14px;
+    color: var(--FG-1);
+    line-height: 30px;
+    transition-duration: .3s;
+    -webkit-appearance: none
+}
+
+input.base-input:hover {
+    border-color: var(--BRAND-1)
+}
+
+input.base-input:focus {
+    border-color: var(--BRAND);
+    box-shadow: 0 0 0 1px var(--BRAND)
+}
+
+input.base-input:disabled {
+    color: var(--FG-4);
+    background: var(--BG-2);
+    cursor: not-allowed
+}
+
+input.base-input:disabled:hover {
+    border-color: var(--BG-3)
+}
+
+input.base-input::-moz-placeholder {
+    color: var(--FG-4)
+}
+
+input.base-input:-ms-input-placeholder {
+    color: var(--FG-4)
+}
+
+input.base-input::-ms-input-placeholder {
+    color: var(--FG-4)
+}
+
+input.base-input::placeholder {
+    color: var(--FG-4)
+}
+
+input.base-input.small {
+    width: 238px;
+    height: 22px;
+    line-height: 22px
+}
+
+input.base-input.big {
+    height: 34px;
+    font-size: 16px;
+    line-height: 34px
+}
+
+/* 下拉框样式 */
+select.base-input {
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 308px; /* 统一宽度从330px改为308px，与input对齐 */
+    height: 30px; /* 统一高度从32px改为30px，与input对齐 */
+    background-color: var(--BG-1);
+    border-radius: var(--RADIUS-1);
+    border: 1px solid var(--BG-3);
+    padding: 0 10px;
+    /* 添加下箭头图标 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M2.454 4.151c-.233-.251-.19-.627.097-.838.286-.211.717-.179.95.073l2.5 2.69 2.5-2.69c.233-.252.664-.284.95-.073.287.211.33.587.097.838l-3 3.23c-.233.252-.664.284-.95.073-.069-.051-.126-.113-.17-.182l-2.974-3.121z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 30px; /* 为箭头留出空间 */
+    transition-duration: .3s;
+    font-size: 14px;
+    color: var(--FG-1);
+    line-height: 30px; /* 与input保持一致 */
+    cursor: pointer;
+}
+
+select.base-input:hover {
+    border-color: var(--BRAND-1);
+}
+
+select.base-input:focus {
+    border-color: var(--BRAND);
+    box-shadow: 0 0 0 1px var(--BRAND);
+}
+
+select.base-input:disabled {
+    color: var(--FG-4);
+    background-color: var(--BG-2);
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+select.base-input:disabled:hover {
+    border-color: var(--BG-3)
+}
+
+select.base-input::-moz-placeholder {
+    color: var(--FG-4)
+}
+
+select.base-input:-ms-input-placeholder {
+    color: var(--FG-4)
+}
+
+select.base-input::-ms-input-placeholder {
+    color: var(--FG-4)
+}
+
+select.base-input::placeholder {
+    color: var(--FG-4)
+}
+
+select.base-input option {
+    height: 32px
+}
+
+body[data-theme=dark] select.base-input option {
+    color: #000
+}
+
+/* 自动采集映射从机地址输入框更紧凑 */
+.ac-maddr-input {
+    width: 90px;
+    max-width: 100px;
+}
+
+/* 修复flex布局中的溢出问题 */
+.label-view {
+    display: flex;
+    align-items: center;
+}
+
+.label-view .view-container {
+    flex: 1;
+    min-width: 0; /* 允许收缩 */
+    padding-right: 10px; /* 统一右侧内边距，确保所有内容对齐 */
+}
+
+.label-view .view-container .button-group {
+    /* 移除margin-left: auto，让所有组件左对齐一致 */
+    /* padding-right已由view-container统一控制 */
+    width: 100%; /* 占满容器宽度 */
+    justify-content: flex-end; /* 按钮在容器内右对齐 */
+}
+
+.label-view .view-container .custom-input {
+    max-width: 100%;
+}
+
+.label-view .view-container .custom-input input.base-input,
+.label-view .view-container select.base-input {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+@media screen and (max-width:750px) {
+    /* 统一卡片在移动端的宽度和外边距 - 极致紧凑 */
+    .card-view {
+        width: calc(100% - 16px);
+        margin: 3px 8px 0; /* 统一margin格式 */
+    }
+    
+    /* 串口卡片进一步压缩间距 */
+    .serial .card-view[data-v-2c53cae0] {
+        margin: 1px 8px !important;
+    }
+    
+    /* 移动端优化容器高度，让组件更紧凑 */
+    .card-view .container {
+        height: 38px !important;
+        padding: 0 12px !important;
+    }
+    
+    /* 移动端减少margin-top和margin-bottom */
+    .mt-20 {
+        margin-top: 8px !important;
+    }
+    
+    .mt-15 {
+        margin-top: 6px !important;
+    }
+    
+    .mb-20 {
+        margin-bottom: 8px !important;
+    }
+    
+    .mt-10 {
+        margin-top: 5px !important;
+    }
+    
+    .mb-10 {
+        margin-bottom: 5px !important;
+    }
+    
+    .mt-6 {
+        margin-top: 4px !important;
+    }
+    
+    .mt-8 {
+        margin-top: 5px !important;
+    }
+    
+    .mt-18 {
+        margin-top: 10px !important;
+    }
+    
+    /* 移动端时取消label-view的特殊左边距 */
+    .base-info .card-view .label-view[data-v-721c7581] {
+        margin-left: 12px;
+        margin-right: 12px;
+    }
+    
+    /* 移动端减少行高 */
+    .base-info .card-view .label-view .title,
+    .base-info .card-view .base-text[data-v-721c7581],
+    .title-text,
+    .font-16 {
+        line-height: 20px !important;
+    }
+    
+    /* 移动端减少所有label-view的间距 */
+    .label-view {
+        margin-top: 4px !important;
+        margin-bottom: 4px !important;
+    }
+    
+    /* 串口页面的label-view进一步压缩 - 极致紧凑 */
+    .serial .card-view .label-view[data-v-2c53cae0] {
+        margin-top: 0px !important;
+        margin-bottom: 0px !important;
+        padding-top: 1px !important;
+        padding-bottom: 1px !important;
+    }
+    
+    /* 串口页面标题字体和行高优化 */
+    .serial .card-view .label-view[data-v-2c53cae0] .label .title {
+        line-height: 18px !important;
+    }
+
+    .card-view .view-container {
+        width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .card-view .view-container .custom-input {
+        width: 100%;
+        max-width: none; /* 移动端不限制最大宽度 */
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .card-view .view-container .custom-input input.base-input {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 0 !important;
+    }
+
+    .card-view .view-container select.base-input {
+        width: 100%;
+        background-position-x: calc(100% - 10px);
+        box-sizing: border-box;
+        margin: 0 !important;
+    }
+    
+    /* 串口页面view-container进一步压缩 */
+    .serial .card-view .view-container {
+        line-height: 1 !important;
+    }
+    
+    /* 移动端减小输入框高度 */
+    input.base-input,
+    select.base-input {
+        height: 26px !important;
+        line-height: 26px !important;
+        padding: 0 8px !important;
+        font-size: 13px !important;
+    }
+    
+    /* 串口页面输入框进一步压缩 */
+    .serial .card-view input.base-input,
+    .serial .card-view select.base-input {
+        height: 24px !important;
+        line-height: 24px !important;
+        padding: 0 6px !important;
+        font-size: 13px !important;
+    }
+    
+    /* 移动端：仅优化串口参数配置区域的输入框（不影响Modbus缓存配置） */
+    #serialConfigContent input.base-input,
+    #serialConfigContent select.base-input {
+        width: 120px !important; /* 固定宽度，与输入框一致 */
+        max-width: 120px !important; /* 确保不会超过此宽度 */
+        min-width: 120px !important; /* 确保不会小于此宽度 */
+        margin-left: 0 !important; /* 移除左边距，保持对齐 */
+    }
+}
+
+input[type=checkbox] {
+    opacity: 1;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    position: relative;
+    transition-duration: .3s
+}
+
+input[type=checkbox]:after {
+    position: absolute;
+    content: "";
+    left: 0;
+    /* top: 3px; */
+    width: 12px;
+    height: 12px;
+    border: 1px solid var(--FG-4);
+    background: var(--BG-1);
+    text-align: center;
+    border-radius: 2px;
+    outline: none
+}
+
+input[type=checkbox]:hover:after {
+    border-color: var(--BRAND)
+}
+
+input[type=checkbox]:checked:after {
+    position: absolute;
+    content: "";
+    left: 0;
+    top: 3px;
+    width: 14px;
+    height: 14px;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAMAAAAolt3jAAAAaVBMVEUAAAAAAP8rar8kbcgzZrsqcb4rbb4pcMItcMArbr8qbMAsbb4sbcErbr8rb8AsbsErb78rb8ArbsAsbsAqbsErbr8rbsErbsArbsArbcArbsArbsArbsArb8ArbsArbsArbsArbsD///+qqWS8AAAAIXRSTlMAAQwODysvMjlISUtiZGpveIGChouQyMnK4uPk5+nu/f6Wu8foAAAAAWJLR0QiXWVcrAAAAFdJREFUCB0FwQcCgjAABLBzoggOnK1ozf8/aZLDG4DapwJACQAQAC5bAmDKmTA94ZoTwm714JbjD+HbrV/3DA2Cz2a5GBoIzN3YgAAAAQBSAaCkrwCU/R8VexYzhrJcdgAAAABJRU5ErkJggg==);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    background-size: contain;
+    border: none;
+    outline: none
+}
+
+input[type=checkbox]:disabled:after {
+    background: var(--BG-2);
+    cursor: not-allowed
+}
+
+input[type=checkbox]:disabled:hover:after {
+    border-color: var(--BG-3);
+    background: var(--BG-2);
+    cursor: not-allowed
+}
+
+input[type=checkbox]:checked:disabled:after {
+    background: var(--BG-2);
+    cursor: not-allowed
+}
+
+input[type=checkbox]:checked:disabled:hover:after {
+    border-color: var(--BG-3);
+    background: var(--BG-2);
+    cursor: not-allowed
+}
+
+input[type=checkbox]+label {
+    cursor: pointer;
+    color: var(--FG-1);
+    margin-left: 10px;
+    font-size: 14px;
+    line-height: 20px
+}
+
+input[type=checkbox]:checked:disabled+label,
+input[type=checkbox]:disabled+label {
+    border-color: var(--BG-3);
+    color: var(--FG-4);
+    cursor: not-allowed
+}
+
+.checkbox-div {
+    display: flex;
+    align-items: flex-start
+}
+
+input[type=radio] {
+    transition-duration: .3s;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 14px;
+    height: 14px;
+    opacity: 0;
+    cursor: pointer
+}
+
+input[type=radio]+label {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--BG-1);
+    border: 1px solid var(--FG-4);
+    cursor: pointer
+}
+
+input[type=radio]~label {
+    color: var(--FG-1)
+}
+
+input[type=radio]:hover+label {
+    border: 1px solid var(--BRAND);
+    cursor: pointer
+}
+
+input[type=radio]:disabled+label {
+    cursor: not-allowed;
+    border-color: var(--BG-3);
+    border: 1px solid var(--BG-2)
+}
+
+input[type=radio]:disabled~label {
+    cursor: not-allowed;
+    color: var(--FG-4)
+}
+
+input[type=radio]:checked+label {
+    border: 1px solid var(--BRAND);
+    background: var(--BRAND);
+    cursor: pointer;
+    /* border: 1px solid #d1d4d7;
+    background: #e5e5e5;
+    cursor: pointer; */
+}
+
+input[type=radio]:checked:disabled+label {
+    cursor: not-allowed;
+    border-color: var(--BG-3);
+    background: var(--BG-2);
+    border: 1px solid var(--BG-3)
+}
+
+input[type=radio]:checked:disabled~label {
+    cursor: not-allowed;
+    color: var(--FG-4)
+}
+
+input[type=radio]:checked+label:after {
+    position: absolute;
+    content: "";
+    width: 4px;
+    height: 4px;
+    top: 8px;
+    left: 5px;
+    border-radius: 100%;
+    background-color: var(--BG-1)
+}
+
+input[type=radio]:checked:disabled+label:after {
+    cursor: not-allowed;
+    border-color: var(--BG-3);
+    background-color: var(--FG-4)
+}
+
+.radio-div {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.radio-div.radio-horizontal {
+    flex-direction: row;
+    gap: 20px;
+    width: 100%; /* 占满容器宽度，与其他组件对齐 */
+    /* padding-right已由view-container统一控制 */
+}
+
+.radio-div .input-radio {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+}
+
+.radio-div .input-radio:last-child {
+    margin-bottom: 0
+}
+
+.radio-div .input-radio .circle {
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    min-height: 12px;
+    margin-top: 3px
+}
+
+.radio-div .input-radio .name {
+    margin-left: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 20px
+}
+
+.base-desc,
+.font-12 {
+    font-size: 12px;
+    line-height: 18px
+}
+
+.base-text,
+.font-14,
+.place-text,
+.state-text,
+.unit-text {
+    font-size: 14px;
+    line-height: 20px
+}
+
+.font-16,
+.title-text {
+    font-size: 16px;
+    line-height: 24px
+}
+
+.mt-10 {
+    margin-top: 10px
+}
+
+.mt-15 {
+    margin-top: 15px
+}
+
+.mt-20 {
+    margin-top: 20px
+}
+
+.mb-20 {
+    margin-bottom: 20px
+}
+
+.base-text {
+    color: var(--FG-1)
+}
+
+.base-desc {
+    color: var(--FG-3)
+}
+
+.state-text {
+    color: var(--FG-2)
+}
+
+.place-text {
+    color: var(--FG-4)
+}
+
+.unit-text {
+    color: var(--FG-3)
+}
+
+.title-text {
+    color: var(--FG-0)
+}
+
+.line {
+    width: 100%;
+    height: 1px;
+    background: var(--BG-2)
+}
+
+#nav ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px
+}
+
+#nav ::-webkit-scrollbar,
+#nav ::-webkit-scrollbar-corner {
+    background: var(--NAV-BG-1)
+}
+
+#nav ::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: var(--NAV-BG-3);
+    border: solid 2px var(--NAV-BG-1)
+}
+
+#nav ::-webkit-scrollbar-thumb:window-inactive {
+    background: var(--NAV-BG-2)
+}
+
+#nav-top ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+    background: var(--NAV-BG-1)
+}
+
+#nav-top ::-webkit-scrollbar-corner {
+    background: var(--NAV-BG-1)
+}
+
+#nav-top ::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: var(--NAV-BG-3);
+    border: solid 2px var(--NAV-BG-1)
+}
+
+#nav-top ::-webkit-scrollbar-thumb:window-inactive {
+    background: var(--NAV-BG-2)
+}
+
+::-webkit-scrollbar {
+    width: 11px;
+    height: 11px
+}
+
+::-webkit-scrollbar,
+::-webkit-scrollbar-corner {
+    background: var(--BG-1)
+}
+
+::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: var(--BG-4);
+    border: solid 2px var(--BG-1)
+}
+
+::-webkit-scrollbar-thumb:window-inactive {
+    background: var(--BG-2)
+}
+
+::-webkit-scrollbar-track {
+    margin: 1px
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    background: var(--BG-1)
+}
+
+.switch-btn[data-v-481ccfe2] {
+    width: 50px;
+    height: 24px;
+    border-radius: 12px;
+    transition: background .3s;
+    position: relative;
+    cursor: pointer
+}
+
+.switch-btn.on[data-v-481ccfe2] {
+    background: var(--BRAND)
+}
+
+.switch-btn.on .circle[data-v-481ccfe2] {
+    right: 3px
+}
+
+.switch-btn.off[data-v-481ccfe2] {
+    background: var(--BG-3)
+}
+
+.switch-btn.off .circle[data-v-481ccfe2] {
+    right: 29px
+}
+
+.switch-btn .circle[data-v-481ccfe2] {
+    position: absolute;
+    top: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--WHITE);
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, .1);
+    transition: right .3s
+}
+
+.base-info .card-view[data-v-721c7581] {
+    width: var(--CONTENT-S-WIDTH);
+    margin: 10px 20px 0
+}
+
+@media screen and (min-width:750px) {
+    .base-info .card-view .label-view[data-v-721c7581] {
+        margin-left: calc(25% - 92px);
+        margin-right: 20px
+    }
+}
+
+/* .base-info .card-view .label-view[data-v-721c7581] {
+    margin-left: 140px;
+    margin-right: 20px
+} */
+
+.base-info .card-view[data-v-721c7581]:first-child {
+    margin-top: 20px
+}
+
+.base-info .card-view[data-v-721c7581]:last-child {
+    margin-bottom: 20px
+}
+
+.base-info .card-view .base-text[data-v-721c7581] {
+    line-height: 24px
+}
+
+.base-info .card-view .base-desc[data-v-721c7581] {
+    margin-top: 4px
+}
+
+.base-info .card-view .base-main-btn[data-v-721c7581] {
+    margin-left: 10px
+}
+
+.base-info .card-view .container[data-v-721c7581] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--BG-2)
+}
+
+.base-info .card-view .container.theme[data-v-721c7581] {
+    border-bottom: none
+}
+
+.base-info .card-view .mt-18[data-v-721c7581] {
+    margin-top: 18px
+}
+
+.base-info .card-view .mt-8[data-v-721c7581] {
+    margin-top: 8px
+}
+
+.base-info .card-view .mt-6[data-v-721c7581] {
+    margin-top: 6px
+}
+
+@media screen and (max-width:850px) {
+    .base-info .card-view[data-v-721c7581] {
+        width: calc(100% - 42px)
+    }
+}
+
+@media screen and (max-width:750px) {
+    .base-info .card-view[data-v-721c7581] {
+        width: calc(100% - 16px) !important;
+        margin: 3px 8px 0 !important; /* 统一左右边距为8px */
+        padding: 10px !important; /* 添加padding，与wifi卡片保持一致 - 使用!important确保优先级 */
+        box-sizing: border-box !important; /* 确保padding包含在宽度内 */
+    }
+
+    .base-info .card-view[data-v-721c7581]:first-child {
+        margin-top: 3px
+    }
+
+    .base-info .card-view[data-v-721c7581]:last-child {
+        margin-bottom: 3px
+    }
+}
+
+.base-info .card-view .label-view .title {
+    line-height: 24px
+}
+
+.base-info .card-view .label-view .title.top {
+    margin-top: 4px
+}
+
+.wifi .card-view[data-v-6fded7ec] {
+    width: calc(var(--CONTENT-S-WIDTH) - 42px);
+    padding: 20px
+}
+
+.wifi .card-view .high-text[data-v-6fded7ec] {
+    margin: 6px 0
+}
+
+.wifi .card-view .switch-btn[data-v-6fded7ec] {
+    margin: 4px 0
+}
+
+.wifi .btn-container[data-v-6fded7ec] {
+    width: 630px;
+    background: var(--BG-1);
+    padding-bottom: 10px;
+    position: -webkit-sticky;
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end
+}
+
+.wifi .btn-container .line[data-v-6fded7ec] {
+    margin-bottom: 10px
+}
+
+@media screen and (max-width:850px) {
+    .wifi .card-view[data-v-6fded7ec] {
+        width: calc(100% - 82px)
+    }
+}
+
+@media screen and (max-width:750px) {
+    .wifi .card-view[data-v-6fded7ec] {
+        width: calc(100% - 16px); /* 统一宽度，与其他card-view对齐 */
+        margin: 3px 8px 0; /* 统一边距，与其他card-view对齐 */
+        padding: 10px;
+    }
+    
+    /* 移动端WiFi按钮容器优化 */
+    .wifi .btn-container[data-v-6fded7ec] {
+        padding-bottom: 5px !important;
+    }
+}
+
+.serial .card-view[data-v-2c53cae0] {
+    width: calc(var(--CONTENT-S-WIDTH) + 20px);
+    padding: 10px 0px 5px 0px; /* 缩减底部padding从15px到5px */
+    overflow: visible;
+}
+
+.serial .card-view .baud-container[data-v-2c53cae0] {
+    position: relative
+}
+
+.serial .card-view .baud-container .baudrate[data-v-2c53cae0] {
+    position: absolute;
+    top: 2px;
+    left: 1px;
+    width: 278px;
+    height: 28px;
+    border: none;
+    box-shadow: none
+}
+
+.serial .card-view .high-text[data-v-2c53cae0] {
+    margin: 6px 0
+}
+
+.serial .card-view .unit-text[data-v-2c53cae0] {
+    margin: 6px 0 0 -38px
+}
+
+.serial .btn-container[data-v-2c53cae0] {
+    width: 100%;
+    max-width: 630px;
+    background: var(--BG-1);
+    padding: 10px 0 5px 0; /* 缩减底部padding从20px到5px */
+    margin-top: 15px; /* 缩减顶部margin从20px到15px */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    box-sizing: border-box;
+}
+
+.serial .btn-container .line[data-v-2c53cae0] {
+    margin-bottom: 10px
+}
+
+.base-desc[data-v-2c53cae0] {
+    margin-top: 4px
+}
+
+.label-view[data-v-2c53cae0] .label .title {
+    width: 140px
+}
+
+/* 串口设置保存按钮容器样式 */
+#serialButton {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 8px; /* 缩减底部margin从20px到8px */
+}
+
+/* 串口设置保存按钮所在的label-view样式 */
+.serial .card-view .label-view.mt-20:last-child {
+    margin-top: 12px; /* 缩减顶部margin从20px到12px */
+    margin-bottom: 2px; /* 缩减底部margin从8px到2px */
+    padding-bottom: 0px; /* 移除底部padding */
+}
+
+/* 确保串口设置区域有足够的底部空间 */
+.serial .card-view[data-v-2c53cae0] .content-area {
+    padding-bottom: 0px; /* 移除底部padding，已由card-view控制 */
+}
+
+/* 防止按钮压在边框上的通用样式 */
+.card-view {
+    min-height: fit-content;
+    position: relative;
+}
+
+.card-view .content-area {
+    position: relative;
+    z-index: 1;
+}
+
+/* 确保所有card-view的最后一个元素有足够间距 */
+.card-view .content-area > *:last-child {
+    margin-bottom: 20px;
+}
+
+    /* 移动端优化卡片内容区域底部间距 */
+@media screen and (max-width:750px) {
+    .card-view .content-area > *:last-child {
+        margin-bottom: 5px;
+    }
+    
+    /* 串口页面进一步压缩 */
+    .serial .card-view .content-area > *:last-child {
+        margin-bottom: 2px !important;
+    }
+}
+
+@media screen and (max-width:850px) {
+    .serial .card-view[data-v-2c53cae0] {
+        width: calc(100% - 82px)
+    }
+}
+
+@media screen and (max-width:750px) {
+    .serial .card-view[data-v-2c53cae0] {
+        width: calc(100% - 32px);
+        /* margin在上面统一设置为 1px 8px */
+        padding: 1px 0px 1px 0px;
+    }
+
+    .serial .card-view .baud-container[data-v-2c53cae0] {
+        width: 100%
+    }
+
+    .serial .card-view .baud-container select.base-input[data-v-2c53cae0] {
+        width: 100%;
+        background-position-x: calc(100% - 10px);
+        max-width: 330px
+    }
+
+    .serial .card-view .baud-container input.base-input[data-v-2c53cae0] {
+        width: calc(100% - 52px);
+        max-width: 278px
+    }
+    
+    /* 移动端串口设置 - 减少high-text和unit-text间距 */
+    .serial .card-view .high-text[data-v-2c53cae0] {
+        margin: 0px !important;
+        padding: 0px !important;
+        line-height: 18px !important;
+    }
+    
+    /* 移动端：让单位文字紧跟在输入框后面 */
+    #serialConfigContent .view-container {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important; /* 输入框和单位文字之间的4px间距 */
+        flex: none !important; /* 不占满label-view空间，只占用内容需要的宽度 */
+        width: fit-content !important; /* 根据内容自适应宽度 */
+        margin-left: 4px !important; /* 与前面标签文字保持4px距离 */
+    }
+
+    #serialConfigContent .unit-text {
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 18px !important;
+        flex-shrink: 0 !important; /* 防止单位文字被压缩 */
+        white-space: nowrap !important; /* 防止换行 */
+    }
+
+    #serialConfigContent .custom-input {
+        flex-shrink: 0 !important; /* 防止输入框收缩 */
+        width: 120px !important; /* 固定宽度，与内部输入框一致 */
+        max-width: 120px !important; /* 确保不会超过此宽度 */
+        min-width: 120px !important; /* 确保不会小于此宽度 */
+    }
+
+    
+    /* 移动端串口设置 - 减少base-desc间距 */
+    .base-desc[data-v-2c53cae0] {
+        margin-top: 0px !important;
+        margin-bottom: 0px !important;
+        padding-top: 1px !important;
+        padding-bottom: 1px !important;
+        line-height: 16px !important;
+    }
+    
+    /* 移动端串口设置 - 减少label标题宽度让布局更紧凑 */
+    .label-view[data-v-2c53cae0] .label .title {
+        width: 110px !important;
+        font-size: 13px !important;
+        line-height: 18px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* 串口页面label容器压缩 */
+    .serial .card-view .label-view[data-v-2c53cae0] .label {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* 移动端串口设置 - 减少内容区域底部间距 */
+    .serial .card-view[data-v-2c53cae0] .content-area {
+        padding-bottom: 1px !important;
+    }
+    
+    /* 移动端串口设置保存按钮样式 - 缩小尺寸 */
+    #serialButton {
+        margin-bottom: 1px;
+        margin-top: 2px;
+        margin-right: 10px !important; /* 右侧留出10px间距，避免贴边框 */
+        width: auto !important; /* 自适应宽度，不设置max-width让按钮自然大小 */
+    }
+    
+    #serialButton.main-btn {
+        height: 28px !important; /* 缩小高度到28px（桌面端32px） */
+        min-width: 50px !important; /* 缩小最小宽度到50px（桌面端65px） */
+        max-width: 90px !important; /* 限制最大宽度 */
+        padding: 0 8px !important; /* 缩小内边距到8px（桌面端10px） */
+        font-size: 12px !important; /* 缩小字体到12px（桌面端14px） */
+    }
+    
+    /* 移动端按钮容器优化 */
+    .serial .btn-container[data-v-2c53cae0] {
+        padding: 1px 0 2px 0 !important;
+        margin-top: 2px !important;
+    }
+    
+    .serial .btn-container .line[data-v-2c53cae0] {
+        margin-bottom: 3px !important;
+    }
+
+    .serial .card-view .label-view.mt-20:last-child {
+        margin-bottom: 1px;
+        padding-bottom: 0px;
+    }
+
+    /* 移动端保存按钮容器优化 */
+    #serialConfigContent .label-view.mt-20 .view-container {
+        flex: 1 !important; /* 占满label-view空间，让按钮能正确右对齐 */
+        width: auto !important; /* 恢复自动宽度 */
+        margin-left: 0 !important; /* 移除左边距 */
+    }
+
+    #serialConfigContent .label-view.mt-20 {
+        margin-top: 8px !important; /* 减少顶部空白 */
+    }
+
+    /* 移动端波特率容器优化 - 确保与标签保持4px距离 */
+    #serialConfigContent .view-container .baud-container {
+        margin-left: 4px !important; /* 与前面标签文字保持4px距离 */
+    }
+
+    /* 串口卡片标题容器优化 */
+    .serial .card-view .container[data-v-2c53cae0] {
+        height: 34px !important;
+        padding: 0 10px !important;
+        margin-bottom: 0px !important;
+    }
+    
+    /* 串口卡片内所有flexbox元素紧凑布局 */
+    .serial .card-view[data-v-2c53cae0] * {
+        flex-shrink: 1;
+    }
+}
+
+.security .card-view[data-v-4818d386] {
+    width: calc(var(--CONTENT-S-WIDTH) - 2px)
+}
+
+.security .card-view .container[data-v-4818d386] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    padding: 0 20px
+}
+
+.security .card-view.pw[data-v-4818d386] {
+    margin: 20px 20px 0 20px;
+    padding-bottom: 20px
+}
+
+.security .card-view.pw .container[data-v-4818d386] {
+    border-bottom: 1px solid var(--BG-2)
+}
+
+.security .card-view.re[data-v-4818d386] {
+    margin: 10px 20px 0px 20px
+}
+
+@media screen and (max-width:850px) {
+    .security .card-view .label-view[data-v-4818d386] {
+        margin-left: 20px;
+        margin-right: 20px
+    }
+}
+
+
+
+@media screen and (max-width:850px) {
+    .security .card-view[data-v-4818d386] {
+        width: calc(100% - 42px)
+    }
+}
+
+@media screen and (max-width:750px) {
+    .security .card-view[data-v-4818d386] {
+        width: calc(100% - 18px)
+    }
+
+    .security .card-view.pw[data-v-4818d386] {
+        margin: 3px 9px 0;
+        padding-bottom: 10px;
+    }
+
+    .security .card-view.re[data-v-4818d386] {
+        margin: 3px 9px;
+    }
+}
+
+.flex-center-div[data-v-6c3b534a] {
+    width: 100%;
+    height: 100%;
+    min-height: 506px;
+    min-width: 440px
+}
+
+.flex-center-div.isNeutral[data-v-6c3b534a] {
+    min-height: 406px
+}
+
+.flex-center-div.isNeutral .login[data-v-6c3b534a] {
+    height: 284px
+}
+
+.flex-center-div.isNeutral .login .logo-container[data-v-6c3b534a] {
+    min-height: 88px
+}
+
+.flex-center-div.isNeutral .login .logo-container .title[data-v-6c3b534a] {
+    margin-top: 0
+}
+
+.login[data-v-6c3b534a] {
+    width: 318px;
+    /* height: 384px; */
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center
+}
+
+.login .logo-container[data-v-6c3b534a] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 120px;
+    flex: 1
+}
+
+.login .logo-container .logo[data-v-6c3b534a] {
+    width: 139px;
+    height: 43px
+}
+
+.login .logo-container .title[data-v-6c3b534a] {
+    font-size: 24px;
+    color: var(--FG-0);
+    line-height: 33px;
+    margin-top: 26px
+}
+
+.login .input-container[data-v-6c3b534a] {
+    display: flex;
+    flex-direction: column;
+    width: 100%
+}
+
+.login .input-container .pw[data-v-6c3b534a] {
+    color: var(--FG-3);
+    align-self: flex-start;
+    margin-top: 6px
+}
+
+.login .input-container .login-btn[data-v-6c3b534a] {
+    width: 100%;
+    margin-top: 20px
+}
+
+.login .input-container .model[data-v-6c3b534a],
+.login .input-container .version[data-v-6c3b534a] {
+    color: var(--FG-3);
+    margin-top: 20px;
+    text-align: center
+}
+
+.login .input-container .version[data-v-6c3b534a] {
+    align-self: center
+}
+
+@media screen and (max-width:750px) {
+    .flex-center-div[data-v-6c3b534a] {
+        min-height: auto;
+        min-width: auto
+    }
+}
+
+.login .custom-input {
+    width: 100%;
+    margin-top: 6px
+}
+
+.login .custom-input .base-input {
+    width: calc(100% - 22px)
+}
+
+.message {
+    position: fixed;
+    padding: 20px 10px;
+    margin: 5px;
+    color: var(--FG-1);
+    background-color: var(--BG-AREA);
+    border-radius: var(--RADIUS-0);
+    width: 150px;
+    max-width: 150px;
+    min-height: 130px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center
+}
+
+.message .title {
+    margin-top: 10px;
+    font-size: 18px;
+    line-height: 26px;
+    color: var(--FG-0)
+}
+
+.message .unit-text {
+    margin-top: 5px;
+    text-align: center
+}
+
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity .3s
+}
+
+.fade-enter,
+.fade-leave-to {
+    opacity: 0
+}
+
+.confirm {
+    z-index: 999999
+}
+
+.confirm,
+.confirm .bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%
+}
+
+.confirm .bg {
+    background-color: #888;
+    opacity: .3;
+    z-index: 99999
+}
+
+.confirm .container {
+    position: absolute;
+    display: inline-block;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 236px;
+    max-width: 236px;
+    background: var(--BG-1);
+    box-shadow: 0 20px 60px 0 rgba(0, 0, 0, .1);
+    border-radius: var(--RADIUS-0);
+    z-index: 99999999;
+    padding: 40px 32px 32px
+}
+
+.confirm .container .content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center
+}
+
+.confirm .container .content .ani-icon {
+    width: 88px;
+    height: 88px
+}
+
+.confirm .container .content .title {
+    font-size: 18px;
+    line-height: 26px;
+    color: var(--FG-0);
+    margin-top: 20px
+}
+
+.confirm .container .content .unit-text {
+    text-align: center
+}
+
+.confirm .container .footer {
+    width: 100%;
+    margin-top: 30px;
+    display: flex
+}
+
+.confirm .container .footer .sure {
+    width: 236px
+}
+
+.fade-enter-active[data-v-1e31b667],
+.fade-leave-active[data-v-1e31b667] {
+    transition: opacity .3s
+}
+
+.fade-enter[data-v-1e31b667],
+.fade-leave-to[data-v-1e31b667] {
+    opacity: 0
+}
+
+.confirm[data-v-1e31b667] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999999
+}
+
+.confirm .bg[data-v-1e31b667] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #888;
+    opacity: .3;
+    z-index: 99999
+}
+
+.confirm .container[data-v-1e31b667] {
+    position: absolute;
+    display: inline-block;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 236px;
+    min-width: 236px;
+    background: var(--BG-1);
+    box-shadow: 0 20px 60px 0 rgba(0, 0, 0, .1);
+    border-radius: var(--RADIUS-0);
+    z-index: 9999999999999;
+    padding: 40px 32px 32px
+}
+
+.confirm .container .content[data-v-1e31b667] {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center
+}
+
+.confirm .container .content .ani-icon[data-v-1e31b667] {
+    width: 88px;
+    height: 88px
+}
+
+.confirm .container .content .title[data-v-1e31b667] {
+    font-size: 18px;
+    line-height: 26px;
+    color: var(--FG-0);
+    margin-top: 20px
+}
+
+.confirm .container .content .unit-text[data-v-1e31b667] {
+    text-align: center
+}
+
+.confirm .container .footer[data-v-1e31b667] {
+    width: 100%;
+    margin-top: 30px;
+    display: flex
+}
+
+.confirm .container .footer .cancel[data-v-1e31b667],
+.confirm .container .footer .sure[data-v-1e31b667] {
+    width: 113px
+}
+
+.confirm .container .footer .sure[data-v-1e31b667] {
+    margin-left: 10px
+}
+
+.navigation {
+    display: flex;
+    flex-direction: column;
+    background: var(--NAV-BG-1);
+    border-right: 1px solid var(--NAV-BG-2)
+}
+
+.navigation .logo-title {
+    width: calc(100% - 40px);
+    height: 59px;
+    margin: 0 20px;
+    border-bottom: 1px solid var(--NAV-BG-2);
+    display: flex;
+    align-items: center
+}
+
+.navigation .logo-title .logo {
+    width: 30px;
+    height: 30px
+}
+
+.navigation .logo-title .title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--NAV-FG-1);
+    /* line-height: 26px; */
+    margin-left: 10px;
+    margin-top: 5px;
+}
+
+.navigation .logo-title.isNeutral {
+    justify-content: center
+}
+
+.navigation .logo-title.isNeutral .title {
+    margin-left: 0
+}
+
+.navigation .nav-list {
+    flex: 1;
+    margin-top: 10px;
+    overflow-y: auto;
+    overflow-x: hidden
+}
+
+.navigation .nav-list .nav-link {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    margin-top: 1px
+}
+
+.navigation .nav-list .nav-link:first-child {
+    margin-top: 0
+}
+
+.navigation .nav-list .nav-link.active {
+    background: var(--NAV-BG-AREA)
+}
+
+.navigation .nav-list .nav-link.active:before {
+    width: 3px;
+    height: 44px;
+    background: var(--NAV-BRAND);
+    content: ""
+}
+
+.navigation .nav-list .nav-link.active .icon {
+    margin-left: 17px;
+    color: var(--NAV-FG-0)
+}
+
+.navigation .nav-list .nav-link.active .icon .path {
+    fill: var(--NAV-FG-0)
+}
+
+.navigation .nav-list .nav-link.active .name {
+    color: var(--NAV-FG-0)
+}
+
+.navigation .nav-list .nav-link:hover {
+    background: var(--NAV-BG-AREA)
+}
+
+.navigation .nav-list .nav-link:active {
+    background: var(--NAV-BG-AREA);
+    -webkit-filter: opacity(50%);
+    filter: opacity(50%)
+}
+
+.navigation .nav-list .nav-link .icon {
+    width: 24px;
+    /* height: 24px; */
+    margin-left: 20px;
+    font-size: 24px;
+    color: var(--NAV-FG-2)
+}
+
+.navigation .nav-list .nav-link .icon .path {
+    fill: var(--NAV-FG-2)
+}
+
+.navigation .nav-list .nav-link .name {
+    /* width: 108px; */
+    font-size: 16px;
+    color: var(--NAV-FG-2);
+    /* line-height: 20px; */
+    margin-left: 10px
+}
+
+.navigation .version-div {
+    width: 140px;
+    margin-left: 46px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--NAV-FG-3);
+    line-height: 18px;
+    margin-bottom: 20px
+}
+
+.header[data-v-4c63c112] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--HEADER-BG-2);
+    background: var(--BG-1)
+}
+
+.header .title[data-v-4c63c112] {
+    font-size: 18px;
+    color: var(--HEADER-FG-0);
+    line-height: 26px;
+    margin-left: 20px
+}
+
+.header .user[data-v-4c63c112] {
+    margin-right: 20px
+}
+
+@media screen and (max-width:750px) {
+    .header .title[data-v-4c63c112] {
+        margin-left: 10px;
+        font-size: 16px;
+        line-height: 24px
+    }
+}
+
+.nav-top {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 48px;
+    background: var(--NAV-BG-1);
+    z-index: 99999;
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0
+}
+
+.nav-top.nav-on {
+    position: fixed;
+    height: 100%
+}
+
+.nav-top .logo-title {
+    /* width: calc(100% - 0px); */
+    height: 47px;
+    padding: 0 10px 0 15px;
+    border-bottom: 1px solid var(--NAV-BG-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between
+}
+
+.nav-top .logo-title .logo {
+    width: 30px;
+    height: 30px
+}
+
+.nav-top .logo-title .title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--NAV-FG-1);
+    line-height: 26px;
+    margin-left: 10px
+}
+
+.nav-top .logo-title.isNeutral .title {
+    margin-left: 0
+}
+
+.nav-top .logo-title .icon-btn:hover {
+    background: transparent
+}
+
+.nav-top .logo-title .icon-btn:active {
+    background: var(--NAV-BG-AREA)
+}
+
+.nav-top .logo-title .icon-btn.disabled:hover {
+    background: transparent
+}
+
+.nav-top .nav-list {
+    flex: 1;
+    margin-top: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: none
+}
+
+.nav-top .nav-list.nav-on {
+    display: block
+}
+
+.nav-top .nav-list .nav-container .deliver-line {
+    width: calc(100% - 40px);
+    height: 1px;
+    background: var(--NAV-BG-2);
+    margin: 0 20px
+}
+
+.nav-top .nav-list .nav-container.active+.nav-container .deliver-line,
+.nav-top .nav-list .nav-container.active .deliver-line,
+.nav-top .nav-list .nav-container .deliver-line.active,
+.nav-top .nav-list .nav-container:hover+.nav-container .deliver-line,
+.nav-top .nav-list .nav-container:hover+.nav-container .deliver-line .active,
+.nav-top .nav-list .nav-container:hover .deliver-line,
+.nav-top .nav-list .nav-container:hover .deliver-line .active {
+    background: var(--NAV-BG-1)
+}
+
+.nav-top .nav-list .nav-container .nav-link {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    text-decoration: none
+}
+
+.nav-top .nav-list .nav-container .nav-link.active {
+    background: var(--NAV-BG-AREA)
+}
+
+.nav-top .nav-list .nav-container .nav-link.active:before {
+    width: 3px;
+    height: 44px;
+    background: var(--NAV-BRAND);
+    content: ""
+}
+
+.nav-top .nav-list .nav-container .nav-link.active .icon {
+    margin-left: 17px;
+    color: var(--NAV-FG-0)
+}
+
+.nav-top .nav-list .nav-container .nav-link.active .icon .path {
+    fill: var(--NAV-FG-0)
+}
+
+.nav-top .nav-list .nav-container .nav-link.active .name {
+    color: var(--NAV-FG-0)
+}
+
+.nav-top .nav-list .nav-container .nav-link:hover {
+    background: var(--NAV-BG-AREA)
+}
+
+.nav-top .nav-list .nav-container .nav-link:active {
+    background: var(--NAV-BG-AREA);
+    -webkit-filter: opacity(50%);
+    filter: opacity(50%)
+}
+
+.nav-top .nav-list .nav-container .nav-link .icon {
+    width: 24px;
+    /* height: 24px; */
+    margin-left: 20px;
+    font-size: 24px;
+    color: var(--NAV-FG-2)
+}
+
+.nav-top .nav-list .nav-container .nav-link .icon .path {
+    fill: var(--NAV-FG-2)
+}
+
+.nav-top .nav-list .nav-container .nav-link .name {
+    /* width: 108px; */
+    font-size: 14px;
+    color: var(--NAV-FG-2);
+    line-height: 20px;
+    margin-left: 8px
+}
+
+.nav-top .version-div {
+    width: 140px;
+    margin-left: 20px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--NAV-FG-3);
+    line-height: 18px;
+    margin-bottom: 20px;
+    display: none
+}
+
+.nav-top .version-div.nav-on {
+    display: block
+}
+
+#main[data-v-6f9f3e2e] {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    background: var(--BG-1)
+}
+
+#main #nav[data-v-6f9f3e2e] {
+    width: calc(var(--NAV-WIDTH) - -66px);
+    min-width: calc(var(--NAV-WIDTH) - -36px);
+    height: 100%
+}
+
+#main #nav-top[data-v-6f9f3e2e] {
+    display: none
+}
+
+#main #right[data-v-6f9f3e2e] {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column
+}
+
+#main #right #header[data-v-6f9f3e2e] {
+    width: 100%;
+    height: calc(var(--HEADER-HEIGHT) - 1px)
+}
+
+#main #right #content[data-v-6f9f3e2e] {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    overflow: hidden
+}
+
+@media screen and (max-width:750px) {
+    #main[data-v-6f9f3e2e] {
+        flex-direction: column;
+        position: relative;
+        min-width: auto;
+        height: auto
+    }
+
+    #main #nav[data-v-6f9f3e2e] {
+        display: none
+    }
+
+    #main #nav-top[data-v-6f9f3e2e] {
+        display: flex
+    }
+
+    #main #right[data-v-6f9f3e2e] {
+        height: auto
+    }
+
+    #main #right #header[data-v-6f9f3e2e] {
+        width: 100%;
+        height: 47px;
+        position: -webkit-sticky;
+        position: sticky;
+        /* top: 48px; */
+        z-index: 9999
+    }
+}
+
+.label-view,
+.label-view .label {
+    display: flex
+}
+
+.label-view .label .title {
+    width: 124px;
+    font-size: 14px;
+    color: var(--FG-3);
+    line-height: 20px;
+    text-align: right
+}
+
+.label-view .label .title.tip {
+    margin-right: 18px
+}
+
+.label-view .label .title.top {
+    margin-top: 6px
+}
+
+.label-view .label .tips {
+    width: 24px;
+    height: 24px;
+    margin-top: 4px;
+    margin-right: 3px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+.label-view .label .tips .icon {
+    width: 16px;
+    height: 16px;
+    font-size: 24px;
+    color: var(--FG-3)
+}
+
+.label-view .label .tips .iconfont {
+    margin-top: -11px;
+    margin-left: -7px
+}
+
+.label-view .label .tips.top {
+    margin-top: 4px
+}
+
+.label-view .label .tips:hover {
+    background: var(--BG-AREA);
+    border-radius: 50%
+}
+
+.label-view .label .tips:hover .tips-view {
+    display: block
+}
+
+.label-view .label .tips .tips-view {
+    position: absolute;
+    width: 320px;
+    top: 25px;
+    left: -13px;
+    display: none;
+    z-index: 99999
+}
+
+.label-view .label .tips .tips-view .triangle {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 5px 5px 5px;
+    border-color: transparent transparent var(--BG-AREA) transparent;
+    margin-left: 20px
+}
+
+.label-view .label .tips .tips-view .square {
+    background: var(--BG-AREA);
+    border-radius: var(--RADIUS-1);
+    padding: 5px 10px;
+    font-size: 14px;
+    color: var(--FG-1);
+    line-height: 20px
+}
+
+.label-view .view-container {
+    display: flex
+}
+
+.label-view.small .label .title.top {
+    margin-top: 2px
+}
+
+.main-btn {
+    min-width: 65px;
+    height: 32px;
+    background: var(--BRAND);
+    border-radius: var(--RADIUS-1);
+    font-size: 14px;
+    color: var(--WHITE);
+    line-height: 20px;
+    padding: 0 10px;
+    outline: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .3s
+}
+
+.main-btn .icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 2px;
+    font-size: 24px;
+    color: var(--BG-1)
+}
+
+.main-btn .iconfont {
+    margin-top: 4px
+}
+
+.main-btn:hover {
+    -webkit-filter: brightness(120%);
+    filter: brightness(120%);
+    cursor: pointer
+}
+
+.main-btn:active {
+    -webkit-filter: brightness(120%) opacity(50%);
+    filter: brightness(120%) opacity(50%)
+}
+
+.main-btn:disabled,
+.main-btn:disabled:hover {
+    -webkit-filter: opacity(30%);
+    filter: opacity(30%);
+    cursor: not-allowed
+}
+
+.main-btn.small {
+    min-width: 50px;
+    height: 24px
+}
+
+.main-btn.big {
+    min-width: 70px;
+    height: 36px;
+    font-size: 16px;
+    line-height: 24px
+}
+
+.normal-btn {
+    width: 78px;
+    min-width: 60px;
+    height: 32px;
+    background: var(--BG-1);
+    border-radius: var(--RADIUS-1);
+    font-size: 14px;
+    color: var(--BRAND);
+    line-height: 20px;
+    padding: 0 10px;
+    outline: none;
+    border: 1px solid var(--BG-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .3s
+}
+
+.normal-btn .icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 2px;
+    font-size: 24px;
+    color: var(--BRAND)
+}
+
+.normal-btn .iconfont {
+    margin-top: 4px
+}
+
+.normal-btn .btn-container {
+    display: flex;
+    align-items: center;
+    justify-content: center
+}
+
+.normal-btn:hover {
+    background: var(--BG-AREA);
+    cursor: pointer
+}
+
+.normal-btn:active {
+    background: var(--BG-AREA);
+    -webkit-filter: opacity(50%);
+    filter: opacity(50%)
+}
+
+.normal-btn:disabled {
+    -webkit-filter: opacity(30%);
+    filter: opacity(30%);
+    cursor: not-allowed
+}
+
+.normal-btn.disabled:hover {
+    background: var(--BG-1);
+    cursor: not-allowed
+}
+
+.normal-btn.re,
+.normal-btn.re .icon {
+    color: var(--RED)
+}
+
+.normal-btn.re .icon .path {
+    fill: var(--RED)
+}
+
+.normal-btn.small {
+    min-width: 50px;
+    height: 24px
+}
+
+.normal-btn.big {
+    min-width: 70px;
+    height: 36px;
+    font-size: 16px;
+    line-height: 24px
+}
+
+.icon-btn {
+    /* width: 80px; */
+    height: 36px;
+    border-radius: 50%;
+    outline: none;
+    border: none;
+    background: transparent;
+    transition: all .3s
+}
+
+.icon-btn:hover {
+    background: var(--BG-AREA);
+    cursor: pointer
+}
+
+.icon-btn:active {
+    background: var(--BG-AREA);
+    -webkit-filter: opacity(50%);
+    filter: opacity(50%)
+}
+
+.icon-btn:disabled {
+    -webkit-filter: opacity(30%);
+    filter: opacity(30%);
+    cursor: not-allowed
+}
+
+.icon-btn.disabled:hover {
+    background: var(--BG-1);
+    cursor: not-allowed
+}
+
+.icon-btn .icon {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    color: var(--FG-3)
+}
+
+.icon-btn .iconfont {
+    margin-top: 4px
+}
+
+/* 保存按钮特殊样式 - 更突出的外观 */
+.main-btn.save-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    font-weight: 500;
+    position: relative;
+    overflow: hidden;
+}
+
+.main-btn.save-btn:hover {
+    background: linear-gradient(135deg, #218838, #1fa788);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    transform: translateY(-1px);
+    filter: brightness(110%);
+}
+
+.main-btn.save-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+    filter: brightness(100%);
+}
+
+.main-btn.save-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.main-btn.save-btn:hover::before {
+    left: 100%;
+}
+
+/* 按钮组布局优化 */
+.button-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end !important;
+    flex-wrap: wrap;
+    gap: 12px !important;
+    margin-top: 15px;
+    min-width: 0;
+}
+
+.button-left-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: nowrap;
+}
+
+.button-right-group {
+    margin-left: 10px;
+}
+
+@media screen and (max-width:750px) {
+
+    .normal-btn.disabled:hover,
+    .normal-btn:hover {
+        background: var(--BG-1)
+    }
+
+    .icon-btn.disabled:hover,
+    .icon-btn:hover {
+        background: transparent
+    }
+
+    /* 移动端按钮组布局优化 - 允许横向滚动，避免换行 */
+    .button-group {
+        justify-content: flex-end !important;
+        flex-wrap: nowrap;
+        gap: 4px !important;
+    }
+
+    .button-left-group {
+        justify-content: flex-end !important;
+        flex-wrap: nowrap;
+        gap: 4px !important;
+    }
+
+    .button-right-group {
+        margin-left: 0;
+    }
+
+    .button-group .main-btn,
+    .button-group .main-btn.save-btn {
+        flex: 1 1 0;
+        min-width: 56px;
+        max-width: none;
+        height: 32px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .button-group .main-btn .btn-container,
+    .button-group .main-btn.save-btn .btn-container {
+        padding: 0 10px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.err-text {
+    color: var(--RED);
+    font-size: 12px;
+    line-height: 18px
+}
+
+.mt-4 {
+    margin-top: 4px
+}
+
+.confirm[data-v-4659f458] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999999
+}
+
+.confirm .bg[data-v-4659f458] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    z-index: 99999
+}
+
+.confirm .loading[data-v-4659f458] {
+    position: fixed;
+    padding: 20px 10px;
+    margin: 5px;
+    background-color: var(--BG-AREA);
+    border-radius: var(--RADIUS-0);
+    width: 150px;
+    max-width: 150px;
+    min-height: 130px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center
+}
+
+.confirm .loading .ani-icon[data-v-4659f458] {
+    width: 48px;
+    height: 48px
+}
+
+.fade-enter-active[data-v-4659f458],
+.fade-leave-active[data-v-4659f458] {
+    transition: opacity .3s
+}
+
+.fade-enter[data-v-4659f458],
+.fade-leave-to[data-v-4659f458] {
+    opacity: 0
+}
+
+.fade-enter-active[data-v-3747ba26],
+.fade-leave-active[data-v-3747ba26] {
+    transition: opacity .3s
+}
+
+.fade-enter[data-v-3747ba26],
+.fade-leave-to[data-v-3747ba26] {
+    opacity: 0
+}
+
+.edit[data-v-3747ba26] {
+    z-index: 9999999
+}
+
+.edit .bg[data-v-3747ba26],
+.edit[data-v-3747ba26] {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%
+}
+
+.edit .bg[data-v-3747ba26] {
+    background-color: #888;
+    opacity: .3;
+    z-index: 99999
+}
+
+.edit .container[data-v-3747ba26] {
+    position: absolute;
+    display: inline-block;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100% - 40px);
+    max-width: 400px;
+    background: var(--BG-1);
+    box-shadow: 0 20px 60px 0 rgba(0, 0, 0, .1);
+    border-radius: var(--RADIUS-0);
+    z-index: 9999999999999
+}
+
+.edit .container .header[data-v-3747ba26] {
+    width: calc(100% - 28px);
+    height: 49px;
+    border-bottom: 1px solid var(--BG-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 0 20px
+}
+
+.edit .container .header .title[data-v-3747ba26] {
+    font-size: 16px;
+    line-height: 24px;
+    color: var(--FG-0)
+}
+
+.edit .container .content[data-v-3747ba26] {
+    width: calc(100% - 40px);
+    display: flex;
+    flex-direction: column;
+    padding: 20px
+}
+
+.edit .container .content .title[data-v-3747ba26] {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--FG-2)
+}
+
+.edit .container .content .base-input[data-v-3747ba26] {
+    margin-top: 10px;
+    width: calc(100% - 22px);
+    height: 34px;
+    line-height: 34px
+}
+
+.edit .container .footer[data-v-3747ba26] {
+    width: calc(100% - 40px);
+    height: 57px;
+    border-top: 1px solid var(--BG-2);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 20px
+}
+
+.edit .container .footer .sure[data-v-3747ba26] {
+    margin-left: 10px
+}
+
+.edit .container .content .base-input {
+    margin-top: 10px;
+    width: calc(100% - 22px);
+    height: 34px;
+    line-height: 34px
+}
+
+@font-face {
+    font-family: iconfont;
+    src: url(../font/iconfont.e8f73f0c.eot);
+    src: url(../font/iconfont.e8f73f0c.eot) format("embedded-opentype"), url("data:application/x-font-woff2;charset=utf-8;base64,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") format("woff2"), url(data:font/woff;base64,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) format("woff"), url(data:font/ttf;base64,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) format("truetype"), url(../font/iconfont.f5021aca.svg) format("svg")
+}
+
+.iconfont {
+    font-family: iconfont !important;
+    font-size: 16px;
+    font-style: normal;
+    margin-top: -2px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale
+}
+
+.icondaohang:before {
+    content: "\e689"
+}
+
+.iconfuxuankuangduihao:before {
+    content: "\e677"
+}
+
+.iconshangjiantou2:before {
+    content: "\e66f"
+}
+
+.iconxiajiantou2:before {
+    content: "\e670"
+}
+
+.iconzuojiantou2:before {
+    content: "\e671"
+}
+
+.iconzhengque:before {
+    content: "\e672"
+}
+
+.iconchahao:before {
+    content: "\e673"
+}
+
+.iconcuowu:before {
+    content: "\e674"
+}
+
+.iconyoujiantou2:before {
+    content: "\e675"
+}
+
+.iconbangzhu:before {
+    content: "\e676"
+}
+
+.iconanquan:before {
+    content: "\e667"
+}
+
+.iconwenben:before {
+    content: "\e668"
+}
+
+.icongaojing:before {
+    content: "\e669"
+}
+
+.iconxieyi:before {
+    content: "\e66a"
+}
+
+.iconguanbi:before {
+    content: "\e66b"
+}
+
+.iconchuankou:before {
+    content: "\e66c"
+}
+
+.iconWi-Fi:before {
+    content: "\e66d"
+}
+
+.iconIO:before {
+    content: "\e66e"
+}
+
+.iconShow:before {
+    content: "\eb45"
+}
+
+.iconHide:before {
+    content: "\eb46"
+}
+
+body {
+    --RED: #f44336;
+    --ORANGE: #fff;
+    --YELLOW: #fff;
+    --GREEN: #6ab14d;
+    --CYAN: #fff;
+    --BLUE: #fff;
+    --PURPLE: #fff;
+    --GRAY: #fff;
+    --WHITE: #fff;
+    --FG-0: #1d1d1f;
+    --FG-1: #333;
+    --FG-2: #46474a;
+    --FG-3: #6e6e73;
+    --FG-4: #cacacc;
+    --BG-0: #f5f5f7;
+    --BG-1: #fff;
+    --BG-2: #eaeaea;
+    --BG-2-RGB: 234, 234, 234;
+    --BG-3: #dcdfe6;
+    --BG-4: #d5d5d7;
+    --BG-AREA: #f2f2f4;
+    --BRAND: #2b6ec0;
+    --BRAND-1: rgba(43, 110, 192, 0.88);
+    --HEADER-FG-0: #1d1d1f;
+    --HEADER-FG-1: #fff;
+    --HEADER-FG-2: #606266;
+    --HEADER-FG-3: #6e6e73;
+    --HEADER-FG-4: #cacacc;
+    --HEADER-BRAND: var(--BRAND);
+    --HEADER-BG-0: #fff;
+    --HEADER-BG-1: #fff;
+    --HEADER-BG-2: #eaeaea;
+    --HEADER-BG-3: #fff;
+    --HEADER-BG-4: #fff;
+    --HEADER-BG-AREA: #f2f2f4;
+    --NAV-FG-0: #fff;
+    --NAV-FG-1: #ebebeb;
+    --NAV-FG-2: #999;
+    --NAV-FG-3: #707070;
+    --NAV-FG-4: #fff;
+    --NAV-BRAND: var(--BRAND);
+    --NAV-BG-0: #262626;
+    --NAV-BG-1: #333;
+    --NAV-BG-2: #474747;
+    --NAV-BG-3: #5c5c61;
+    --NAV-BG-4: #555;
+    --NAV-BG-AREA: #404040;
+    --chart-0: #fff;
+    --chart-1: #fff;
+    --chart-2: #fff;
+    --chart-3: #fff;
+    --chart-4: #fff;
+    --CONTENT-M-WIDTH-MAX: #fff;
+    --CONTENT-M-WIDTH-MIN: #fff;
+    --CONTENT-S-WIDTH: 630px;
+    --NAV-WIDTH: 180px;
+    --HEADER-HEIGHT: 60px;
+    --RADIUS-0: 6px;
+    --RADIUS-1: 3px
+}
+
+body[data-theme=dark] {
+    --BG-0: #000;
+    --BG-1: #111;
+    --BG-2: #333;
+    --BG-2-RGB: 51, 51, 51;
+    --BG-3: #353535;
+    --BG-4: #444;
+    --BG-AREA: #222;
+    --FG-0: #f5f5f7;
+    --FG-1: #ddd;
+    --FG-2: #bbb;
+    --FG-3: #888;
+    --FG-4: #555;
+    --BRAND: #2b6ec0;
+    --BRAND-1: #2b6ec0;
+    --NAV-FG-0: #fff;
+    --NAV-FG-1: #ccc;
+    --NAV-FG-2: #aaa;
+    --NAV-FG-3: #717171;
+    --NAV-FG-4: #444;
+    --NAV-BRAND: #2b6ec0;
+    --NAV-BG-0: #121212;
+    --NAV-BG-1: #222;
+    --NAV-BG-2: #393939;
+    --NAV-BG-3: #5c5c5c;
+    --NAV-BG-4: #555;
+    --NAV-BG-AREA: #383839;
+    --HEADER-BG-0: #000;
+    --HEADER-BG-1: #111;
+    --HEADER-BG-2: #333;
+    --HEADER-BG-3: #353535;
+    --HEADER-BG-4: #444;
+    --HEADER-BG-AREA: #222;
+    --HEADER-FG-0: #f5f5f7;
+    --HEADER-FG-1: #ddd;
+    --HEADER-FG-2: #bbb;
+    --HEADER-FG-3: #888;
+    --HEADER-FG-4: #555;
+    --HEADER-BRAND: #2b6ec0;
+    --HEADER-BRAND-1: rgba(43, 110, 192, 0.53)
+}
+
+.passwd-input {
+    position: relative;
+}
+
+.iconeye {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.cus-uart > #devcie_report {
+    max-width: 100%;
+    max-height: 100%;
+    resize: vertical;
+    overflow: auto;
+    font-size: 14px;
+    border: 1px solid #adadad;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (min-width: 600px) {
+    .cus-uart > #devcie_report {
+        width: 100%;
+    }
+}
+
+@media (max-width: 599px) {
+    .cus-uart > #devcie_report {
+        width: 100%;
+    }
+}
+
+#charts-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.chart-wrapper {
+    width: 100%;
+    max-width: 600px;
+    margin: 20px;
+}
+
+canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+@media (max-width: 600px) {
+    .chart-wrapper {
+        margin: 10px 0;
+    }
+}
+
+.custom-range {
+    width: 100%;
+    height: 8px;
+    background: #ddd;
+    outline: none;
+    opacity: 0.7;
+    transition: opacity .2s;
+}
+
+.custom-range:hover {
+    opacity: 1;
+}
+
+
+.custom-input {
+    /* display: flex; */
+    align-items: center;
+}
+
+.custom-input span {
+    /* margin-left: 10px;
+    font-size: 16px;
+    color: #333; */
+}
+
+/* OTA升级进度样式 */
+.ota-progress-container {
+    margin: 40px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.progress-wrapper {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.progress-bar {
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    transition: width 0.3s ease;
+    border-radius: 10px;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #000;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(255,255,255,0.7);
+}
+
+.status-message {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    margin-top: 10px;
+    min-height: 20px;
+}
+
+/* 成功状态 */
+.status-success {
+    color: #4CAF50;
+}
+
+/* 错误状态 */
+.status-error {
+    color: #f44336;
+}
+
+/* 进行中状态 */
+.status-progress {
+    color: #2196F3;
+}
+
+/* 按钮组样式 */
+.button-group {
+    display: flex;
+    gap: 12px !important;
+    align-items: center;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap;
+}
+
+/* 在移动设备上使按钮组换行显示 */
+@media screen and (max-width: 768px) {
+    .button-group {
+        gap: 4px !important;
+        flex-wrap: nowrap;
+        justify-content: flex-end !important;
+    }
+
+    .button-group .main-btn {
+        margin: 0;
+        flex: 1 1 0;
+        min-width: 48px !important;
+        max-width: none;
+        padding: 0 6px !important;
+        height: 32px;
+        font-size: 12px;
+    }
+}
+
+.button-group .normal-btn {
+    padding: 0 4px;
+    height: 32px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    color: #666;
+    border-radius: 4px;
+}
+
+.button-group .normal-btn:hover {
+    background: #e8e8e8;
+    color: #333;
+}
+
+
+
+.button-group .btn-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.modbus-item {
+    border-top: 1px solid var(--BG-2);
+    margin-top: 20px;
+    padding-top: 10px;
+}
+
+.modbus-manual-hint {
+    margin: 12px 0;
+    padding: 10px 12px;
+    background: var(--BG-AREA);
+    border-radius: var(--RADIUS-1);
+    color: var(--FG-3);
+    line-height: 20px;
+}
+
+.sync-desc.modbus-manual-hint {
+    display: none;
+}
+
+.sync-desc.modbus-manual-hint.active {
+    display: block;
+}
+
+.base-input {
+    width: 100%;
+    height: 32px;
+    padding: 4px 11px;
+    color: var(--FG-1);
+    font-size: 14px;
+    background-color: var(--BG-1);
+    border: 1px solid var(--BG-2);
+    border-radius: 2px;
+    transition: all 0.3s;
+}
+
+.base-input:focus {
+    border-color: var(--BRAND);
+    outline: none;
+}
+
+/* 移除重复的unit-text定义，避免layout错位 */
+
+
+/* 修改按钮样式 */
+.modbus-btn {
+    min-width: 60px;
+    height: 32px;
+    font-size: 14px;
+    padding: 0 15px;
+    margin: 0 5px;
+    cursor: pointer;
+    border-radius: var(--RADIUS-1);
+    transition: all 0.3s;
+}
+
+.modbus-actions {
+    display: flex;
+    justify-content: center; /* 改为居中对齐 */
+    gap: 10px;
+    margin-top: 15px;
+}
+
+/* 轮询时间输入框容器 */
+#poll_time_input {
+    display: none;
+    margin-top: 15px;
+}
+
+.modbus-config-item {
+    /* margin-top: 15px; */
+}
+
+.modbus-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--BG-2);
+    border-radius: var(--RADIUS-1) var(--RADIUS-1) 0 0;
+}
+
+.modbus-index {
+    font-size: 12px;
+    color: var(--FG-1);
+    font-weight: 500;
+}
+
+.modbus-checkbox {
+    display: flex;
+    align-items: center;
+}
+
+.modbus-item-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.modbus-config-item {
+    border: 1px solid var(--BG-2);
+    border-radius: var(--RADIUS-1);
+    margin-bottom: 10px;
+}
+
+/* 修改原有的输入组样式 */
+.modbus-input-group {
+    padding: 12px;
+}
+
+.modbus-input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* 减小间距 */
+}
+
+.modbus-input-group .input-item {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    /*min-width: 150px;  减小最小宽度 */
+    max-width: calc(25% - 8px); /* 改为4列布局 */
+}
+
+.modbus-input-group .title.tip {
+    color: #514242;
+    font-size: 15px; /* 减小字体大小 */
+    width: auto;
+    margin-right: 6px;
+    white-space: nowrap;
+}
+
+.modbus-input-group .base-input {
+    flex: 1;
+    min-width: 18px;
+    max-width: 100px;
+    font-size: 12px; /* 减小输入框字体大小 */
+    /*height: 22px;  减小输入框高度 */
+    /*padding: 2px 8px;  调整内边距 */
+}
+
+/* 添加启用按钮样式 */
+.switch-btn {
+    width: 40px;
+    height: 20px;
+    border-radius: 10px;
+    transition: background .3s;
+    position: relative;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+
+.switch-btn.on {
+    background: var(--BRAND);
+}
+
+.switch-btn.off {
+    background: var(--BG-3);
+}
+
+.switch-btn .circle {
+    position: absolute;
+    top: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--WHITE);
+    transition: right .3s;
+}
+
+.switch-btn.on .circle {
+    right: 2px;
+}
+
+.switch-btn.off .circle {
+    right: 22px;
+}
+
+/* 修改modbus-checkbox样式，使其包含开关按钮 */
+.modbus-header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* 确保modbus-header-controls中的按钮对齐 */
+.modbus-header-controls .main-btn {
+    margin: 0;
+    vertical-align: middle;
+}
+
+/* 禁用状态的输入框样式 */
+.modbus-input-group.disabled .base-input {
+    background-color: var(--BG-2);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 移动端样式 */
+@media screen and (max-width: 750px) {
+    .modbus-input-group {
+        justify-content: center;
+        gap: 6px; /* 减少输入项之间的间距 */
+    }
+
+    .modbus-input-group .input-item {
+        min-width: 110px;
+        max-width: calc(50% - 6px); /* 移动端保持2列布局 */
+        margin-bottom: 4px; /* 减少底部间距 */
+    }
+
+    .modbus-input-group .base-input {
+        min-width: 50px;
+        max-width: 90px;
+    }
+
+    .modbus-input-group .title.tip {
+        min-width: 60px;
+    }
+
+    /* 轮询时间输入框在移动端的样式 */
+    #poll_time_input {
+        display: flex;
+        justify-content: center;
+        padding: 0 10px;
+    }
+
+    /* 按钮组在移动端的样式 */
+    .modbus-actions {
+        padding: 0 10px;
+    }
+
+    .modbus-btn {
+        min-width: 50px;
+        padding: 0 10px;
+    }
+}
+
+
+.title-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toggle-btn {
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.toggle-btn.collapsed i {
+    transform: rotate(-180deg);
+}
+
+/* 内容区域的过渡动画 */
+.content-area {
+    transition: max-height 0.3s ease-out;
+    overflow: visible;
+}
+
+.content-area.collapsed {
+    max-height: 0;
+    overflow: hidden;
+}
+
+/* 添加视图切换动画样式 */
+[id$="View"] {
+    min-height: 100%;
+    width: 100%;
+    position: relative; /* 改为relative以支持滚动 */
+    opacity: 0;
+    transform: translateX(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[id$="View"].active {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* 右侧内容区域样式 */
+#right {
+    position: relative;
+    height: 100vh; /* 设置高度为视口高度 */
+    overflow-y: auto !important; /* 强制显示垂直滚动条 */
+    overflow-x: hidden; /* 隐藏水平滚动条 */
+    -webkit-overflow-scrolling: touch; /* 在iOS上提供平滑滚动 */
+}
+/* 优化滚动条样式 */
+#right::-webkit-scrollbar {
+    width: 6px;
+}
+
+#right::-webkit-scrollbar-track {
+    background: var(--BG-1);
+}
+
+#right::-webkit-scrollbar-thumb {
+    background: var(--BG-3);
+    border-radius: 3px;
+}
+
+#right::-webkit-scrollbar-thumb:hover {
+    background: var(--BG-4);
+}
+
+/* 确保内容区域有合适的内边距 */
+
+
+/* 修复移动端的滚动问题 */
+@media screen and (max-width: 750px) {
+    #right {
+        height: calc(100vh - 60px); /* 减去顶部导航栏的高度 */
+        -webkit-overflow-scrolling: touch;
+    }
+}
+/* 卡片视图动画 */
+.card-view {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-view.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.modbus-actions {
+    display: flex;
+    justify-content: flex-start; /* 改为左对齐 */
+    gap: 10px;
+    margin-top: 15px;
+    margin-left: 20px; /* 添加左边距 */
+}
+
+.modbus-btn {
+    min-width: 60px;
+    height: 32px;
+    font-size: 14px;
+    padding: 0 15px;
+    margin: 0 5px;
+    cursor: pointer;
+    border-radius: var(--RADIUS-1);
+    transition: all 0.3s;
+}
+
+/* 添加响应式布局支持 */
+@media screen and (max-width: 750px) {
+    .modbus-actions {
+        margin-left: 8px; /* 移动端减小左边距 */
+        margin-top: 6px !important; /* 减少上边距 */
+    }
+
+    .modbus-btn {
+        min-width: 50px;
+        padding: 0 10px;
+    }
+}
+@media only screen and (max-width: 768px) { /* 768px 是一个常见的移动设备宽度阈值 */
+    .unit-text {
+        /* margin-top: -16px; */
+    }
+}
+
+/* 通道过滤器样式 */
+.channel-filter-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 15px;
+    flex-wrap: wrap;
+    padding: 10px;
+    background: var(--BG-1);
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box; /* 包含边框和内边距 */
+}
+
+.channel-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: var(--RADIUS-1);
+    transition: background-color 0.3s;
+}
+
+.channel-filter-item:hover {
+    background: var(--BG-AREA);
+}
+
+.channel-filter-item input[type="checkbox"] {
+    margin: 0;
+}
+
+.channel-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    min-width: 35px;
+}
+
+.channel-badge.ch1 {
+    background: #4CAF50; /* 绿色 - 通道1 */
+}
+
+.channel-badge.ch2 {
+    background: #2196F3; /* 蓝色 - 通道2 */
+}
+
+.channel-badge.ch3 {
+    background: #FF9800; /* 橙色 - 通道3 */
+}
+
+.channel-badge.ch4 {
+    background: #9C27B0; /* 紫色 - 通道4 */
+}
+
+.channel-badge.ch5 {
+    background: #607D8B; /* 蓝灰 - 通道5 */
+}
+
+.channel-badge.crc {
+    background: #455A64; /* 深灰蓝 - CRC */
+}
+
+.channel-badge.log {
+    background: #795548; /* 棕色 - 日志 */
+}
+
+.filter-count {
+    font-size: 11px;
+    color: var(--FG-3);
+    background: var(--BG-2);
+    padding: 1px 5px;
+    border-radius: 10px;
+    min-width: 20px;
+    text-align: center;
+}
+
+
+
+/* 串口调试相关的容器对齐样式 */
+.view-container .custom-input.cus-uart {
+    margin: 0; /* 移除margin，由view-container统一控制 */
+    width: 100%; /* 占满容器宽度，与其他组件对齐 */
+    box-sizing: border-box; /* 包含边框和内边距 */
+}
+
+/* 移动端串口配置中cus-uart输入框使用固定宽度 */
+#serialConfigContent .view-container .custom-input.cus-uart {
+    width: 160px !important; /* 固定宽度，与其他输入框一致 */
+    max-width: 160px !important;
+    min-width: 160px !important;
+}
+
+/* 发送通道容器对齐样式 - 已由view-container统一控制 */
+/* 移除了多余的margin设置 */
+
+/* 串口调试日志显示样式 */
+#devcie_report {
+    background: var(--BG-1);
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    padding: 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--FG-1);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    width: 100%; /* 使用容器的全宽 */
+    box-sizing: border-box; /* 包含边框和内边距在宽度计算中 */
+}
+
+/* 串口数据行样式 */
+.uart-data-line {
+    margin: 2px 0;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.uart-data-line.tx {
+    background: rgba(76, 175, 80, 0.1); /* 发送数据浅绿背景 */
+    border-left: 3px solid #4CAF50;
+}
+
+.uart-data-line.rx {
+    background: rgba(33, 150, 243, 0.1); /* 接收数据浅蓝背景 */
+    border-left: 3px solid #2196F3;
+}
+
+.uart-data-line.event {
+    background: rgba(255, 152, 0, 0.10); /* 工作模式事件浅橙背景 */
+    border-left: 3px solid #FF9800;
+}
+
+.uart-data-line.ch1 {
+    border-left-color: #4CAF50;
+}
+
+.uart-data-line.ch2 {
+    border-left-color: #2196F3;
+}
+
+.uart-data-line.ch3 {
+    border-left-color: #FF9800;
+}
+
+.uart-data-line.ch4 {
+    border-left-color: #9C27B0;
+}
+
+.uart-data-line.ch5 {
+    border-left-color: #607D8B;
+}
+
+.uart-timestamp {
+    color: var(--FG-3);
+    font-size: 11px;
+}
+
+.uart-channel {
+    font-weight: bold;
+    padding: 1px 4px;
+    border-radius: 2px;
+    color: white;
+    font-size: 11px;
+}
+
+.uart-channel.ch1 {
+    background: #4CAF50;
+}
+
+.uart-channel.ch2 {
+    background: #2196F3;
+}
+
+.uart-channel.ch3 {
+    background: #FF9800;
+}
+
+.uart-channel.ch4 {
+    background: #9C27B0;
+}
+
+.uart-channel.ch5 {
+    background: #607D8B;
+}
+
+.uart-direction {
+    font-weight: bold;
+    color: var(--FG-1);
+}
+
+.uart-direction.tx {
+    color: #4CAF50;
+}
+
+.uart-direction.rx {
+    color: #2196F3;
+}
+
+.uart-direction.event {
+    color: #FF9800;
+}
+
+.uart-source {
+    color: #6B7280;
+    font-size: 11px;
+    margin-right: 4px;
+}
+
+.uart-data {
+    color: var(--FG-1);
+    font-family: 'Courier New', monospace;
+}
+
+.uart-data.event-text {
+    color: #D97706;
+    font-weight: 600;
+}
+
+/* 发送通道横向布局样式 */
+.debug-channel-horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 10px;
+    background: var(--BG-1);
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    margin: 0; /* 由view-container统一控制 */
+    width: 100%; /* 占满容器 */
+    box-sizing: border-box; /* 包含边框和内边距在宽度计算中 */
+}
+
+.debug-channel-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    min-width: auto;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: var(--RADIUS-1);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    background: var(--BG-1);
+    opacity: 0.5; /* 未选中时半透明 */
+    transform: scale(0.95); /* 未选中时稍微缩小 */
+}
+
+.debug-channel-item.debug-crc-item {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.debug-channel-item:hover {
+    background: var(--BG-AREA);
+    opacity: 0.7;
+    transform: scale(0.98);
+}
+
+.debug-channel-item input[type="radio"] {
+    margin: 0;
+}
+
+.debug-channel-item input[type="checkbox"] {
+    margin: 0;
+}
+
+/* 选中状态的强化样式 */
+.debug-channel-item:has(input[type="radio"]:checked) {
+    opacity: 1 !important; /* 选中时完全不透明 */
+    transform: scale(1) !important; /* 选中时正常大小 */
+    background: var(--BG-AREA) !important;
+    border: 2px solid #4CAF50 !important; /* 选中时绿色边框 */
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3) !important; /* 选中时绿色阴影 */
+}
+
+/* 兼容性：针对不支持:has()的浏览器 */
+.debug-channel-item input[type="radio"]:checked + .channel-badge {
+    box-shadow: 0 0 0 2px var(--WHITE), 0 0 0 4px currentColor;
+}
+
+.debug-channel-item input[type="radio"]:checked {
+    /* 当radio被选中时，给父容器添加样式 */
+}
+
+/* 通过JavaScript添加的选中类 */
+.debug-channel-item.selected {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    background: var(--BG-AREA) !important;
+    border: 2px solid #4CAF50 !important;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3) !important;
+}
+
+.debug-channel-item.debug-crc-item:has(input[type="checkbox"]:checked) {
+    background: var(--BG-AREA);
+    border: 2px solid #455A64;
+    box-shadow: 0 2px 8px rgba(69, 90, 100, 0.3);
+}
+
+
+
+
+
+/* 响应式设计 */
+@media screen and (max-width: 750px) {
+    .channel-filter-container {
+        gap: 6px;
+        padding: 6px;
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .channel-filter-item {
+        gap: 4px;
+        padding: 2px 4px;
+    }
+    
+    .channel-badge {
+        min-width: 30px;
+        font-size: 11px;
+    }
+    
+
+    .auto-cache-control {
+        margin: 6px 0 6px 22px;
+        gap: 10px;
+        font-size: 13px;
+    }
+
+    .card-view .container .button-group {
+        gap: 8px;
+        margin-top: 0;
+    }
+
+    .card-view .container .button-group .main-btn {
+        flex: 0 0 auto;
+        min-width: 65px;
+    }
+
+    .view-container .custom-input.cus-uart:not(.send-with-button .custom-input) {
+        margin: 0 5px; /* 移动端与过滤器保持一致的边距 */
+        max-width: calc(100% - 10px);
+    }
+    
+    .send-with-button .custom-input.cus-uart {
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    .serial .card-view .send-with-button {
+        margin: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+    
+    .serial .card-view .send-with-button .custom-input {
+        flex: 1 1 auto !important;
+        max-width: calc(100% - 61px) !important;
+    }
+    
+    .serial .card-view .send-with-button .custom-input textarea {
+        width: 100% !important;
+    }
+    
+    #devcie_report {
+        width: 100%; /* 移动端使用容器的全宽 */
+    }
+    
+    .debug-channel-horizontal {
+        justify-content: center;
+        gap: 15px;
+        padding: 8px;
+        margin: 0; /* 由容器控制边距 */
+        width: 100%; /* 使用容器的全宽 */
+    }
+    
+    .view-container:has(.debug-channel-horizontal) {
+        margin: 0 5px; /* 移动端与接收框保持一致的边距 */
+        max-width: calc(100% - 10px);
+    }
+    
+    .debug-channel-container {
+        margin: 0 5px;
+        max-width: calc(100% - 10px);
+    }
+    
+    .debug-channel-item {
+        gap: 6px;
+        padding: 6px 8px;
+    }
+    
+
+}
+
+.card-view .container .button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-left: auto;
+    margin-top: 0;
+}
+
+.card-view .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 42px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--BG-2);
+}
+
+/* 如果需要调整按钮样式 */
+.card-view .container .button-group .main-btn {
+    margin-left: 10px;
+    flex: 0 0 auto;
+    /* 按钮之间的间距 */
+}
+
+.card-view .container .button-group .main-btn:first-child {
+    margin-left: 0;
+    /* 第一个按钮不需要左边距 */
+}
+
+
+#logContent.base-input:hover {
+    border-color: var(--BRAND-1)
+}
+
+#logContent.base-input:focus {
+    border-color: #009ee1;
+    box-shadow: 0 0 0 1px #009ee1
+}
+
+#logContent.base-input {
+    outline: none;
+    width: 100%;
+    height: 300px;
+    background: var(--BG-1);
+    border: none;
+    padding: 0px;
+    font-size: 14px;
+    color: var(--FG-1);
+    line-height: 20px;
+    transition-duration: .3s;
+    -webkit-appearance: none;
+    overflow-y: auto;
+    overflow-x: hidden;  /* 隐藏水平滚动条 */
+    user-select: text;
+    white-space: pre-wrap;  /* 使用 pre-wrap 替代 nowrap */
+    word-break: break-all;  /* 添加这行，确保长文本会换行 */
+    word-wrap: break-word;  /* 添加这行，确保长文本会换行 */
+}
+
+
+/* 添加媒体查询以支持响应式布局 */
+@media (max-width: 600px) {
+    .custom-input {
+        /* width: 100%; */
+        /* padding: 0 10px; */
+        box-sizing: border-box;
+    }
+
+    #logContent.base-input {
+        width: 100%;
+        padding: 5px;
+        white-space: pre-wrap;
+        font-family: monospace;
+    }
+}
+
+/* Modbus表格样式 */
+.modbus-table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 15px;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+}
+
+.modbus-table-header,
+.modbus-table-row {
+    display: flex;
+    width: 100%;
+}
+
+.modbus-table-header {
+    background-color: rgba(var(--BG-2-RGB), 0.7);
+    font-weight: bold;
+    border-bottom: 1px solid var(--BG-3);
+    font-size: 12px;
+    height: 50px; /* 固定高度 */
+}
+
+.modbus-table-row {
+    border-bottom: 1px solid var(--BG-3);
+    height: 40px; /* 固定高度 */
+}
+
+.modbus-table-row:last-child {
+    border-bottom: none;
+}
+
+.modbus-table-cell {
+    border-right: 1px solid var(--BG-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    box-sizing: border-box;
+    overflow: hidden; /* 防止内容溢出 */
+}
+
+/* 表头允许换行 */
+.modbus-table-header .modbus-table-cell {
+    line-height: 1.3;
+    text-align: center;
+}
+
+/* 数据行输入框完全适应父容器 */
+.modbus-table-row .modbus-table-cell .base-input {
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    padding: 2px 4px;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+
+.modbus-table-row .modbus-table-cell .switch-btn {
+    width: 32px;
+    height: 18px;
+}
+
+/* 各列的宽度设置 */
+.modbus-table-cell:nth-child(1) { /* 选择列 */
+    flex: 0 0 40px;
+    min-width: 40px;
+}
+
+.modbus-table-cell:nth-child(2) { /* 启用列 */
+    flex: 0 0 50px;
+    min-width: 50px;
+}
+
+.modbus-table-cell:nth-child(3) { /* 设备地址列 */
+    flex: 0 0 60px;
+    min-width: 60px;
+}
+
+.modbus-table-cell:nth-child(4) { /* 功能码列 */
+    flex: 0 0 60px;
+    min-width: 60px;
+}
+
+.modbus-table-cell:nth-child(5) { /* 寄存器地址列 */
+    flex: 0 0 70px;
+    min-width: 70px;
+}
+
+.modbus-table-cell:nth-child(6) { /* 寄存器数量列 */
+    flex: 0 0 70px;
+    min-width: 70px;
+}
+
+.modbus-table-cell:nth-child(7) { /* 映射从机地址列 */
+    flex: 0 0 80px;
+    min-width: 80px;
+}
+
+.modbus-table-cell:nth-child(8) { /* 映射寄存器地址列 */
+    flex: 0 0 90px;
+    min-width: 90px;
+}
+
+.modbus-table-cell:nth-child(9) { /* 接收超时列 */
+    flex: 0 0 75px;
+    min-width: 75px;
+}
+
+.modbus-table-cell:nth-child(10) { /* 间隔时间列 */
+    flex: 0 0 75px;
+    min-width: 75px;
+}
+
+.modbus-table-cell:nth-child(11) { /* 波特率列 */
+    flex: 0 0 65px;
+    min-width: 65px;
+}
+
+.modbus-table-cell:nth-child(12) { /* 数据位列 */
+    flex: 0 0 65px;
+    min-width: 65px;
+}
+
+.modbus-table-cell:nth-child(13) { /* 校验位列 */
+    flex: 0 0 85px;
+    min-width: 85px;
+}
+
+.modbus-table-row .modbus-table-cell:nth-child(13) .base-input { /* 校验位select输入框 */
+    padding: 2px 20px 2px 4px; /* 为下拉箭头留出更多右侧空间 */
+}
+
+.modbus-table-cell:nth-child(14) { /* 停止位列 */
+    flex: 0 0 100px;
+    min-width: 100px;
+}
+
+.modbus-table-row .modbus-table-cell:nth-child(14) .base-input { /* 停止位select输入框 */
+    padding: 2px 20px 2px 4px; /* 为下拉箭头留出更多右侧空间 */
+}
+
+
+
+
+.modbus-row-checkbox {
+    width: 16px;
+    height: 16px;
+}
+
+/* 响应式调整 */
+@media screen and (max-width: 768px) {
+    .modbus-table-container {
+        overflow-x: auto;
+    }
+
+    .modbus-table-row,
+    .modbus-table-header {
+        width: max-content;
+        min-width: 100%;
+    }
+
+    .modbus-table-cell {
+        min-width: 80px;
+    }
+
+    /* Modbus按钮组移动端布局 - 两行排列 */
+    .view-container .button-group {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 4px !important;
+        justify-content: flex-end !important;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .view-container .button-group .main-btn {
+        flex: 1 1 0;
+        min-width: 48px !important;
+        height: 32px;
+        font-size: 12px;
+        margin: 0;
+        white-space: nowrap;
+        padding: 0 6px !important;
+    }
+
+    /* 第一行：添加、删除、保存 */
+    .view-container .button-group #addModbusItem,
+    .view-container .button-group #removeModbusItem,
+    .view-container .button-group #saveModbusItem {
+        order: 1;
+    }
+
+    /* 第二行：导入、导出 */
+    .view-container .button-group #importModbusItem,
+    .view-container .button-group #exportModbusItem {
+        order: 2;
+    }
+
+    /* 移动端优化：确保按钮容器有足够空间显示 */
+    .modbus-item {
+        margin-top: 10px;
+        padding-top: 5px;
+    }
+
+    /* 移动端优化：减少自动智能缓存区域的间距 */
+    .label-view.mt-15 {
+        margin-top: 8px;
+    }
+
+    /* 移动端优化：modbus容器间距 */
+    #modbus_items_container {
+        margin-bottom: 10px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    /* 移动端按钮容器确保可见 */
+    .view-container .button-group {
+        margin-top: 10px !important;
+        clear: both;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* 移动端：按钮区域的label-view布局优化 */
+    .modbus-item .label-view {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .modbus-item .label-view .label {
+        display: none; /* 隐藏空的标题区域 */
+    }
+
+    .modbus-item .label-view .view-container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* 移动端：确保按钮区域不被挤压 */
+    .modbus-item .label-view .title.tip.top {
+        display: none; /* 移动端隐藏空的标题 */
+    }
+
+    /* 串口调试模块移动端适配 */
+    #serial_ctl .label-view {
+        flex-direction: column;
+        align-items: stretch;
+        margin: 15px 0; /* 增加上下间距 */
+        padding: 0 10px; /* 与内容保持一致的左右内边距 */
+    }
+
+    #serial_ctl .radio-div {
+        flex-direction: row;
+        align-items: center;
+        gap: 24px;
+        padding: 8px 0;
+    }
+
+    #serial_ctl .radio-div .input-radio {
+        margin-top: 0;
+        align-items: center;
+    }
+
+    #serial_ctl .label-view .label {
+        display: block;
+        margin-bottom: 12px; /* 增加标题和内容的间距 */
+    }
+
+    #serial_ctl .label-view .label .title {
+        width: auto;
+        text-align: left;
+        margin-right: 0;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--FG-2);
+        padding-left: 5px; /* 标题左侧增加一点空间 */
+    }
+
+    #serial_ctl .label-view .view-container {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* 移动端发送类型单选按钮布局 */
+    #serial_ctl .radio-div {
+        flex-direction: row;
+        gap: 20px;
+        padding: 8px 0; /* 增加上下内边距 */
+    }
+
+    /* 移动端显示过滤通道布局 */
+    .channel-filter-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 8px 0; /* 增加上下内边距 */
+        width: 100%;
+        margin: 0;
+    }
+
+    .channel-filter-item {
+        flex: 1;
+        min-width: 80px;
+        padding: 5px 8px; /* 增加每个选项的内边距 */
+    }
+
+    /* 移动端发送通道选择布局 */
+    .debug-channel-horizontal {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: flex-start;
+        padding: 8px 0; /* 增加上下内边距 */
+        width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+    }
+
+    .debug-channel-item {
+        flex: none;
+        min-width: auto;
+        padding: 5px 8px; /* 增加每个选项的内边距 */
+    }
+
+    /* 移动端接收和发送区域优化 */
+    #devcie_report {
+        height: 240px !important; /* 移动端高度 */
+        padding: 8px; /* 增加内边距 */
+        margin: 5px 0; /* 增加上下外边距 */
+    }
+
+    #instruction {
+        font-size: 16px !important; /* 确保移动端输入舒适 */
+        margin: 5px 0; /* 增加上下外边距 */
+    }
+
+    /* 移动端自定义输入框优化 */
+    #serial_ctl .custom-input {
+        padding: 5px 0; /* 为接收和发送区域增加内边距 */
+    }
+
+    /* Modbus地址过滤模块移动端适配 */
+    #modbusFilterCard .label-view {
+        flex-direction: column;
+        align-items: stretch;
+        margin: 15px 0;
+        padding: 0 15px;
+    }
+
+    #modbusFilterCard .label-view .label {
+        display: block;
+        margin-bottom: 12px;
+    }
+
+    #modbusFilterCard .label-view .label .title {
+        width: auto;
+        text-align: left;
+        margin-right: 0;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--FG-2);
+        padding-left: 5px;
+    }
+
+    #modbusFilterCard .label-view .view-container {
+        width: 100%;
+        margin: 0;
+        padding: 0 10px;
+    }
+
+    /* 移动端启用开关优化 */
+    #modbusFilterCard label {
+        padding: 8px 0;
+        font-size: 14px;
+    }
+
+    /* 移动端过滤模式下拉框优化 */
+    #modbus_filter_mode {
+        width: 100% !important;
+        max-width: 250px;
+        margin: 5px 0;
+    }
+
+    /* 移动端地址范围区域优化 */
+    #modbus_filter_ranges {
+        margin: 10px 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    /* 移动端按钮组优化 - 两列布局并允许换行 */
+    #modbusFilterCard .button-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        gap: 8px;
+        margin-top: 15px;
+        width: 100%;
+        justify-items: stretch;
+    }
+
+    #modbusFilterCard .button-group .button-left-group,
+    #modbusFilterCard .button-group .button-right-group {
+        display: contents;
+    }
+
+    #modbusFilterCard .button-group .main-btn,
+    #modbusFilterCard .button-group .main-btn.save-btn {
+        width: 100%;
+        min-width: 0 !important;
+        height: 34px;
+        font-size: 13px;
+        padding: 0 8px !important;
+        white-space: nowrap;
+    }
+
+    /* 移动端地址范围输入行优化 - 保持在框架内并横向排列 */
+    .filter-range-item {
+        display: flex !important;
+        align-items: center;
+        flex-wrap: nowrap;
+        padding: 8px 35px 8px 10px;
+        margin: 8px 0 !important;
+        border: 1px solid var(--BG-3);
+        border-radius: 6px;
+        background: rgba(var(--BG-2-RGB), 0.5);
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+        overflow: visible;
+        position: relative;
+    }
+
+    .filter-range-item span {
+        font-size: 11px;
+        color: var(--FG-3);
+        margin-right: 4px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .filter-range-item input {
+        width: 48px !important;
+        height: 26px !important;
+        margin: 0 3px 0 0 !important;
+        padding: 2px 4px !important;
+        border: 1px solid var(--BG-3);
+        border-radius: 3px;
+        font-size: 11px;
+        box-sizing: border-box;
+        flex-shrink: 0;
+    }
+
+    .filter-range-item .remove-btn {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0;
+        padding: 2px 6px;
+        font-size: 9px;
+        background: #ff4757;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        flex-shrink: 0;
+        min-width: 24px;
+        height: 20px;
+    }
+
+    .filter-range-item .remove-btn:hover {
+        background: #ff3742;
+    }
+
+    /* Modbus从机地址映射模块移动端适配 */
+    #modbusSlaveMapCard .label-view {
+        flex-direction: column;
+        align-items: stretch;
+        margin: 15px 0;
+        padding: 0 15px;
+    }
+
+    #modbusSlaveMapCard .label-view .label {
+        display: block;
+        margin-bottom: 12px;
+    }
+
+    #modbusSlaveMapCard .label-view .label .title {
+        width: auto;
+        text-align: left;
+        margin-right: 0;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--FG-2);
+        padding-left: 5px;
+    }
+
+    #modbusSlaveMapCard .label-view .view-container {
+        width: 100%;
+        margin: 0;
+        padding: 0 10px;
+    }
+
+    /* 移动端映射说明文字优化 */
+    #modbusSlaveMapCard .view-container div[style*="font-size: 12px"] {
+        font-size: 13px !important;
+        line-height: 1.4;
+        padding: 8px 0;
+    }
+
+    /* 移动端映射条目区域优化 */
+    #modbus_mapping_entries {
+        margin: 10px 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    /* 移动端映射按钮组优化 - 两个按钮一横排 */
+    #modbusSlaveMapCard .button-group {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+        gap: 8px;
+        margin-top: 15px;
+        width: 100%;
+        justify-items: stretch;
+    }
+
+    #modbusSlaveMapCard .button-group .button-left-group,
+    #modbusSlaveMapCard .button-group .button-right-group {
+        display: contents;
+    }
+
+    #modbusSlaveMapCard .button-group .main-btn,
+    #modbusSlaveMapCard .button-group .main-btn.save-btn {
+        width: 100%;
+        min-width: 0 !important;
+        height: 34px;
+        font-size: 13px;
+        padding: 0 8px !important;
+        white-space: nowrap;
+    }
+
+    /* 移动端映射条目输入行优化 - 保持在框架内并横向排列 */
+    .mapping-entry {
+        display: flex !important;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 8px 10px;
+        margin: 8px 0 !important;
+        border: 1px solid var(--BG-3);
+        border-radius: 6px;
+        background: rgba(var(--BG-2-RGB), 0.5);
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+        overflow: visible;
+        position: relative;
+    }
+
+    .mapping-entry .mapping-label {
+        font-size: 11px;
+        font-weight: bold;
+        color: var(--FG-2);
+        margin-right: 4px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .mapping-entry .mapping-arrow {
+        font-size: 12px;
+        color: var(--FG-2);
+        margin: 0 4px;
+        flex-shrink: 0;
+    }
+
+    .mapping-entry input {
+        width: 72px !important;
+        height: 26px !important;
+        margin: 0 3px 0 0 !important;
+        padding: 2px 4px !important;
+        border: 1px solid var(--BG-3);
+        border-radius: 3px;
+        font-size: 11px;
+        box-sizing: border-box;
+        flex-shrink: 0;
+    }
+
+    .mapping-entry .delete-btn {
+        position: static;
+        margin: 0;
+        padding: 2px 6px;
+        font-size: 9px;
+        background: #ff4757;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        flex-shrink: 0;
+        min-width: 24px;
+        height: 20px;
+        margin-left: auto;
+    }
+
+    .mapping-entry .delete-btn:hover {
+        background: #ff3742;
+    }
+}
+
+/* 当开关关闭时禁用输入 */
+.modbus-input-group.disabled .modbus-table-container .base-input {
+    background-color: var(--BG-2);
+    color: var(--FG-4);
+    cursor: not-allowed;
+}
+
+/* 修改Modbus表格样式，确保表头固定且颜色统一 */
+.modbus-table-container {
+    width: 100%;
+    overflow: hidden;
+    margin-top: 15px;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+}
+
+.modbus-table-header-wrapper {
+    width: 100%;
+    overflow: hidden;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--BG-2);
+}
+
+.modbus-table-body-wrapper {
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.modbus-table-header {
+    display: flex;
+    background-color: rgba(var(--BG-2-RGB), 0.7);
+    font-weight: bold;
+    border-bottom: 1px solid var(--BG-3);
+    width: fit-content;
+    min-width: 100%;
+    font-size: 12px;
+}
+
+.modbus-table-row {
+    display: flex;
+    border-bottom: 1px solid var(--BG-3);
+    width: fit-content;
+    min-width: 100%;
+}
+
+.modbus-table-row:last-child {
+    border-bottom: none;
+}
+
+
+
+
+
+.modbus-table-container .base-input {
+    width: 100%;
+    /* min-width: 80px; */
+    margin: 0;
+    height: 28px;
+    padding: 0 5px;
+}
+
+
+
+/* 确保表头和内容行的宽度一致 */
+.modbus-table-header-wrapper .modbus-table-header,
+.modbus-table-body-wrapper .modbus-table-row {
+    width: max-content;
+    min-width: 100%;
+}
+
+/* 当表格内容可滚动时，确保表头保持固定 */
+.modbus-table-body-wrapper::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.modbus-table-body-wrapper::-webkit-scrollbar-track {
+    background: var(--BG-1);
+}
+
+.modbus-table-body-wrapper::-webkit-scrollbar-thumb {
+    background: var(--BG-3);
+    border-radius: 4px;
+}
+
+.modbus-table-body-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--BG-4);
+}
+
+/* 处理表头和表体滚动同步 */
+.modbus-table-body-wrapper {
+    overflow-x: auto;
+}
+
+.modbus-table-header-wrapper {
+    overflow-x: hidden;
+}
+
+/* 当表体滚动时，表头也跟着滚动 */
+.modbus-table-body-wrapper::-webkit-scrollbar-corner {
+    background: var(--BG-1);
+}
+
+/* 响应式调整 */
+@media screen and (max-width: 768px) {
+    .modbus-table-container {
+        overflow: hidden; /* 外层不出现额外滚动条 */
+    }
+
+    .modbus-table-body-wrapper {
+        max-height: 300px;
+        overflow-x: auto;
+        overflow-y: auto;
+        padding-bottom: 4px; /* 给滚动条留出空间，避免上下重叠 */
+    }
+}
+
+/* 当开关关闭时禁用输入 */
+.modbus-table-row[data-enabled="false"] .base-input {
+    background-color: var(--BG-2);
+    color: var(--FG-4);
+    cursor: not-allowed;
+}
+
+/* 修改Modbus表格样式，确保表头和内容一起滚动且颜色统一 */
+.modbus-table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 15px;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+}
+
+/* 移除表头固定定位 */
+.modbus-table-header-wrapper {
+    width: 100%;
+    background-color: var(--BG-2);
+}
+
+.modbus-table-body-wrapper {
+    width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* 自动采集按钮组微调，避免贴边 */
+#auto_collect_config .button-group {
+    justify-content: flex-end;
+    gap: 8px;
+    padding-right: 12px;
+}
+
+/* 自动采集表格新增列后保持输入紧凑 */
+.modbus-table-row .modbus-table-cell input[type="number"].base-input {
+    max-width: 120px;
+}
+
+/* 确保表头和内容在同一个滚动容器内 */
+.modbus-table-content {
+    width: max-content;
+    min-width: 100%;
+}
+
+/* 统一表格滚动条，避免双层水平滚动条 */
+.modbus-table-container {
+    overflow: hidden;
+}
+
+.modbus-table-body-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+.modbus-table-header {
+    display: flex;
+    background-color: var(--BG-2);
+    font-weight: bold;
+    border-bottom: 1px solid var(--BG-3);
+    width: 100%;
+}
+
+.modbus-table-row {
+    display: flex;
+    border-bottom: 1px solid var(--BG-3);
+    width: 100%;
+}
+
+.modbus-table-row:last-child {
+    border-bottom: none;
+}
+
+
+
+.modbus-table-cell:last-child {
+    border-right: none;
+}
+
+.modbus-checkbox-cell {
+    flex: 0.5;
+    min-width: 50px;
+}
+
+
+
+/* 响应式调整 */
+@media screen and (max-width: 768px) {
+    .modbus-table-container {
+        overflow-x: auto;
+    }
+
+    .modbus-table-body-wrapper {
+        max-height: 300px;
+    }
+
+    .modbus-table-cell {
+        min-width: 80px;
+    }
+}
+
+/* 当开关关闭时禁用输入 */
+.modbus-table-row[data-enabled="false"] .base-input {
+    background-color: var(--BG-2);
+    color: var(--FG-4);
+    cursor: not-allowed;
+}
+
+/* 工作模式布局样式 */
+.work-mode-container {
+    min-height: auto;
+    position: relative;
+    padding: 20px 0;
+}
+
+.work-mode-options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-left: 0;
+}
+
+.work-mode-options .radio-div {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-left: 22px;
+}
+
+
+.auto-cache-control {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    margin: 6px 0 6px 22px;
+    font-size: 14px;
+    color: var(--FG-2);
+}
+
+.auto-cache-title {
+    font-weight: 500;
+}
+
+
+
+.work-mode-settings {
+    position: relative;
+    margin-top: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    padding-right: 24px;
+}
+
+/* 所有模式的设置按钮容器对齐 */
+.work-mode-container .work-mode-settings {
+    padding-left: 0;
+}
+
+.work-mode-settings .main-btn {
+    margin-left: 0;
+}
+
+.work-mode-settings .main-btn:last-child {
+    margin-right: 24px;
+}
+
+/* 工作模式设置按钮位置调整 - 所有模式的设置/配置按钮都使用相同位置 */
+
+/* 所有模式的设置/配置按钮都向右移动，与单选按钮对齐 */
+#setModbusItem {
+    margin-left: 0 !important;
+    margin-right: 24px;
+}
+
+#workModeContent {
+    position: relative;
+    padding-right: 0;
+}
+
+#workModeContent > #setModbusItem {
+    margin-left: auto;
+    margin-top: 16px;
+    display: flex;
+    margin-right: 24px;
+}
+
+/* 串口同步配置样式 */
+.serial-sync-config {
+    margin-bottom: 12px; /* 缩减底部外边距从24px到12px */
+    padding: 12px 20px; /* 缩减上下内边距从20px到12px */
+    background: linear-gradient(135deg, var(--BG-1) 0%, var(--BG-AREA) 100%);
+    border-radius: var(--RADIUS-0);
+    border: 1px solid var(--BG-3);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sync-config-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--FG-2);
+    margin-bottom: 10px; /* 缩减底部外边距从16px到10px */
+    display: flex;
+    align-items: center;
+}
+
+.sync-config-options {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin-bottom: 8px; /* 缩减底部外边距从16px到8px */
+}
+
+.sync-option {
+    flex: 1 1 calc((100% - 24px) / 3);
+    min-width: 0;
+}
+
+.sync-option {
+    position: relative;
+    cursor: pointer;
+    border-radius: var(--RADIUS-1);
+    border: 2px solid var(--BG-3);
+    background: var(--BG-1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.sync-option.disabled {
+    cursor: not-allowed;
+    border-color: var(--BG-3);
+    background: var(--BG-2);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.sync-option.disabled .option-text {
+    color: var(--FG-4);
+}
+
+.sync-option:hover {
+    border-color: var(--BRAND);
+    background: var(--BG-AREA);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(43, 110, 192, 0.15);
+}
+
+.sync-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.option-text {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--FG-2);
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.option-text i {
+    margin-right: 6px;
+    font-size: 16px;
+}
+
+.sync-option input[type="radio"]:checked + .option-text {
+    color: var(--BRAND);
+    font-weight: 600;
+}
+
+.sync-option:has(input[type="radio"]:checked) {
+    border-color: var(--BRAND);
+    background: linear-gradient(135deg, rgba(43, 110, 192, 0.1) 0%, rgba(43, 110, 192, 0.05) 100%);
+    box-shadow: 0 4px 12px rgba(43, 110, 192, 0.2);
+}
+
+.sync-config-description {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 4px 0 0; /* 缩减顶部外边距从8px到4px */
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+.sync-desc {
+    display: none;
+    font-size: 13px;
+    color: var(--FG-3);
+    line-height: 1.5;
+    margin: 0;
+    padding: 10px 12px;
+    background: var(--BG-AREA);
+    border-radius: var(--RADIUS-1);
+}
+
+.sync-desc.active {
+    display: block;
+}
+
+/* 统一配置面板样式 */
+.unified-config-panel {
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.unified-config-header {
+    background: linear-gradient(135deg, var(--BRAND) 0%, #1e5a9c 100%);
+    color: var(--WHITE);
+    padding: 16px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(43, 110, 192, 0.3);
+}
+
+.unified-config-header i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.config-subtitle {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.9;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+}
+
+.unified-config-content {
+    padding: 24px;
+    background: var(--BG-1);
+}
+
+
+
+
+
+.section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--FG-1);
+    margin-bottom: 16px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, var(--BG-3) 0%, var(--BG-2) 100%);
+    color: var(--FG-1);
+    border-radius: var(--RADIUS-1);
+    display: flex;
+    align-items: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.section-title i {
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.slave-info-section {
+    background: linear-gradient(135deg, var(--BG-AREA) 0%, var(--BG-1) 100%);
+    padding: 20px;
+    border-radius: var(--RADIUS-1);
+    border: 1px solid var(--BG-3);
+    border-left: 4px solid var(--GREEN);
+}
+
+
+/* 分别配置面板样式 */
+.separate-config-panel {
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+    background: var(--BG-1);
+}
+
+.separate-config-panel:not([style*="display: none"]) {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 串口标签页样式优化 */
+.serial-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--BG-3);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    background: var(--BG-AREA);
+    border-radius: var(--RADIUS-1) var(--RADIUS-1) 0 0;
+    padding: 4px;
+    gap: 4px;
+}
+
+.serial-tab-button {
+    background: transparent;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    border-radius: var(--RADIUS-1);
+    color: var(--FG-2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.serial-tab-button:hover {
+    color: var(--BRAND);
+    background: rgba(43, 110, 192, 0.1);
+    transform: translateY(-1px);
+}
+
+.serial-tab-button.active {
+    background: var(--BRAND);
+    color: var(--WHITE) !important;
+    box-shadow: 0 4px 12px rgba(43, 110, 192, 0.3);
+    transform: translateY(-1px);
+}
+
+.serial-tab-button.active::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--WHITE);
+    border-radius: 1px;
+}
+
+.serial-tab-button.disabled:not(.active) {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    color: #ccc !important;
+}
+
+.serial-tab-button:disabled:not(.active) {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    color: #ccc !important;
+}
+
+/* 串口配置面板通用样式 */
+.serial-config-panel {
+    transition: all 0.3s ease;
+}
+
+.serial-config-panel:not([style*="display: none"]) {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 串口配置表单输入统一样式 */
+.serial-config-panel .view-container .baud-container,
+.serial-config-panel .view-container .custom-input {
+    width: 308px;
+    max-width: 100%;
+}
+
+.serial-config-panel .view-container select.base-input,
+.serial-config-panel .view-container input.base-input {
+    width: 308px;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+
+/* 响应式设计 */
+@media screen and (max-width: 750px) {
+    .work-mode-container {
+        min-height: auto;
+        padding: 6px 0;
+    }
+
+    #workModeContent > #setModbusItem {
+        margin-top: 12px;
+        margin-right: 16px;
+    }
+
+    .work-mode-settings .main-btn:last-child {
+        margin-right: 16px;
+    }
+    
+    /* 串口同步配置响应式 - 压缩高度 */
+    .serial-sync-config {
+        padding: 8px 10px; /* 缩减上下padding从10px到8px */
+        margin-bottom: 6px; /* 缩减底部margin从8px到6px */
+    }
+    
+    .sync-config-title {
+        margin-bottom: 6px !important; /* 缩减标题底部margin从10px到6px */
+        font-size: 14px !important; /* 缩小字体 */
+    }
+    
+    .sync-config-options {
+        flex-wrap: nowrap;
+        gap: 6px; /* 缩减选项间距从8px到6px */
+        margin-bottom: 4px !important; /* 缩减底部margin从8px到4px */
+    }
+
+    .sync-option {
+        flex: 1 1 calc((100% - 12px) / 3);
+        min-width: auto;
+        padding: 6px 8px; /* 缩减padding从10px 12px到6px 8px */
+    }
+    
+    .option-text {
+        padding: 6px 8px !important; /* 缩减文字区域padding */
+        font-size: 12px !important; /* 缩小字体从13px到12px */
+    }
+    
+    .sync-config-description {
+        margin-top: 2px !important; /* 缩减描述区域顶部margin */
+        gap: 4px !important; /* 缩减描述项间距 */
+    }
+    
+    .sync-desc {
+        line-height: 16px !important; /* 缩减行高 */
+        padding: 4px 0 !important; /* 缩减上下padding */
+    }
+    
+    .unified-config-content {
+        padding: 10px; /* 缩减padding从16px到10px */
+    }
+
+    /* 分别配置面板移动端统一样式 */
+    .separate-config-panel {
+        padding: 10px !important; /* 与统一配置保持一致 */
+    }
+
+    .serial-config-panel .view-container .baud-container,
+    .serial-config-panel .view-container .custom-input,
+    .serial-config-panel .view-container select.base-input,
+    .serial-config-panel .view-container input.base-input {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .serial-tabs {
+        padding: 2px;
+        gap: 2px;
+        margin-bottom: 6px !important; /* 缩减底部间距 */
+    }
+    
+    .serial-tab-button {
+        padding: 8px 12px; /* 缩减padding从10px 16px到8px 12px */
+        font-size: 12px; /* 缩小字体从13px到12px */
+        height: 30px; /* 限制高度 */
+    }
+    
+    .work-mode-settings {
+        margin-top: 15px;
+        width: 100%;
+        justify-content: flex-end;
+        padding-left: 0;
+        padding-right: 16px;
+    }
+    
+    .work-mode-options {
+        margin-left: 10px;
+    }
+    
+    .work-mode-options .radio-div {
+        margin-left: 10px;
+    }
+    
+    /* 工作模式设置按钮移动端样式 - 与其他按钮统一 */
+    #setModbusItem {
+        margin-left: 0 !important;
+        margin-right: 16px;
+        width: auto;
+        max-width: none;
+        height: 28px !important; /* 缩小高度从40px到28px，与其他按钮统一 */
+        min-width: 50px !important; /* 最小宽度 */
+        padding: 0 8px !important; /* 缩小内边距 */
+        font-size: 12px !important; /* 缩小字体从14px到12px，与其他按钮统一 */
+    }
+    
+    #setModbusItem .btn-container {
+        font-size: 12px !important; /* 确保按钮内文字也是12px */
+    }
+
+    .serial-tabs {
+        justify-content: flex-start;
+        margin-left: 0;
+    }
+
+    .serial-tab-button {
+        margin-left: 5px;
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+
+    
+    .modbus-filter-section .label-view {
+        margin-bottom: 15px;
+    }
+    
+
+    
+    /* 从机地址映射移动端样式 */
+    .modbus-mapping-section .label-view {
+        margin-bottom: 15px;
+    }
+    
+
+    
+    /* 确保回复超时时间字段在移动设备上也保持水平布局 */
+    .label-view {
+        display: flex !important;
+    }
+}
+
+/* Modbus地址过滤样式 */
+.modbus-filter-section {
+    background: var(--BG-1);
+    border-radius: var(--RADIUS-0);
+    padding: 15px;
+    margin-bottom: 25px;
+    overflow: visible;
+}
+
+/* Modbus过滤区域的父容器需要允许子元素突出边界 */
+#modbusFilterCard .content-area,
+#modbusFilterCard .label-view,
+#modbusFilterCard .view-container,
+#modbusFilterCard .base-text {
+    color: var(--FG-1);
+    background: var(--BG-1);
+    overflow: visible;
+}
+
+#modbusFilterCard .label-view {
+    margin-bottom: 10px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* 特别针对地址范围容器 */
+#modbus_filter_ranges {
+    overflow: visible;
+    margin-left: -20px;
+    margin-right: -20px;
+}
+
+
+
+.remove-btn {
+    padding: 5px 10px;
+    background: var(--BG-1);
+    color: var(--BRAND);
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all .3s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.remove-btn:hover {
+    background: var(--BG-AREA);
+    border-color: var(--BRAND);
+}
+
+/* 保存成功提示样式 */
+.save-success-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--BRAND);
+    color: var(--WHITE);
+    padding: 12px 20px;
+    border-radius: var(--RADIUS-1);
+    font-size: 14px;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+}
+
+.save-success-message.show {
+    transform: translateX(0);
+}
+
+/* Modbus从机地址映射样式 */
+.modbus-mapping-section {
+    background: var(--BG-1);
+    border-radius: var(--RADIUS-0);
+    padding: 15px;
+    min-height: auto; /* 允许内容决定高度 */
+    height: auto; /* 允许内容决定高度 */
+}
+
+.modbus-mapping-section .label-view {
+    margin-bottom: 10px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+#modbusSlaveMapCard {
+    min-height: auto; /* 允许内容决定高度 */
+    height: auto; /* 允许内容决定高度 */
+    overflow: visible; /* 确保内容可见 */
+}
+
+#modbusSlaveMapCard .content-area {
+    min-height: auto; /* 允许内容决定高度 */
+    height: auto; /* 允许内容决定高度 */
+    overflow: visible; /* 确保内容可见 */
+    padding-bottom: 20px; /* 确保底部有足够间距 */
+}
+
+#modbusSlaveMapCard .label-view,
+#modbusSlaveMapCard .view-container,
+#modbusSlaveMapCard .base-text {
+    color: var(--FG-1);
+    background: var(--BG-1);
+    overflow: visible;
+}
+
+#modbus_mapping_entries {
+    overflow: visible;
+    margin-left: -20px;
+    margin-right: -20px;
+}
+
+/* 桌面模式下的Modbus样式 */
+@media screen and (min-width: 751px) {
+    /* 确保卡片可以随着内容增长 */
+    #modbusFilterCard,
+    #modbusSlaveMapCard {
+        min-height: auto !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    /* 确保内容区域可以随着内容增长 */
+    #modbusFilterCard .content-area,
+    #modbusSlaveMapCard .content-area {
+        min-height: auto !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding-bottom: 20px; /* 确保底部有足够间距 */
+    }
+    
+    /* 确保映射区域可以随着内容增长 */
+    .modbus-mapping-section {
+        min-height: auto !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    
+    /* 确保按钮组有足够的底部间距 */
+    #modbusSlaveMapCard .modbus-mapping-section .button-group {
+        margin-top: 20px;
+        margin-bottom: 10px;
+    }
+    
+    /* 确保最后一个包含按钮的 label-view 有足够的底部间距 */
+    #modbusSlaveMapCard .modbus-mapping-section .label-view:last-child {
+        margin-bottom: 20px;
+        padding-bottom: 0;
+    }
+    
+    /* 将label-view改为块级布局，避免标题占用横向空间 */
+    #modbusFilterCard .label-view,
+    #modbusSlaveMapCard .label-view {
+        display: block !important;
+    }
+    
+    /* 标题容器也改为块级 */
+    #modbusFilterCard .label-view .label,
+    #modbusSlaveMapCard .label-view .label {
+        display: block !important;
+        margin-bottom: 15px;
+    }
+    
+    /* 标题样式参考基础样式 */
+    #modbusFilterCard .label-view .label .title,
+    #modbusSlaveMapCard .label-view .label .title {
+        width: auto;
+        text-align: left;
+        margin-right: 0;
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--FG-3);
+        line-height: 20px;
+    }
+    
+    /* 输入框样式，完全按照基础样式 */
+    #modbusFilterCard input.base-input,
+    #modbusSlaveMapCard input.base-input {
+        outline: none;
+        width: 308px;
+        height: 30px;
+        background: var(--BG-1);
+        border-radius: var(--RADIUS-1);
+        border: 1px solid var(--BG-3);
+        padding: 0 10px;
+        font-size: 14px;
+        color: var(--FG-1);
+        line-height: 30px;
+        transition-duration: .3s;
+        -webkit-appearance: none;
+    }
+    
+    #modbusFilterCard input.base-input:hover,
+    #modbusSlaveMapCard input.base-input:hover {
+        border-color: var(--BRAND-1);
+    }
+    
+    #modbusFilterCard input.base-input:focus,
+    #modbusSlaveMapCard input.base-input:focus {
+        border-color: var(--BRAND);
+        box-shadow: 0 0 0 1px var(--BRAND);
+    }
+    
+    /* 下拉框样式，完全按照基础样式 */
+    #modbusFilterCard select.base-input,
+    #modbusSlaveMapCard select.base-input {
+        outline: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        width: 330px;
+        height: 32px;
+        background-color: var(--BG-1);
+        border-radius: var(--RADIUS-1);
+        border: 1px solid var(--BG-3);
+        padding: 0 10px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M2.454 4.151c-.233-.251-.19-.627.097-.838.286-.211.717-.179.95.073l2.5 2.69 2.5-2.69c.233-.252.664-.284.95-.073.287.211.33.587.097.838l-3 3.23c-.233.252-.664.284-.95.073-.069-.051-.126-.113-.17-.182l-2.974-3.121z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 12px;
+        padding-right: 30px;
+        transition-duration: .3s;
+        font-size: 14px;
+        color: var(--FG-1);
+        line-height: 30px;
+        cursor: pointer;
+    }
+    
+    #modbusFilterCard select.base-input:hover,
+    #modbusSlaveMapCard select.base-input:hover {
+        border-color: var(--BRAND-1);
+    }
+    
+    /* 条目容器稍微往后移动，避免压到边框，并确保可以扩展 */
+    #modbus_filter_ranges,
+    #modbus_mapping_entries {
+        margin-left: 15px;
+        margin-right: 15px;
+        overflow: visible;
+        min-height: auto;
+    }
+    
+    /* 地址范围条目和映射条目样式 */
+    .filter-range-item,
+    .mapping-entry {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 10px;
+        padding: 12px 20px;
+        background: var(--BG-1);
+        border: 1px solid var(--BG-2);
+        border-radius: var(--RADIUS-0);
+        min-height: 45px;
+    }
+
+    .mapping-entry .mapping-label {
+        font-weight: bold;
+        color: var(--FG-2);
+    }
+
+    .mapping-entry .mapping-arrow {
+        color: var(--FG-2);
+        font-weight: bold;
+    }
+    
+    /* 条目内的输入框样式 */
+    .filter-range-item input[type="number"],
+    .mapping-entry input {
+        outline: none;
+        width: 92px;
+        height: 30px;
+        background: var(--BG-1);
+        border-radius: var(--RADIUS-1);
+        border: 1px solid var(--BG-3);
+        padding: 0 10px;
+        font-size: 14px;
+        color: var(--FG-1);
+        line-height: 30px;
+        text-align: center;
+        transition-duration: .3s;
+        -webkit-appearance: none;
+    }
+    
+    .filter-range-item input[type="number"]:hover,
+    .mapping-entry input:hover {
+        border-color: var(--BRAND-1);
+    }
+    
+    .filter-range-item input[type="number"]:focus,
+    .mapping-entry input:focus {
+        border-color: var(--BRAND);
+        box-shadow: 0 0 0 1px var(--BRAND);
+    }
+    
+    /* 删除按钮样式 */
+    .remove-btn,
+    .delete-btn {
+        min-width: 65px;
+        height: 32px;
+        background: var(--BG-1);
+        border-radius: var(--RADIUS-1);
+        font-size: 14px;
+        color: var(--BRAND);
+        line-height: 20px;
+        padding: 0 10px;
+        outline: none;
+        border: 1px solid var(--BG-3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .3s;
+        margin-left: auto;
+        cursor: pointer;
+    }
+    
+    .remove-btn:hover,
+    .delete-btn:hover {
+        border-color: var(--BRAND-1);
+        background: var(--BG-2);
+    }
+}
+
+/* 发送框和下发按钮并排布局 */
+.send-with-button {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%; /* 占满容器宽度，与其他组件对齐 */
+    max-width: 100%; /* 移除固定宽度限制 */
+    /* padding-right已由view-container统一控制 */
+}
+
+.send-with-button .custom-input {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.send-with-button .custom-input textarea {
+    height: 30px;
+    font-size: 16px;
+    resize: none;
+    border: 1px solid #adadad;
+    outline: none;
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+.serial-crc-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 30px;
+    flex: 0 0 auto;
+    padding: 0 6px;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    background: var(--BG-1);
+}
+
+.serial-crc-label {
+    font-size: 12px;
+    color: var(--FG-3);
+}
+
+.serial-crc-bytes {
+    width: 62px;
+    height: 22px;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    background: var(--BG-2);
+    color: var(--FG-2);
+    text-align: center;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    padding: 0 4px;
+    box-sizing: border-box;
+}
+
+.send-with-button #error-message {
+    margin-top: 5px;
+    color: red;
+    border: none;
+}
+
+.send-with-button .send-button {
+    flex-shrink: 0;
+    height: 30px;
+    min-width: 55px;
+    align-self: flex-start;
+}
+
+/* 移动端优化 */
+@media screen and (max-width: 750px) {
+    .send-with-button {
+        gap: 6px;
+        align-items: center;
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+    }
+    
+    .send-with-button .custom-input {
+        flex: 1 1 100%;
+        min-width: 0;
+        width: 100%;
+    }
+    
+    .send-with-button .custom-input textarea {
+        height: 30px;
+        font-size: 14px;
+        width: 100%;
+    }
+
+    .serial-crc-bytes {
+        width: 56px;
+        font-size: 11px;
+    }
+    
+    .send-with-button .send-button {
+        height: 30px;
+        min-width: 55px;
+        font-size: 13px;
+        align-self: flex-start;
+        margin-top: +5px;
+    }
+}
+
+/* 取消桌面端卡片固定宽度限制，按可用空间自适应 */
+@media screen and (min-width: 751px) {
+    #main #right #content .card-view[data-v-6f9f3e2e],
+    #main.base-info #infoView #content > #sp603RouteOverview {
+        width: calc(100% - 16px);
+        max-width: none;
+        min-width: 0;
+        box-sizing: border-box;
+        margin-left: 8px;
+        margin-right: 8px;
+    }
+}
+
+/* 网络管理页两个卡片统一样式（网络设置/AP管理） */
+#netView,
+#netView #content,
+#netView #content > form {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#netView #content .card-view {
+    width: calc(100% - 16px);
+    max-width: none;
+    box-sizing: border-box;
+    margin: 3px 8px 0;
+}
+
+/* SP603 interface-oriented network and serial management */
+.sp603-legacy-network {
+    display: none !important;
+}
+
+.sp603-config-section {
+    padding: 0 16px 16px;
+    border-bottom: 1px solid var(--BG-2);
+}
+
+/* 网络配置沿用串口服务器的横向标签布局；窄屏可左右滚动 */
+.sp603-network-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    margin: 12px 16px 0;
+}
+
+.sp603-network-tabs .serial-tab-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+.sp603-network-tabs + .sp603-config-section {
+    border-top: 0;
+}
+
+.sp603-config-section:last-of-type {
+    border-bottom: 0;
+}
+
+.sp603-config-section .container.theme {
+    margin: 0 -16px;
+}
+
+.sp603-config-section .title-text .sp603-status {
+    display: inline-block;
+    margin-left: 10px;
+    vertical-align: 2px;
+}
+
+.sp603-help-text {
+    margin-left: 10px;
+    color: var(--FG-3);
+    font-size: 12px;
+}
+
+.sp603-config-section .sp603-enable {
+    margin: 0;
+}
+
+.sp603-config-section .label-view .view-container > .base-input {
+    min-width: 220px;
+}
+
+#nm_ap_timeout_row.is-disabled {
+    opacity: .55;
+}
+
+.sp603-config-section .label-view.is-disabled {
+    opacity: .55;
+}
+
+#nm_ap_timeout_row.is-disabled .sp603-help-text {
+    color: var(--FG-3);
+}
+
+.sp603-interface-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 16px;
+}
+
+.sp603-interface-panel,
+.sp603-route-panel {
+    min-width: 0;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-0);
+    background: var(--BG-1);
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.sp603-interface-panel.is-unavailable {
+    background: var(--BG-2);
+}
+
+.sp603-interface-head,
+.sp603-route-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.sp603-interface-head h3,
+.sp603-route-head h3 {
+    margin: 0;
+    color: var(--FG-1);
+    font-size: 16px;
+    line-height: 22px;
+}
+
+.sp603-interface-head p,
+.sp603-route-head p {
+    margin: 3px 0 0;
+    color: var(--FG-3);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.sp603-status {
+    flex: 0 0 auto;
+    border-radius: 12px;
+    padding: 3px 9px;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: nowrap;
+    color: #746000;
+    background: #fff1ad;
+}
+
+.sp603-status.is-online {
+    color: #137333;
+    background: #d8f5df;
+}
+
+.sp603-status.is-error {
+    color: #b3261e;
+    background: #fce2e0;
+}
+
+.sp603-status.is-muted {
+    color: var(--FG-3);
+    background: var(--BG-2);
+}
+
+.sp603-enable {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 30px;
+    color: var(--FG-2);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.sp603-enable input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.sp603-field,
+.sp603-field-pair {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sp603-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+    color: var(--FG-2);
+    font-size: 13px;
+}
+
+.sp603-field > span {
+    flex: 0 0 92px;
+}
+
+.sp603-field .base-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    box-sizing: border-box;
+}
+
+.sp603-input-action {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 7px;
+}
+
+.sp603-input-action .base-input {
+    min-width: 0;
+}
+
+.sp603-inline-btn {
+    flex: 0 0 auto;
+    min-width: 112px;
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+.sp603-scan-message {
+    min-height: 18px;
+    margin-top: 7px;
+    color: var(--FG-3);
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.sp603-scan-message.is-error {
+    color: #b3261e;
+}
+
+.sp603-scan-results {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    max-height: 190px;
+    margin-top: 3px;
+    overflow-y: auto;
+}
+
+.sp603-scan-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px;
+    align-items: center;
+    min-width: 0;
+    padding: 7px 9px;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    background: var(--BG-2);
+    color: var(--FG-2);
+    text-align: left;
+    cursor: pointer;
+}
+
+.sp603-scan-result:hover,
+.sp603-scan-result:focus {
+    border-color: var(--BRAND);
+    outline: none;
+}
+
+.sp603-scan-result strong {
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sp603-scan-result small {
+    color: var(--FG-3);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.sp603-field-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.sp603-field-pair .sp603-field {
+    display: block;
+}
+
+.sp603-field-pair .sp603-field > span {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.sp603-field-pair .base-input {
+    width: 100%;
+}
+
+.sp603-runtime {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin: 14px 0 0;
+}
+
+.sp603-runtime > div {
+    min-width: 0;
+    padding: 9px 10px;
+    border-radius: var(--RADIUS-1);
+    background: var(--BG-2);
+}
+
+.sp603-runtime dt {
+    margin: 0 0 3px;
+    color: var(--FG-3);
+    font-size: 11px;
+}
+
+.sp603-runtime dd {
+    overflow: hidden;
+    margin: 0;
+    color: var(--FG-1);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sp603-route-panel {
+    margin: 0 16px 16px;
+}
+
+.sp603-route-head {
+    align-items: center;
+}
+
+.sp603-route-settings {
+    display: grid;
+    grid-template-columns: minmax(220px, .65fr) minmax(0, 1.35fr);
+    align-items: end;
+    gap: 18px;
+}
+
+.sp603-route-runtime {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 0;
+}
+
+.sp603-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 16px 18px;
+}
+
+.sp603-route-overview {
+    margin-top: 10px;
+}
+
+.sp603-route-overview .container.theme .sp603-status {
+    margin-left: 10px;
+    vertical-align: 2px;
+}
+
+.sp603-route-content {
+    padding: 16px;
+}
+
+.sp603-route-overview .sp603-route-runtime {
+    margin: 0;
+}
+
+.sp603-data-section {
+    margin-top: 18px;
+}
+
+.sp603-data-section h3 {
+    margin: 0 0 10px;
+    color: var(--FG-1);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.sp603-data-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sp603-data-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-0);
+}
+
+.sp603-data-table {
+    width: 100%;
+    min-width: 520px;
+    border-collapse: collapse;
+    color: var(--FG-2);
+    font-size: 13px;
+}
+
+.sp603-data-table th,
+.sp603-data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--BG-2);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.sp603-data-table th {
+    background: var(--BG-2);
+    color: var(--FG-3);
+    font-weight: 500;
+}
+
+.sp603-data-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.sp603-data-table .sp603-empty-row {
+    color: var(--FG-3);
+    text-align: center;
+}
+
+.sp603-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(260px, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 16px 0;
+    color: var(--FG-2);
+    font-size: 14px;
+}
+
+.sp603-toolbar .base-input {
+    width: 100%;
+}
+
+.sp603-sr-only {
+    position: absolute;
+    overflow: hidden;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+}
+
+@media screen and (max-width: 900px) {
+    .sp603-route-settings {
+        grid-template-columns: 1fr;
+    }
+
+    .sp603-route-runtime {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media screen and (max-width: 750px) {
+    .sp603-interface-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .sp603-interface-panel,
+    .sp603-route-panel {
+        padding: 13px;
+    }
+
+    .sp603-route-panel {
+        margin: 0 10px 10px;
+    }
+
+    .sp603-toolbar {
+        grid-template-columns: 1fr;
+        padding: 12px 10px 0;
+    }
+
+    .sp603-toolbar .main-btn,
+    .sp603-form-actions .main-btn {
+        width: 100%;
+    }
+
+    .sp603-form-actions {
+        padding: 0 10px 14px;
+    }
+
+    .sp603-route-content {
+        padding: 12px 10px 14px;
+    }
+
+    .sp603-config-section {
+        padding: 0 10px 12px;
+    }
+
+    .sp603-config-section .container.theme {
+        margin: 0 -10px;
+    }
+
+    .sp603-config-section .label-view .view-container > .base-input {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .sp603-help-text {
+        display: block;
+        margin: 5px 0 0;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .sp603-interface-head,
+    .sp603-route-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .sp603-field-pair,
+    .sp603-runtime,
+    .sp603-route-runtime {
+        grid-template-columns: 1fr;
+    }
+
+    .sp603-input-action,
+    .sp603-scan-results {
+        grid-template-columns: 1fr;
+    }
+
+    .sp603-input-action {
+        display: grid;
+    }
+
+    .sp603-inline-btn {
+        width: 100%;
+    }
+}
+
+/* 串口布局使用横向互斥单选，沿用页面现有 radio 视觉。 */
+.serial-layout-options {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
+}
+
+.serial-layout-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    color: var(--FG-2);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.serial-layout-option input[type="radio"] {
+    appearance: none;
+    position: static;
+    left: auto;
+    top: auto;
+    opacity: 1;
+    flex: 0 0 auto;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    border: 1px solid var(--FG-4);
+    border-radius: 50%;
+    background: var(--BG-1);
+    box-sizing: border-box;
+}
+
+.serial-layout-option input[type="radio"]:checked {
+    border: 4px solid var(--BRAND);
+}
+
+.serial-layout-option input[type="radio"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.serial-layout-option:has(input[type="radio"]:disabled) {
+    cursor: not-allowed;
+    color: var(--FG-4);
+}
+
+.serial-layout-options .main-btn {
+    margin-left: auto;
+}
+
+@media screen and (max-width: 750px) {
+    .serial-layout-options {
+        align-items: flex-start;
+        gap: 6px 14px;
+    }
+
+    .serial-layout-option {
+        white-space: normal;
+    }
+
+    .serial-layout-options .main-btn {
+        width: 100%;
+        margin-left: 0;
+    }
+}
+
+/* 移动端最终适配：参考串口服务器的“可收缩、可滚动、可触控”布局。 */
+@media screen and (max-width: 750px) {
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    html, body {
+        min-width: 0;
+        height: auto;
+        overflow-x: hidden;
+    }
+
+    #app, #main, #right, [id$="View"], form {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    #main #right[data-v-6f9f3e2e], #right {
+        height: auto;
+        min-height: calc(100vh - 48px);
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #main #right #content[data-v-6f9f3e2e], #right #content {
+        width: 100%;
+        max-width: 100%;
+        padding: 0 10px;
+        align-items: stretch;
+        overflow: visible;
+    }
+
+    .nav-top {
+        min-height: 48px;
+    }
+
+    .nav-top .logo-title {
+        padding-left: max(12px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+    }
+
+    .nav-top .logo-title .title {
+        max-width: calc(100vw - 110px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #main #right #header[data-v-6f9f3e2e],
+    .header[data-v-4c63c112] {
+        min-height: 48px;
+        height: auto;
+    }
+
+    .header[data-v-4c63c112] {
+        padding: 7px 10px;
+        gap: 8px;
+    }
+
+    .header .title[data-v-4c63c112] {
+        flex: 1;
+        min-width: 0;
+        margin: 0 !important;
+        height: auto !important;
+        line-height: 22px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .header .user[data-v-4c63c112] {
+        flex: 0 0 auto;
+        margin-right: 0;
+    }
+
+    .header .user[data-v-4c63c112] a {
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+
+    .card-view,
+    .base-info .card-view[data-v-721c7581],
+    .serial .card-view[data-v-2c53cae0],
+    .security .card-view[data-v-4818d386],
+    .security .card-view.pw[data-v-4818d386],
+    .security .card-view.re[data-v-4818d386],
+    .wifi .card-view[data-v-6fded7ec] {
+        width: 100% !important;
+        max-width: 100%;
+        margin: 10px 0 !important;
+    }
+
+    .card-view .container,
+    .base-info .card-view .container[data-v-721c7581],
+    .security .card-view .container[data-v-4818d386] {
+        width: 100%;
+        min-height: 44px;
+        height: auto !important;
+        padding: 10px 12px !important;
+        gap: 8px;
+    }
+
+    .card-view .container .title-text,
+    .title-text {
+        min-width: 0;
+        flex: 1;
+        line-height: 22px;
+        overflow-wrap: anywhere;
+    }
+
+    .label-view,
+    .label-view .label {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .label-view {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        padding-left: 12px;
+        padding-right: 12px;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .label-view .label {
+        flex: 0 0 100%;
+        min-width: 0;
+    }
+
+    .label-view .label .title,
+    .label-view[data-v-2c53cae0] .label .title {
+        width: auto;
+        max-width: 100%;
+        text-align: left;
+        line-height: 20px;
+        overflow-wrap: anywhere;
+    }
+
+    .label-view .label .title.tip {
+        margin-right: 0;
+    }
+
+    .label-view .view-container {
+        width: 100%;
+        min-width: 0;
+        flex: 1 1 100%;
+        margin-top: 6px;
+        padding-right: 0;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .custom-input,
+    .passwd-input,
+    .baud-container,
+    .base-text,
+    input.base-input,
+    input.base-input.small,
+    input.base-input.big,
+    select.base-input,
+    .base-input,
+    .card-view .view-container .custom-input,
+    .card-view .view-container .custom-input input.base-input,
+    .card-view .view-container select.base-input {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    input.base-input,
+    select.base-input {
+        min-height: 34px;
+        height: 34px !important;
+        line-height: 34px !important;
+        font-size: 14px !important;
+    }
+
+    .unit-text {
+        margin: 6px 0 0 !important;
+    }
+
+    /* 基本信息：短标题 + 内容单行，避免移动端信息页过高。 */
+    #infoView .label-view {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        min-height: 30px;
+    }
+
+    #infoView .label-view .label {
+        width: 108px;
+        max-width: 108px;
+        flex: 0 0 108px;
+        padding-right: 10px;
+    }
+
+    #infoView .label-view .label .title {
+        width: 100%;
+        line-height: 24px;
+        white-space: nowrap;
+    }
+
+    #infoView .label-view .view-container {
+        width: auto;
+        min-width: 0;
+        flex: 1 1 auto;
+        margin-top: 0;
+        align-items: flex-start;
+    }
+
+    #infoView .label-view .base-text {
+        width: auto;
+        line-height: 24px;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    /* 网络、串口、系统页保留标题列，控件区可收缩并完整显示。 */
+    #netView .label-view:not(#scanList):not(.net-actions-row),
+    #serialConfigContent .label-view,
+    #sysView .label-view {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+    }
+
+    #netView .label-view:not(#scanList):not(.net-actions-row) > .label,
+    #serialConfigContent .label-view > .label {
+        width: 116px;
+        max-width: 116px;
+        flex: 0 0 116px;
+        padding-right: 10px;
+    }
+
+    #sysView .label-view > .label {
+        width: 132px;
+        max-width: 132px;
+        flex: 0 0 132px;
+        padding-right: 10px;
+    }
+
+    #netView .label-view:not(#scanList):not(.net-actions-row) > .label .title,
+    #serialConfigContent .label-view > .label .title,
+    #sysView .label-view > .label .title {
+        width: 100%;
+        line-height: 34px;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    #netView .label-view:not(#scanList):not(.net-actions-row) > .view-container,
+    #serialConfigContent .label-view > .view-container,
+    #sysView .label-view > .view-container {
+        width: auto;
+        min-width: 0;
+        flex: 1 1 auto;
+        margin-top: 0;
+    }
+
+    #netView #scanList,
+    #netView .net-actions-row {
+        flex-wrap: wrap;
+    }
+
+    #netView #scanList > .label,
+    #netView .net-actions-row > .label {
+        flex: 0 0 100%;
+    }
+
+    #netView #scanList > .view-container,
+    #netView .net-actions-row > .view-container {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .button-group {
+        width: 100%;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .button-group .main-btn,
+    .button-group .normal-btn,
+    .main-btn,
+    .normal-btn {
+        flex: 0 1 calc(50% - 4px);
+        min-width: 84px;
+        max-width: 100%;
+        min-height: 36px;
+        height: auto;
+        margin: 0;
+        padding: 0 10px;
+        white-space: normal;
+    }
+
+    .card-view .container .button-group,
+    #logView .card-view .container .button-group {
+        width: auto;
+        flex: 0 0 auto;
+        flex-wrap: nowrap !important;
+        gap: 4px !important;
+    }
+
+    .card-view .container .button-group .main-btn,
+    #logView .card-view .container .button-group .main-btn {
+        flex: 0 0 auto;
+        min-width: 64px;
+        min-height: 32px;
+        white-space: nowrap;
+    }
+
+    .sp603-network-tabs {
+        margin: 10px 10px 0;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sp603-network-tabs .serial-tab-button {
+        min-height: 34px;
+        padding: 7px 12px;
+    }
+
+    .sp603-config-section {
+        padding: 0 10px 14px;
+    }
+
+    .sp603-config-section .container.theme {
+        margin: 0 -10px;
+    }
+
+    .sp603-route-content {
+        padding: 12px 10px 14px;
+    }
+
+    .sp603-data-table-wrap,
+    .modbus-table-container {
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sp603-data-table {
+        min-width: 520px;
+    }
+
+    .modbus-table-body-wrapper {
+        max-height: 320px;
+    }
+
+    .modbus-table-cell {
+        min-width: 80px;
+        padding: 6px;
+        font-size: 12px;
+    }
+
+    .sp603-route-runtime,
+    .sp603-runtime {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sp603-form-actions,
+    .sp603-toolbar {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .sp603-form-actions .main-btn,
+    .sp603-toolbar .main-btn {
+        width: 100%;
+        flex-basis: 100%;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    #main #right #content[data-v-6f9f3e2e], #right #content {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .label-view {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .sp603-route-runtime,
+    .sp603-runtime,
+    .sp603-field-pair {
+        grid-template-columns: 1fr;
+    }
+
+    .send-with-button {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .send-with-button .custom-input,
+    .send-with-button .send-button {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .send-with-button .send-button {
+        margin-top: 0;
+    }
+
+    .header .user[data-v-4c63c112] a {
+        font-size: 11px !important;
+    }
+
+    .main-btn,
+    .normal-btn {
+        flex-basis: 100%;
+    }
+}
+
+/* 路由概览位于基本信息页时，与基本信息卡片保持相同的移动端宽度。 */
+@media screen and (max-width: 750px) {
+    #infoView #content > #sp603RouteOverview,
+    #infoView .sp603-route-overview {
+        width: calc(100% - 16px) !important;
+        max-width: calc(100% - 16px) !important;
+        margin: 3px 8px 0 !important;
+        padding: 10px !important;
+        box-sizing: border-box !important;
+        align-self: center;
+    }
+
+    #infoView #content > #sp603RouteOverview:last-child {
+        margin-bottom: 3px !important;
+    }
+}
+
+/* 路由概览在平板/窄窗口下也沿用基本信息卡片的响应式宽度。 */
+.sp603-route-overview {
+    width: var(--CONTENT-S-WIDTH);
+    max-width: 100%;
+    margin: 10px 20px 0;
+    box-sizing: border-box;
+}
+
+@media screen and (max-width: 850px) {
+    #infoView .sp603-route-overview {
+        width: calc(100% - 42px);
+        max-width: calc(100% - 42px);
+        margin: 10px 21px 0;
+    }
+}
+
+@media screen and (max-width: 750px) {
+    #infoView #content > #sp603RouteOverview,
+    #infoView .sp603-route-overview {
+        width: calc(100% - 16px) !important;
+        max-width: calc(100% - 16px) !important;
+        margin: 3px 8px 0 !important;
+        padding: 10px !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        align-self: center !important;
+    }
+}
+
+/* 路由概览必须跟随基本信息页内容列宽度，而不是使用全局 630px 固定卡片宽度。 */
+#main.base-info #infoView #content > #sp603RouteOverview {
+    width: calc(100% - 16px);
+    max-width: calc(100% - 16px);
+    min-width: 0;
+    margin: 10px 8px 0;
+    box-sizing: border-box;
+    align-self: stretch;
+}
+
+@media screen and (max-width: 750px) {
+    #main.base-info #infoView #content > #sp603RouteOverview {
+        width: calc(100% - 16px) !important;
+        max-width: calc(100% - 16px) !important;
+        margin: 3px 8px 0 !important;
+        padding: 10px !important;
+        min-width: 0 !important;
+        align-self: stretch !important;
+    }
+}

@@ -1,0 +1,34 @@
+#ifndef S3_GPIO_H
+#define S3_GPIO_H
+//串口
+#define U0TXD GPIO_NUM_43
+#define U0RXD GPIO_NUM_44//485 1
+#define U1TXD GPIO_NUM_3
+#define U1RXD GPIO_NUM_21//485 2
+#define U2RXD GPIO_NUM_18
+#define U2TXD GPIO_NUM_8//232
+//以太网
+#define W5500_SCSN GPIO_NUM_10
+#define W5500_SCLK GPIO_NUM_12
+#define W5500_MOSI GPIO_NUM_11
+#define W5500_MISO GPIO_NUM_13
+#define W5500_INT GPIO_NUM_14
+#define W5500_RST GPIO_NUM_41
+//4G模块
+#define AIR780E_RESET GPIO_NUM_17
+#define AIR780E_PWRKEY GPIO_NUM_2
+//USB
+#define USB_DN_ESP32 GPIO_NUM_19
+#define USB_DP_ESP32 GPIO_NUM_20
+//按键
+#define KEY GPIO_NUM_9
+// 面板状态灯：使用功能名作为代码标识，LED1~LED7 为原理图位号。
+#define LED_SYS  GPIO_NUM_42 // LED1: 系统状态
+#define LED_LAN  GPIO_NUM_45 // LED2: 有线网络状态
+#define LED_COM1 GPIO_NUM_39 // LED3: COM1/RS485-1 数据状态
+#define LED_WIFI GPIO_NUM_48 // LED4: Wi-Fi 状态
+#define LED_COM2 GPIO_NUM_6  // LED5: COM2/RS485-2 数据状态
+#define LED_4G   GPIO_NUM_40 // LED6: AIR780E 4G 状态
+#define LED_232  GPIO_NUM_7  // LED7: RS232 数据状态
+
+#endif // S3_GPIO_H

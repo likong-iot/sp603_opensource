@@ -1,0 +1,25 @@
+Command: ninja all
+[0/1] Re-running CMake...
+-- Minimal build - OFF
+-- Building ESP-IDF components for target esp32s3
+NOTICE: Skipping optional dependency: espressif/lan867x
+NOTICE: Skipping optional dependency: espressif/esp_wifi_remote
+NOTICE: 
+Following dependencies have new versions available:
+Dependency "espressif/ch390": "0.3.0" -> "0.4.1"
+Dependency "espressif/enc28j60": "1.0.1" -> "1.1.0"
+Dependency "espressif/lan86xx_common": "1.0.0" -> "1.0.1"
+Consider running "idf.py update-dependencies" to update your lock file.
+NOTICE: Processing 9 dependencies:
+NOTICE: [1/9] espressif/ch390 (0.3.0)
+NOTICE: [2/9] espressif/cmake_utilities (0.5.3)
+NOTICE: [3/9] espressif/enc28j60 (1.0.1)
+NOTICE: [4/9] espressif/ethernet_init (0.6.1)
+NOTICE: [5/9] espressif/iot_usbh_cdc (2.0.1)
+NOTICE: [6/9] espressif/iot_usbh_modem (1.2.0)
+NOTICE: [7/9] espressif/lan865x (0.1.4)
+NOTICE: [8/9] espressif/lan86xx_common (1.0.0)
+NOTICE: [9/9] idf (5.5.0)
+-- Configuring incomplete, errors occurred!
+FAILED: build.ninja 
+/home/master/.espressif/tools/cmake/3.30.2/bin/cmake --regenerate-during-build -S/home/master/project/sp603_iotGateWay_v1.0 -B/home/master/project/sp603_iotGateWay_v1.0/build

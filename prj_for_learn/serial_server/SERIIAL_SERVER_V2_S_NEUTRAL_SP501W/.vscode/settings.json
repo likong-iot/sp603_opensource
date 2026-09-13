@@ -1,0 +1,24 @@
+{
+    "idf.adapterTargetName": "esp32",
+    "idf.portWin": "COM3",
+    "idf.flashType": "UART",
+    "files.associations": {
+        "http_server.h": "c",
+        "mqtt_client.h": "c",
+        "aht20.h": "c",
+        "dns_server.h": "c",
+        "ethernet_init.h": "c",
+        "httpclient.h": "c",
+        "httpserver.h": "c",
+        "otaupdate.h": "c",
+        "mqttclient.h": "c",
+        "initeth.h": "c",
+        "sdkconfig.h": "c",
+        "dnsserver.h": "c",
+        "i2cth.h": "c"
+    },
+    "liveServer.settings.port": 5501,
+    "idf.port": "/dev/ttyUSB0",
+    "chatgpt.openOnStartup": true,
+    "idf.currentSetup": "/home/master/esp/v5.5/esp-idf"
+}

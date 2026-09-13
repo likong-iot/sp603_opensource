@@ -1,0 +1,81 @@
+<!--
+ * @Author: Orion
+ * @Date: 2024-04-18 17:33:09
+ * @LastEditors: Orion
+ * @LastEditTime: 2024-04-18 18:27:01
+ * @FilePath: \ETH_TH\script\templates\index.html
+ * @Description: 
+ * 
+ * Copyright (c) 2024 by SX-IOT, All Rights Reserved. 
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Welcome to My Web Server</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        p {
+            text-align: justify;
+            line-height: 1.6;
+        }
+
+        .data {
+            background-color: #eef;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Web Server Fast Test</h1>
+
+        {% if data %}
+        <div class="data">
+            <h2>Data received:</h2>
+            <!-- <p>Field11: {{ data.field11 }}</p> -->
+            <p>{{ data|tojson|safe }}</p>
+            <p id="data"></p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            setInterval(function () {
+                $.ajax({
+                    url: '/',
+                    type: 'GET',
+                    success: function (data) {
+                        $('#data').html(JSON.stringify(data));
+                    }
+                });
+            }, 3000);
+        });
+    </script>
+
+</body>
+
+</html>

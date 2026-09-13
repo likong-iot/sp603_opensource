@@ -1,0 +1,140 @@
+dependencies:
+  espressif/ch390:
+    component_hash: 5a23cac6e023067251943f7222fe94585a34579181a79a949b634946e2e6b981
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.1'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 0.3.0
+  espressif/cmake_utilities:
+    component_hash: 351350613ceafba240b761b4ea991e0f231ac7a9f59a9ee901f751bddc0bb18f
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.1'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 0.5.3
+  espressif/enc28j60:
+    component_hash: a20c685004ea37f9b2fe4ba6d5d0ba948f9ec3a46a4dab0d471b151575a90e27
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=4.4'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 1.0.1
+  espressif/ethernet_init:
+    component_hash: dc9c9610dc794539e982b774eaffa4a98c2d8c5f99e877b111096fccca667c91
+    dependencies:
+    - name: espressif/ch390
+      registry_url: https://components.espressif.com
+      require: private
+      version: '*'
+    - name: espressif/enc28j60
+      registry_url: https://components.espressif.com
+      require: private
+      version: '*'
+    - name: espressif/lan865x
+      registry_url: https://components.espressif.com
+      require: private
+      version: ^0.1.1
+    - name: espressif/lan867x
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: target in [esp32, esp32p4]
+      version: '>=2.0.0'
+    - name: idf
+      require: private
+      version: '>=5.4'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.6.1
+  espressif/iot_usbh_cdc:
+    component_hash: 3cd0f9f63fba11ac2903b61d0497f19a39f2f0286e58e9d73286ea8edd0fade9
+    dependencies:
+    - name: espressif/cmake_utilities
+      registry_url: https://components.espressif.com
+      require: private
+      version: '*'
+    - name: idf
+      require: private
+      version: '>=4.4.1'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    targets:
+    - esp32s2
+    - esp32s3
+    - esp32p4
+    version: 2.0.1
+  espressif/iot_usbh_modem:
+    component_hash: 76752968d0cafe67cf29dc8aef8d7b4e8d08b5c5d9e977c942c07073251b660c
+    dependencies:
+    - name: espressif/cmake_utilities
+      registry_url: https://components.espressif.com
+      require: private
+      version: 0.*
+    - name: espressif/esp_wifi_remote
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: target in [esp32p4]
+      version: 0.*
+    - name: idf
+      require: private
+      version: '>=4.4.1'
+    - name: espressif/iot_usbh_cdc
+      registry_url: https://components.espressif.com
+      require: private
+      version: 2.*
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    targets:
+    - esp32s2
+    - esp32s3
+    - esp32p4
+    version: 1.2.0
+  espressif/lan865x:
+    component_hash: ec3743fc2073fded3557d24f91a345dc389c5f78973411f0a71feddbcb85c6f0
+    dependencies:
+    - name: espressif/lan86xx_common
+      registry_url: https://components.espressif.com
+      require: private
+      version: '*'
+    - name: idf
+      require: private
+      version: '>=5.2'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 0.1.4
+  espressif/lan86xx_common:
+    component_hash: 6dcb1be9f43ae940979bd628fa5bee278949b66c545e1fe2321e486102e81026
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.2'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 1.0.0
+  idf:
+    source:
+      type: idf
+    version: 5.5.0
+direct_dependencies:
+- espressif/ethernet_init
+- espressif/iot_usbh_modem
+- idf
+manifest_hash: a3b8a87a5cee10f358b75dac7753a359ae513450b4910f162e5e9de82cd8a4fc
+target: esp32s3
+version: 2.0.0
