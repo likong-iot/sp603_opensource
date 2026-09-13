@@ -13,8 +13,8 @@ end
 
 # Load bootloader symbols
 set confirm off
-    add-symbol-file /home/master/project/sp603_iotGateWay_v1.0/build/bootloader/bootloader.elf
+    add-symbol-file /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader/bootloader.elf
 set confirm on
 
 # Load application symbols
-file /home/master/project/sp603_iotGateWay_v1.0/build/s3_iot_gateway.elf
+file /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/s3_iot_gateway.elf

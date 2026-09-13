@@ -39,16 +39,16 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/master/project/sp603_iotGateWay_v1.0/build/esp-idf/esp_hw_support/port/esp32s3/cmake_install.cmake")
+  include("/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/esp_hw_support/port/esp32s3/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/master/project/sp603_iotGateWay_v1.0/build/esp-idf/esp_hw_support/mspi_timing_tuning/port/esp32s3/cmake_install.cmake")
+  include("/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/esp_hw_support/mspi_timing_tuning/port/esp32s3/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/master/project/sp603_iotGateWay_v1.0/build/esp-idf/esp_hw_support/lowpower/cmake_install.cmake")
+  include("/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/esp_hw_support/lowpower/cmake_install.cmake")
 endif()
 

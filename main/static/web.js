@@ -162,6 +162,13 @@ function getActiveSerialPorts() {
     return (AVAILABLE_SERIAL_PORTS.length > 0 ? AVAILABLE_SERIAL_PORTS : SUPPORTED_SERIAL_PORTS).slice();
 }
 
+function getIndependentSerialPorts() {
+    const available = new Set(getActiveSerialPorts());
+    const layout = getSelectedSp603SerialLayout();
+    const ports = layout === 'rs422' ? [1, 2] : [1, 2, 3];
+    return ports.filter(port => available.has(port));
+}
+
 function applyFirmwareCapabilitiesFromModeInfo(responseData) {
     if (!responseData || typeof responseData !== 'object') {
         return;
@@ -215,6 +222,14 @@ function applyFirmwareCapabilitiesFromModeInfo(responseData) {
         : SUPPORTED_SERIAL_PORTS;
     SUPPORTED_FILTER_CHANNELS = [...visibleSerialPorts.map(port => `ch${port}`), 'log']
         .filter(channel => ALL_FILTER_CHANNELS.includes(channel));
+
+    if (document.getElementById('serialIndependentCards')) {
+        const current = [...document.querySelectorAll('#serialIndependentCards [data-channel]')].map(e => Number(e.dataset.channel));
+        if (current.join(',') !== visibleSerialPorts.join(',')) {
+            document.getElementById('serialIndependentCards').remove();
+            loadIndependentSerialConfigs();
+        }
+    }
 
     SUPPORTED_SERIAL_PORTS.forEach(port => {
         const label = SP603_PORT_LABELS[port];
@@ -742,6 +757,7 @@ function updateSerialConfigForCacheMode() {
 
 // 页面加载时初始化折叠功能
 document.addEventListener('DOMContentLoaded', () => {
+    loadIndependentSerialConfigs();
     applyHardwareUiAdaptation();
 
     // 初始化工作模式的折叠功能
@@ -3795,15 +3811,95 @@ function showCustomAlert(message, isError = false, options = {}) {
 
 // Serial config API
 
+const SP603_SERIAL_BAUDS = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200];
+function serialField(label, id, type, value, options, unit) {
+    const control = type === 'select'
+        ? `<select id="${id}" class="base-input">${options.map(v => `<option value="${v[0]}">${v[1]}</option>`).join('')}</select>`
+        : `<input id="${id}" class="base-input" type="${type}" value="${value ?? ''}">`;
+    return `<div class="label-view label-view mt-15"><div class="label"><div class="title tip top">${label}</div></div><div class="view-container serial-field-control">${control}${unit ? `<span class="unit-text">${unit}</span>` : ''}</div></div>`;
+}
+
+function renderIndependentSerialCards() {
+    const host = document.getElementById('serialConfigContent');
+    if (!host || document.getElementById('serialIndependentCards')) return;
+    ['.serial-sync-config', '#serialTabsContainer', '#slaveFollowTabsContainer', '#serialUnifiedConfig', '.separate-config-panel', '#serialButton']
+        .forEach(selector => host.querySelectorAll(selector).forEach(el => { el.style.display = 'none'; }));
+    const cards = document.createElement('div'); cards.id = 'serialIndependentCards'; cards.className = 'serial-independent-cards';
+    cards.innerHTML = getIndependentSerialPorts().map(port => {
+        const label = getSelectedSp603SerialLayout() === 'rs422' && port === 1
+            ? 'RS422 (COM1 TX + COM2 RX)' : (SP603_PORT_LABELS[port] || `CH${port}`);
+        return `<section class="serial-channel-card" data-channel="${port}">
+            <div class="container serial-channel-heading"><div class="title-text"><span>${label}</span><button type="button" class="serial-collapse" aria-expanded="true" aria-label="折叠${label}配置"><i class="iconfont iconxiajiantou2"></i></button></div></div>
+            <div class="serial-channel-body">
+                <div class="serial-mode-switch" role="group"><button type="button" class="serial-mode active" data-mode="server">TCP Server</button><button type="button" class="serial-mode" data-mode="client">TCP Client</button></div>
+                <div class="serial-server-fields">${serialField('服务端端口', `serial_local_port_${port}`, 'number', 8887 + port, null, '')}</div>
+                <div class="serial-client-fields" hidden>${serialField('目标 IP 地址', `serial_remote_ip_${port}`, 'text', '', null, '')}${serialField('目标端口', `serial_remote_port_${port}`, 'number', 8887 + port, null, '')}</div>
+                ${serialField('波特率', `serial_baud_${port}`, 'select', '', SP603_SERIAL_BAUDS.map(v => [v, v]), '')}
+                ${serialField('数据位', `serial_data_${port}`, 'select', '', [[5,5],[6,6],[7,7],[8,8]], '')}
+                ${serialField('校验位', `serial_check_${port}`, 'select', '', [['0','无校验'],['1','奇校验'],['2','偶校验']], '')}
+                ${serialField('停止位', `serial_stop_${port}`, 'select', '', [['1','1位停止位'],['1.5','1.5位停止位'],['2','2位停止位']], '')}
+                ${serialField('帧时间', `serial_frame_time_${port}`, 'number', 50, null, '毫秒')}
+                ${serialField('最大帧长度', `serial_frame_len_${port}`, 'number', 512, null, '字节')}
+                ${serialField('应答超时', `serial_timeout_${port}`, 'number', 500, null, '毫秒')}
+            </div></section>`;
+    }).join('');
+    host.appendChild(cards);
+    cards.querySelectorAll('.serial-channel-card').forEach(card => {
+        const modeButtons = card.querySelectorAll('.serial-mode');
+        modeButtons.forEach(btn => btn.addEventListener('click', () => { modeButtons.forEach(x => x.classList.remove('active')); btn.classList.add('active'); card.querySelector('.serial-server-fields').hidden = btn.dataset.mode !== 'server'; card.querySelector('.serial-client-fields').hidden = btn.dataset.mode !== 'client'; }));
+        card.querySelector('.serial-collapse').addEventListener('click', () => { const body = card.querySelector('.serial-channel-body'); const open = !body.hidden; body.hidden = open; const toggle = card.querySelector('.serial-collapse'); toggle.setAttribute('aria-expanded', String(!open)); toggle.classList.toggle('collapsed', open); });
+    });
+}
+
+function refreshIndependentSerialCards() {
+    document.getElementById('serialIndependentCards')?.remove();
+    loadIndependentSerialConfigs();
+}
+
+async function saveAllIndependentSerialConfigs(showSuccess = true) {
+    const cards = [...document.querySelectorAll('#serialIndependentCards .serial-channel-card')];
+    if (!cards.length) return;
+    const button = document.getElementById('serialButton');
+    if (button) button.disabled = true;
+    try {
+        for (const card of cards) await saveIndependentSerialConfig(Number(card.dataset.channel), card);
+        if (showSuccess) displaySuccessMessage('串口配置保存成功');
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+async function loadIndependentSerialConfigs() {
+    renderIndependentSerialCards();
+    for (const port of getIndependentSerialPorts()) {
+        try { const c = await fetchData(`/serial_set_info?port=${port}`); const card = document.querySelector(`[data-channel="${port}"]`); if (!card) continue;
+            const set = (id, value) => { const e = document.getElementById(id); if (e && value !== undefined) e.value = value; };
+            set(`serial_baud_${port}`, c.baud_rate); set(`serial_data_${port}`, c.data_bit); set(`serial_check_${port}`, convertParityToBackend(c.check_bit)); set(`serial_stop_${port}`, c.stop_bit); set(`serial_frame_time_${port}`, c.frame_time); set(`serial_frame_len_${port}`, c.frame_len); set(`serial_timeout_${port}`, c.reply_timeout); set(`serial_local_port_${port}`, c.local_port); set(`serial_remote_ip_${port}`, c.remote_ip); set(`serial_remote_port_${port}`, c.remote_port);
+            card.querySelectorAll('.serial-mode').forEach(b => b.classList.toggle('active', b.dataset.mode === (c.tcp_mode || 'server'))); card.querySelector('.serial-server-fields').hidden = c.tcp_mode === 'client'; card.querySelector('.serial-client-fields').hidden = c.tcp_mode !== 'client';
+        } catch (e) { console.warn('串口配置读取失败', port, e); }
+    }
+}
+
+async function saveIndependentSerialConfig(port, card) {
+    const mode = card.querySelector('.serial-mode.active')?.dataset.mode || 'server';
+    const value = id => document.getElementById(id)?.value || '';
+    const localPort = Number(value(`serial_local_port_${port}`));
+    const payload = { serial_port: port, tcp_mode: mode, local_port: localPort, remote_ip: value(`serial_remote_ip_${port}`).trim(), remote_port: mode === 'client' ? Number(value(`serial_remote_port_${port}`)) : localPort, baud_rate: value(`serial_baud_${port}`), data_bit: value(`serial_data_${port}`), check_bit: value(`serial_check_${port}`), stop_bit: value(`serial_stop_${port}`), frame_time: value(`serial_frame_time_${port}`), frame_len: value(`serial_frame_len_${port}`), reply_timeout: value(`serial_timeout_${port}`) };
+    try {
+        await postData('/serial_set', payload);
+    } catch (e) {
+        showCustomAlert(`${SP603_PORT_LABELS[port] || `CH${port}`} 配置保存失败: ${e.message}`, true);
+        throw e;
+    }
+}
+
 // 当前选中的串口
 let currentSerialPort = 1;
 
 // 阻止表单默认提交
-document.getElementById("serialDataForm1").addEventListener("submit", event => event.preventDefault());
-document.getElementById("serialDataForm2").addEventListener("submit", event => event.preventDefault());
-document.getElementById("serialDataForm3").addEventListener("submit", event => event.preventDefault());
-document.getElementById("serialDataForm4").addEventListener("submit", event => event.preventDefault());
-document.getElementById("serialDataForm5").addEventListener("submit", event => event.preventDefault());
+for (let port = 1; port <= 5; port++) {
+    document.getElementById(`serialDataForm${port}`)?.addEventListener('submit', event => event.preventDefault());
+}
 
 // 串口标签页切换功能
 function switchSerialTab(portNumber) {
@@ -3850,6 +3946,10 @@ async function handleSerialConfigSubmit() {
     btn.disabled = true;
 
     try {
+        if (document.getElementById('serialIndependentCards')) {
+            await saveAllIndependentSerialConfigs();
+            return;
+        }
         // 首先保存配置模式（静默）
         const selectedMode = document.querySelector('input[name="serialSyncMode"]:checked');
         if (selectedMode) {
@@ -3908,7 +4008,7 @@ async function handleSerialConfigSubmit() {
 }
 
 // 绑定串口配置提交按钮事件
-document.getElementById('serialButton').addEventListener('click', handleSerialConfigSubmit);
+document.getElementById('serialButton')?.addEventListener('click', handleSerialConfigSubmit);
 
 // 提交指定端口并为从机端口使用默认参数的辅助函数 - 使用模块化版本的正确实现
 async function submitPortsWithCachedCH3(masterPorts, defaultPorts) {
@@ -6378,6 +6478,7 @@ async function loadSp603SerialLayout() {
             input.disabled = false;
         });
         if (Array.isArray(state.ports)) state.ports.forEach(port => renderSp603SerialPort(port));
+        refreshIndependentSerialCards();
     } catch (error) {
         console.error('加载 SP603 串口布局失败:', error);
     }
@@ -6388,7 +6489,7 @@ function getSelectedSp603SerialLayout() {
         || 'dual_rs485';
 }
 
-async function saveSp603SerialLayout() {
+async function saveSp603SerialLayout(showFeedback = true) {
     const saveButton = document.getElementById('sp603SerialLayoutInlineSave');
     const layout = getSelectedSp603SerialLayout();
     if (!saveButton) return;
@@ -6399,13 +6500,39 @@ async function saveSp603SerialLayout() {
         console.info('[SERIAL_LAYOUT] save', { layout });
         const result = await postData('/serial_layout', { layout });
         console.info('[SERIAL_LAYOUT] saved', result);
-        displaySuccessMessage('SP603 串口布局已保存，重启后生效');
-        if (result.reboot_required !== false) {
+        if (showFeedback) displaySuccessMessage('SP603 串口布局已保存，重启后生效');
+        if (showFeedback && result.reboot_required !== false) {
             showRestartConfirmAfterSuccess('串口布局已保存，是否立即重启设备使配置生效？');
         }
+        return result;
     } catch (error) {
         console.error('[SERIAL_LAYOUT] save failed', error);
-        showCustomAlert(`串口布局保存失败: ${error.message}`, true);
+        if (showFeedback) showCustomAlert(`串口布局保存失败: ${error.message}`, true);
+        if (!showFeedback) throw error;
+        return null;
+    } finally {
+        saveButton.disabled = false;
+        saveButton.innerHTML = original;
+    }
+}
+
+async function saveSerialLayoutAndConfigs() {
+    const saveButton = document.getElementById('sp603SerialLayoutInlineSave');
+    if (!saveButton || saveButton.disabled) return;
+    saveButton.disabled = true;
+    const original = saveButton.innerHTML;
+    saveButton.textContent = '正在保存…';
+    try {
+        const layoutResult = await saveSp603SerialLayout(false);
+        if (!layoutResult) return;
+        await saveAllIndependentSerialConfigs(false);
+        displaySuccessMessage('串口布局和串口配置保存成功，重启后生效');
+        if (layoutResult.reboot_required !== false) {
+            showRestartConfirmAfterSuccess('串口布局和串口配置已保存，是否立即重启设备使配置生效？');
+        }
+    } catch (error) {
+        console.error('[SERIAL_CONFIG] unified save failed', error);
+        showCustomAlert(`串口配置保存失败: ${error.message}`, true);
     } finally {
         saveButton.disabled = false;
         saveButton.innerHTML = original;
@@ -6552,7 +6679,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const inlineLayoutSave = document.getElementById('sp603SerialLayoutInlineSave');
     if (inlineLayoutSave) {
-        inlineLayoutSave.addEventListener('click', saveSp603SerialLayout);
+        inlineLayoutSave.addEventListener('click', saveSerialLayoutAndConfigs);
         loadSp603SerialLayout();
     }
+
+    document.querySelectorAll('input[name="serialLayout"]').forEach(input => {
+        input.addEventListener('change', refreshIndependentSerialCards);
+    });
 });

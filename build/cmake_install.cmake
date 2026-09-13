@@ -1,4 +1,4 @@
-# Install script for directory: /home/master/project/sp603_iotGateWay_v1.0
+# Install script for directory: /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/master/project/sp603_iotGateWay_v1.0/build/esp-idf/cmake_install.cmake")
+  include("/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/cmake_install.cmake")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)
@@ -57,6 +57,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-  file(WRITE "/home/master/project/sp603_iotGateWay_v1.0/build/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

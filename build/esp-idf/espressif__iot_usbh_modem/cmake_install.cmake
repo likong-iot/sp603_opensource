@@ -1,4 +1,4 @@
-# Install script for directory: /home/master/project/sp603_iotGateWay_v1.0/managed_components/espressif__iot_usbh_modem
+# Install script for directory: /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/managed_components/espressif__iot_usbh_modem
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

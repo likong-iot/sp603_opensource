@@ -1,4 +1,4 @@
-# Install script for directory: /home/master/project/sp603_iotGateWay_v1.0/main
+# Install script for directory: /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/main
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

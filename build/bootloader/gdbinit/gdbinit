@@ -1,2 +1,2 @@
-source /home/master/project/sp603_iotGateWay_v1.0/build/bootloader/gdbinit/symbols
-source /home/master/project/sp603_iotGateWay_v1.0/build/bootloader/gdbinit/connect
+source /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader/gdbinit/symbols
+source /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader/gdbinit/connect

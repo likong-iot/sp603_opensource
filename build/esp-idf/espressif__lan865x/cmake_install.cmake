@@ -1,4 +1,4 @@
-# Install script for directory: /home/master/project/sp603_iotGateWay_v1.0/managed_components/espressif__lan865x
+# Install script for directory: /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/managed_components/espressif__lan865x
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

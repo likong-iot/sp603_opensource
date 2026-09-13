@@ -10,18 +10,18 @@ if(NOT EXISTS "/home/master/esp/v5.5/esp-idf/components/bootloader/subproject")
   file(MAKE_DIRECTORY "/home/master/esp/v5.5/esp-idf/components/bootloader/subproject")
 endif()
 file(MAKE_DIRECTORY
-  "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader"
-  "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader-prefix"
-  "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader-prefix/tmp"
-  "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader-prefix/src/bootloader-stamp"
-  "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader-prefix/src"
-  "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader-prefix/src/bootloader-stamp"
+  "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader"
+  "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader-prefix"
+  "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader-prefix/tmp"
+  "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader-prefix/src/bootloader-stamp"
+  "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader-prefix/src"
+  "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader-prefix/src/bootloader-stamp"
 )
 
 set(configSubDirs )
 foreach(subDir IN LISTS configSubDirs)
-    file(MAKE_DIRECTORY "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
+    file(MAKE_DIRECTORY "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
 endforeach()
 if(cfgdir)
-  file(MAKE_DIRECTORY "/home/master/project/sp603_iotGateWay_v1.0/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
+  file(MAKE_DIRECTORY "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
 endif()

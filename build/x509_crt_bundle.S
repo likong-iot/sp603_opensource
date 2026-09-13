@@ -1,4 +1,4 @@
-/* * Data converted from /home/master/project/sp603_iotGateWay_v1.0/build/esp-idf/mbedtls/x509_crt_bundle
+/* * Data converted from /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/mbedtls/x509_crt_bundle
  */
 .data
 #if !defined (__APPLE__) && !defined (__linux__)

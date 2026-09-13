@@ -1,4 +1,4 @@
-/* * Data converted from /home/master/project/sp603_iotGateWay_v1.0/main/static/root.html.gz
+/* * Data converted from /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/main/static/root.html.gz
  */
 .data
 #if !defined (__APPLE__) && !defined (__linux__)

@@ -40,6 +40,7 @@
 #include "sx_network_manager.h"
 #include "sx_serial_port_manager.h"
 #include "sx_serial_resource.h"
+#include "sx_serial_server.h"
 #include "sx_storage_defaults.h"
 #include "w5500_manager.h"
 
@@ -1223,6 +1224,27 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
     json_string_or_number_to_buf(json, "frame_len", frame_len_str, sizeof(frame_len_str), "512");
     json_string_or_number_to_buf(json, "reply_timeout", timeout_str, sizeof(timeout_str), "500");
 
+    sx_serial_channel_config_t tcp_cfg;
+    sx_serial_server_get_config(port, &tcp_cfg);
+    cJSON *tcp_mode = cJSON_GetObjectItem(json, "tcp_mode");
+    if (cJSON_IsString(tcp_mode) && tcp_mode->valuestring) {
+        if (strcmp(tcp_mode->valuestring, "client") == 0) tcp_cfg.tcp_mode = SX_SERIAL_TCP_CLIENT;
+        else if (strcmp(tcp_mode->valuestring, "server") == 0) tcp_cfg.tcp_mode = SX_SERIAL_TCP_SERVER;
+        else { cJSON_Delete(json); http_reply_code_msg(req, 400, "invalid tcp_mode"); return ESP_OK; }
+    }
+    char remote_ip[64] = {0};
+    cJSON *remote_ip_item = cJSON_GetObjectItem(json, "remote_ip");
+    if (cJSON_IsString(remote_ip_item) && remote_ip_item->valuestring) snprintf(remote_ip, sizeof(remote_ip), "%s", remote_ip_item->valuestring);
+    if (remote_ip[0]) snprintf(tcp_cfg.remote_ip, sizeof(tcp_cfg.remote_ip), "%s", remote_ip);
+    cJSON *local_port_item = cJSON_GetObjectItem(json, "local_port");
+    cJSON *remote_port_item = cJSON_GetObjectItem(json, "remote_port");
+    if (cJSON_IsNumber(local_port_item)) tcp_cfg.local_port = (uint16_t)local_port_item->valuedouble;
+    if (cJSON_IsNumber(remote_port_item)) tcp_cfg.remote_port = (uint16_t)remote_port_item->valuedouble;
+    tcp_cfg.channel = port; tcp_cfg.baud_rate = atoi(baud_str); tcp_cfg.data_bit = atoi(data_bit_str);
+    tcp_cfg.check_bit = atoi(check_bit_str); tcp_cfg.stop_bit = atoi(stop_bit_str);
+    tcp_cfg.frame_time = atoi(frame_time_str); tcp_cfg.frame_len = atoi(frame_len_str); tcp_cfg.timeout = atoi(timeout_str);
+    if (sx_serial_server_save_config(&tcp_cfg) != ESP_OK) { cJSON_Delete(json); http_reply_code_msg(req, 400, "invalid serial configuration"); return ESP_OK; }
+
     nvs_handle_t nvs;
     if (nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs) != ESP_OK) {
         cJSON_Delete(json);
@@ -1274,7 +1296,12 @@ serial_save_done:
         if (cfg.timeout <= 0) {
             cfg.timeout = DEFAULT_REPLY_TIMEOUT_MS;
         }
-        quick_reconfigure_channel(runtime_channel, &cfg);
+        esp_err_t runtime_err = quick_reconfigure_channel(runtime_channel, &cfg);
+        if (runtime_err != ESP_OK) {
+            cJSON_Delete(json);
+            http_reply_code_msg(req, 500, "serial runtime reconfigure failed");
+            return ESP_OK;
+        }
         set_current_runtime_config(runtime_channel, &cfg);
     }
 
@@ -1296,6 +1323,12 @@ static esp_err_t get_serial_set_info_get_handler(httpd_req_t *req)
     }
 
     cJSON *root = cJSON_CreateObject();
+    sx_serial_channel_config_t tcp_cfg;
+    sx_serial_server_get_config(port, &tcp_cfg);
+    cJSON_AddStringToObject(root, "tcp_mode", tcp_cfg.tcp_mode == SX_SERIAL_TCP_CLIENT ? "client" : "server");
+    cJSON_AddNumberToObject(root, "local_port", tcp_cfg.local_port);
+    cJSON_AddStringToObject(root, "remote_ip", tcp_cfg.remote_ip);
+    cJSON_AddNumberToObject(root, "remote_port", tcp_cfg.remote_port);
 
     nvs_handle_t nvs;
     if (nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs) == ESP_OK) {

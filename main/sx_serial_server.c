@@ -22,6 +22,7 @@
 
 static const char *TAG = "serial_server";
 static TaskHandle_t s_serial_server_task;
+static TaskHandle_t s_channel_tasks[SERIAL_CHANNEL_COUNT + 1];
 static volatile bool s_serial_server_running;
 static volatile int s_listen_fds[SERIAL_CHANNEL_COUNT + 1] = {-1, -1, -1, -1};
 static volatile int s_client_fds[SERIAL_CHANNEL_COUNT + 1] = {-1, -1, -1, -1};
@@ -188,6 +189,49 @@ static bool open_available_listeners(void)
     return opened;
 }
 
+static void serial_channel_task(void *arg)
+{
+    int channel = (int)(intptr_t)arg;
+    uint8_t buffer[512];
+    while (s_serial_server_running) {
+        sx_serial_channel_config_t cfg;
+        sx_serial_server_get_config(channel, &cfg);
+        int endpoint = -1;
+        if (cfg.tcp_mode == SX_SERIAL_TCP_SERVER) {
+            s_listen_fds[channel] = create_listener(channel);
+            if (s_listen_fds[channel] < 0) { vTaskDelay(pdMS_TO_TICKS(2000)); continue; }
+            endpoint = accept(s_listen_fds[channel], NULL, NULL);
+            if (endpoint >= 0) { s_client_fds[channel] = endpoint; }
+        } else {
+            struct sockaddr_in addr = { .sin_family = AF_INET, .sin_port = htons(cfg.remote_port) };
+            if (!inet_aton(cfg.remote_ip, &addr.sin_addr)) { vTaskDelay(pdMS_TO_TICKS(2000)); continue; }
+            endpoint = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+            if (endpoint < 0 || connect(endpoint, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+                if (endpoint >= 0) {
+                    close(endpoint);
+                }
+                vTaskDelay(pdMS_TO_TICKS(2000));
+                continue;
+            }
+            s_client_fds[channel] = endpoint;
+        }
+        while (s_serial_server_running && endpoint >= 0) {
+            fd_set rfds; FD_ZERO(&rfds); FD_SET(endpoint, &rfds);
+            struct timeval tv = {.tv_sec = 1, .tv_usec = 0};
+            int ready = select(endpoint + 1, &rfds, NULL, NULL, &tv);
+            if (ready > 0 && FD_ISSET(endpoint, &rfds)) {
+                int received = recv(endpoint, buffer, sizeof(buffer), 0);
+                if (received <= 0) break;
+                send_data_to_channel(channel, (char *)buffer, (size_t)received);
+            }
+        }
+        close_socket(&s_client_fds[channel]); close_socket(&s_listen_fds[channel]);
+        if (s_serial_server_running) vTaskDelay(pdMS_TO_TICKS(500));
+    }
+    s_channel_tasks[channel] = NULL;
+    delete_self_app_task_with_caps();
+}
+
 static void serial_server_task(void *arg)
 {
     (void)arg;
@@ -261,15 +305,17 @@ static void serial_server_task(void *arg)
 
 esp_err_t sx_serial_server_start(void)
 {
-    if (s_serial_server_task != NULL) return ESP_OK;
+    for (int i = 1; i <= SERIAL_CHANNEL_COUNT; ++i) if (s_channel_tasks[i] != NULL) return ESP_OK;
     s_serial_server_running = true;
-    if (create_app_task_psram(serial_server_task, "serial_server", 6144,
-                              NULL, 6, &s_serial_server_task,
-                              tskNO_AFFINITY) != pdPASS) {
-        s_serial_server_running = false;
-        return ESP_ERR_NO_MEM;
+    for (int channel = 1; channel <= SERIAL_CHANNEL_COUNT; ++channel) {
+        if (!sx_serial_port_manager_channel_available(channel)) continue;
+        char name[20]; snprintf(name, sizeof(name), "serial_ch%d", channel);
+        if (create_app_task_psram(serial_channel_task, name, 4096, (void *)(intptr_t)channel, 6,
+                                  &s_channel_tasks[channel], tskNO_AFFINITY) != pdPASS) {
+            s_serial_server_running = false; close_all_serial_sockets(); return ESP_ERR_NO_MEM;
+        }
     }
-    ESP_LOGI(TAG, "SP603 multi-port serial_server mode started");
+    ESP_LOGI(TAG, "SP603 per-channel serial server tasks started");
     return ESP_OK;
 }
 
@@ -277,9 +323,61 @@ esp_err_t sx_serial_server_stop(void)
 {
     s_serial_server_running = false;
     close_all_serial_sockets();
-    for (int i = 0; i < 100 && s_serial_server_task != NULL; ++i)
+    for (int i = 0; i < 100; ++i) {
         vTaskDelay(pdMS_TO_TICKS(10));
+        bool running = false; for (int ch = 1; ch <= SERIAL_CHANNEL_COUNT; ++ch) running |= s_channel_tasks[ch] != NULL;
+        if (!running) break;
+    }
     ESP_LOGI(TAG, "serial_server mode stopped");
-    return s_serial_server_task == NULL ? ESP_OK : ESP_ERR_TIMEOUT;
+    for (int ch = 1; ch <= SERIAL_CHANNEL_COUNT; ++ch) if (s_channel_tasks[ch] != NULL) return ESP_ERR_TIMEOUT;
+    return ESP_OK;
 }
 
+esp_err_t sx_serial_server_get_config(int channel, sx_serial_channel_config_t *config)
+{
+    if (!config || channel < 1 || channel > SERIAL_CHANNEL_COUNT) return ESP_ERR_INVALID_ARG;
+    memset(config, 0, sizeof(*config));
+    config->channel = channel; config->tcp_mode = SX_SERIAL_TCP_SERVER;
+    config->local_port = SERIAL_SERVER_DEFAULT_PORT + channel - 1;
+    config->remote_port = config->local_port; config->baud_rate = 9600;
+    config->data_bit = 8; config->check_bit = 0; config->stop_bit = 1;
+    config->frame_time = 50; config->frame_len = 512; config->timeout = 500;
+    nvs_handle_t nvs; if (nvs_open("storage", NVS_READONLY, &nvs) != ESP_OK) return ESP_OK;
+    char key[32], text[80]; size_t len; uint32_t value;
+    snprintf(key, sizeof(key), "ss_ch%d_port", channel); if (nvs_get_u32(nvs, key, &value) == ESP_OK) config->local_port = value;
+    snprintf(key, sizeof(key), "ch%d_tcp_mode", channel); len = sizeof(text); if (nvs_get_str(nvs, key, text, &len) == ESP_OK && strcmp(text, "client") == 0) config->tcp_mode = SX_SERIAL_TCP_CLIENT;
+    snprintf(key, sizeof(key), "ch%d_remote_ip", channel); len = sizeof(config->remote_ip); nvs_get_str(nvs, key, config->remote_ip, &len);
+    snprintf(key, sizeof(key), "ch%d_remote_port", channel); if (nvs_get_u32(nvs, key, &value) == ESP_OK) config->remote_port = value;
+    const char *names[] = {"baud_rate","data_bit","check_bit","stop_bit","frame_time","frame_len","timeout"};
+    int *values[] = {&config->baud_rate,&config->data_bit,&config->check_bit,&config->stop_bit,&config->frame_time,&config->frame_len,&config->timeout};
+    for (size_t i = 0; i < 7; ++i) { snprintf(key, sizeof(key), "ch%d_%s", channel, names[i]); len = sizeof(text); if (nvs_get_str(nvs, key, text, &len) == ESP_OK) *values[i] = atoi(text); }
+    nvs_close(nvs); return ESP_OK;
+}
+
+esp_err_t sx_serial_server_save_config(const sx_serial_channel_config_t *config)
+{
+    if (!config || config->channel < 1 || config->channel > SERIAL_CHANNEL_COUNT || config->local_port < 1 || config->remote_port < 1 || config->baud_rate < 1200 || config->data_bit < 5 || config->data_bit > 8 || config->check_bit < 0 || config->check_bit > 2 || config->stop_bit < 1 || config->stop_bit > 2 || config->frame_time < 0 || config->frame_len < 1 || config->frame_len > ASYNC_UART_BUF_SIZE || config->timeout < 1) return ESP_ERR_INVALID_ARG;
+    if (config->tcp_mode == SX_SERIAL_TCP_CLIENT && config->remote_ip[0] == '\0') return ESP_ERR_INVALID_ARG;
+    for (int other = 1; other <= SERIAL_CHANNEL_COUNT; ++other) {
+        if (other == config->channel) continue;
+        sx_serial_channel_config_t existing;
+        if (sx_serial_server_get_config(other, &existing) == ESP_OK && existing.local_port == config->local_port) return ESP_ERR_INVALID_ARG;
+    }
+    nvs_handle_t nvs; ESP_RETURN_ON_ERROR(nvs_open("storage", NVS_READWRITE, &nvs), TAG, "open NVS failed");
+    char key[32], text[24]; esp_err_t err = ESP_OK;
+    snprintf(key, sizeof(key), "ss_ch%d_port", config->channel); err = nvs_set_u32(nvs, key, config->local_port);
+    if (err == ESP_OK) { snprintf(key, sizeof(key), "ch%d_tcp_mode", config->channel); err = nvs_set_str(nvs, key, config->tcp_mode == SX_SERIAL_TCP_CLIENT ? "client" : "server"); }
+    if (err == ESP_OK) { snprintf(key, sizeof(key), "ch%d_remote_ip", config->channel); err = nvs_set_str(nvs, key, config->remote_ip); }
+    if (err == ESP_OK) { snprintf(key, sizeof(key), "ch%d_remote_port", config->channel); err = nvs_set_u32(nvs, key, config->remote_port); }
+    const char *names[] = {"baud_rate","data_bit","check_bit","stop_bit","frame_time","frame_len","timeout"};
+    int values[] = {config->baud_rate,config->data_bit,config->check_bit,config->stop_bit,config->frame_time,config->frame_len,config->timeout};
+    for (size_t i = 0; err == ESP_OK && i < 7; ++i) { snprintf(key, sizeof(key), "ch%d_%s", config->channel, names[i]); snprintf(text, sizeof(text), "%d", values[i]); err = nvs_set_str(nvs, key, text); }
+    if (err == ESP_OK) {
+        err = nvs_commit(nvs);
+    }
+    nvs_close(nvs);
+    if (err == ESP_OK) {
+        load_serial_server_ports();
+    }
+    return err;
+}
