@@ -6708,3 +6708,176 @@ canvas {
         align-self: stretch !important;
     }
 }
+
+/* 独立串口卡片：输入框随卡片内容区收缩，单位固定在输入框右端。 */
+.serial-channel-body .serial-field-control {
+    min-width: 0 !important;
+    width: 308px !important;
+    max-width: 100% !important;
+    flex: 0 1 308px !important;
+    position: relative;
+}
+
+.serial-channel-body .serial-field-control .base-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    box-sizing: border-box;
+}
+
+.serial-channel-body .serial-unit-control .base-input {
+    padding-right: 48px !important;
+}
+
+.serial-channel-body .serial-unit-control .unit-text {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    margin: 0 !important;
+    padding: 0;
+    transform: translateY(-50%);
+    line-height: 20px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* 调试过滤项保持紧凑，避免长标题或弹性宽度撑坏色块。 */
+#serial_ctl .channel-filter-container,
+#serial_ctl .debug-channel-horizontal {
+    min-width: 0;
+    overflow: hidden;
+}
+
+#serial_ctl .channel-filter-item,
+#serial_ctl .debug-channel-item {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+#serial_ctl .channel-badge {
+    min-width: 0;
+    white-space: nowrap;
+}
+
+/* CRC、发送内容和下发按钮在窄屏也保持同一行。 */
+#serial_ctl .send-with-button {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    gap: 8px;
+}
+
+#serial_ctl .send-with-button .custom-input {
+    min-width: 0;
+    width: auto !important;
+    max-width: none !important;
+}
+
+#serial_ctl .send-with-button .serial-crc-row,
+#serial_ctl .send-with-button .send-button {
+    flex-shrink: 0;
+}
+
+@media screen and (max-width: 750px) {
+    .serial-channel-body .serial-field-control {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+    }
+
+    .serial-channel-body .serial-field-control .base-input {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    #serial_ctl .channel-filter-container,
+    #serial_ctl .debug-channel-horizontal {
+        justify-content: flex-start;
+        gap: 6px;
+        padding: 6px;
+    }
+
+    #serial_ctl .channel-filter-item,
+    #serial_ctl .debug-channel-item {
+        padding: 4px 6px;
+    }
+
+    #serial_ctl .send-with-button {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 6px;
+    }
+
+    #serial_ctl .serial-crc-row {
+        padding: 0 4px;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    #serial_ctl .send-with-button {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        gap: 4px;
+    }
+
+    #serial_ctl .serial-crc-bytes {
+        width: 52px;
+        padding: 0 2px;
+    }
+
+    #serial_ctl .send-with-button .send-button {
+        min-width: 48px;
+        padding: 0 6px;
+    }
+}
+
+/* 移动端串口调试过滤标题使用短文案，避免标题色块被长文本撑开。 */
+@media screen and (max-width: 750px) {
+    #serial_ctl .label-view:has(#filter_ch1) > .label .title {
+        font-size: 0;
+    }
+    #serial_ctl .label-view:has(#filter_ch1) > .label .title::after {
+        content: '过滤';
+        font-size: 15px;
+    }
+}
+/* 串口参数输入统一长度，桌面端对齐，移动端按内容区自适应。 */
+#serialConfigContent .serial-channel-body .serial-field-control,
+#serialConfigContent .serial-config-panel .view-container .custom-input,
+#serialConfigContent .serial-config-panel .view-container .baud-container {
+    width: 360px !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+}
+
+#serialConfigContent .serial-config-panel .view-container input.base-input,
+#serialConfigContent .serial-config-panel .view-container select.base-input,
+#serialConfigContent .serial-channel-body .serial-field-control .base-input {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+}
+
+@media screen and (max-width: 750px) {
+    #serialConfigContent .serial-channel-body .serial-field-control,
+    #serialConfigContent .serial-config-panel .view-container .custom-input,
+    #serialConfigContent .serial-config-panel .view-container .baud-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 1 1 auto !important;
+    }
+
+    #serialConfigContent .serial-config-panel .view-container input.base-input,
+    #serialConfigContent .serial-config-panel .view-container select.base-input {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;

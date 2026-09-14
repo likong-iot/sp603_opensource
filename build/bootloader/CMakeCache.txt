@@ -254,7 +254,7 @@ IGNORE_EXTRA_COMPONENT:UNINITIALIZED=
 PROJECT_SOURCE_DIR:UNINITIALIZED=/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource
 
 //No help, variable specified on the command line.
-PYTHON:UNINITIALIZED=/home/master/.espressif/python_env/idf5.5_py3.10_env/bin/python
+PYTHON:UNINITIALIZED=python
 
 //No help, variable specified on the command line.
 PYTHON_DEPS_CHECKED:UNINITIALIZED=1

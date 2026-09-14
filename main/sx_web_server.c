@@ -2421,7 +2421,8 @@ static esp_err_t get_operate_get_handler(httpd_req_t *req)
     http_json_reply(req, root);
     cJSON_Delete(root);
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    /* Allow the HTTP response to leave the socket before resetting the chip. */
+    vTaskDelay(pdMS_TO_TICKS(500));
     esp_restart();
     return ESP_OK;
 }
@@ -2434,7 +2435,8 @@ static esp_err_t get_restore_get_handler(httpd_req_t *req)
     http_json_reply(req, root);
     cJSON_Delete(root);
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    /* Keep reset behavior consistent with restart and let the response flush. */
+    vTaskDelay(pdMS_TO_TICKS(500));
     nvs_flash_erase();
     esp_restart();
     return ESP_OK;
