@@ -47,11 +47,6 @@ static void get_ap_timeout(nvs_handle_t nvs, uint16_t *value)
 void sx_network_config_normalize(sx_network_config_t *config)
 {
     if (config == NULL) return;
-    sx_network_role_t *roles[] = {&config->ethernet_role, &config->wifi_sta_role, &config->modem_role};
-    for (int i = 0; i < 3; ++i) {
-        if (*roles[i] == SX_NETWORK_ROLE_BACKUP || *roles[i] == SX_NETWORK_ROLE_LAST)
-            *roles[i] = SX_NETWORK_ROLE_UPLINK;
-    }
     /* The current NAPT design supports one downstream interface. */
     if (config->wifi_ap_enabled && config->wifi_ap_role == SX_NETWORK_ROLE_DOWNLINK &&
         config->ethernet_enabled && config->ethernet_role == SX_NETWORK_ROLE_DOWNLINK) {

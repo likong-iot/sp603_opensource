@@ -107,7 +107,8 @@ async function updateBasicInfo() {
         basicInfoElements.active_ip.textContent = data.active_ip || '0.0.0.0';
         basicInfoElements.gateway.textContent = data.gateway || '0.0.0.0';
         basicInfoElements.netmask.textContent = data.netmask || '0.0.0.0';
-        basicInfoElements.active_dns.textContent = data.active_dns || '0.0.0.0';
+        basicInfoElements.active_dns.textContent = data.dns_ready === false
+            ? '未就绪' : (data.active_dns || '0.0.0.0');
         basicInfoElements.active_address_mode.textContent = addressModes[data.active_address_mode] || '--';
         basicInfoElements.active_identifier.textContent = data.active_identifier || '--';
     } catch (error) {
@@ -4943,6 +4944,7 @@ function initUartWebSocket() {
                         }
                     }
                 } else if (data.type === 'system_log') {
+                    if (systemLogsPaused) return;
                     systemLogEntries.push(data);
                     if (systemLogEntries.length > 64) systemLogEntries.shift();
                     renderSystemLogs();
@@ -5511,6 +5513,7 @@ async function sysfetportData() {
 }
 
 let systemLogEntries = [];
+let systemLogsPaused = false;
 function renderSystemLogs() {
     const output = document.getElementById('systemLogContent');
     if (!output) return;
@@ -5528,6 +5531,7 @@ function renderSystemLogs() {
 }
 
 async function fetchSystemLogs() {
+    if (systemLogsPaused) return;
     try {
         const response = await fetportData('/system_logs');
         systemLogEntries = Array.isArray(response.logs) ? response.logs : [];
@@ -5540,6 +5544,10 @@ async function fetchSystemLogs() {
 document.getElementById('clearSystemLogs')?.addEventListener('click', () => {
     systemLogEntries = [];
     renderSystemLogs();
+});
+document.getElementById('toggleSystemLogs')?.addEventListener('click', event => {
+    systemLogsPaused = !systemLogsPaused;
+    event.currentTarget.querySelector('.btn-container').textContent = systemLogsPaused ? '继续' : '暂停';
 });
 
 
@@ -6320,7 +6328,7 @@ async function loadSp603NetworkConfig() {
     try {
         const cfg = await fetportData('/network_config');
         setSp603Field('nm_eth_enabled', cfg.ethernet_enabled, true);
-        setSp603Field('nm_eth_role', (['backup', 'last'].includes(cfg.ethernet_role) ? 'uplink' : cfg.ethernet_role));
+        setSp603Field('nm_eth_role', cfg.ethernet_role);
         setSp603Field('nm_eth_ip', cfg.ethernet_lan_ip);
         setSp603Field('nm_eth_mask', cfg.ethernet_lan_netmask);
         setSp603Field('nm_eth_dhcp_enabled', cfg.ethernet_dhcp_enabled, true);
@@ -6328,7 +6336,7 @@ async function loadSp603NetworkConfig() {
         setSp603Field('nm_eth_gateway', cfg.ethernet_gateway); setSp603Field('nm_eth_dns', cfg.ethernet_dns);
         setSp603Field('nm_eth_gateway_info', cfg.ethernet_lan_ip); setSp603Field('nm_eth_gateway_mask_info', cfg.ethernet_lan_netmask);
         setSp603Field('nm_sta_enabled', cfg.wifi_sta_enabled, true);
-        setSp603Field('nm_sta_role', (['backup', 'last'].includes(cfg.wifi_sta_role) ? 'uplink' : cfg.wifi_sta_role));
+        setSp603Field('nm_sta_role', cfg.wifi_sta_role);
         setSp603Field('nm_sta_ssid', cfg.wifi_ssid);
         setSp603Field('nm_sta_password', cfg.wifi_password);
         setSp603Field('nm_sta_static', cfg.wifi_sta_static, true);
@@ -6342,7 +6350,7 @@ async function loadSp603NetworkConfig() {
         setSp603Field('nm_ap_timeout_minutes', cfg.ap_timeout_minutes == null ? 30 : cfg.ap_timeout_minutes);
         setSp603Field('nm_ap_dhcp_enabled', cfg.wifi_ap_dhcp_enabled !== false, true);
         setSp603Field('nm_4g_enabled', cfg.modem_enabled, true);
-        setSp603Field('nm_4g_role', (['backup', 'last'].includes(cfg.modem_role) ? 'uplink' : cfg.modem_role));
+        setSp603Field('nm_4g_role', cfg.modem_role);
         updateNetworkRoleDependentFields();
     } catch (error) {
         console.error('加载 SP603 网络配置失败:', error);
@@ -6555,9 +6563,10 @@ async function refreshSp603NetworkStatus() {
             '4g': '4G 蜂窝网络',
             none: '暂无可用上联'
         };
-        setSp603Text('nm_active_uplink', uplinkNames[state.active_interface] || state.active_interface || '暂无可用上联');
+        const activeText = uplinkNames[state.active_interface] || state.active_interface || '暂无可用上联';
+        setSp603Text('nm_active_uplink', state.dns_ready ? activeText : `${activeText}（DNS 未就绪）`);
         renderSp603RouteOverview(state, uplinkNames);
-        output.textContent = `上联: ${uplinkNames[state.active_interface] || '无'}；NAT: ${state.napt_active ? '运行' : '关闭'}`;
+        output.textContent = `上联: ${uplinkNames[state.active_interface] || '无'}；DNS: ${state.dns_ready ? (state.active_dns || '已配置') : '未就绪'}；NAT: ${state.napt_active ? '运行' : '关闭'}`;
     } catch (error) {
         ['ethernet', 'wifi_sta', 'wifi_ap', '4g'].forEach(id => {
             setSp603Status(`nm_status_${id}`, '状态读取失败', 'error');

@@ -1,5 +1,6 @@
 #include "sx_network_manager.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "esp_check.h"
@@ -10,6 +11,7 @@
 #include "modem_manager.h"
 #include "sx_init_wifi.h"
 #include "sx_led_manager.h"
+#include "sx_web_server.h"
 #include "w5500_manager.h"
 
 static const char *TAG = "network_mgr";
@@ -50,9 +52,22 @@ static bool is_uplink(sx_network_role_t role)
 }
 
 
-static int score(sx_network_interface_t id)
+static int interface_tiebreak_score(sx_network_interface_t id)
 {
     return id == SX_NETWORK_IF_4G ? 0 : (id == SX_NETWORK_IF_W5500 ? 1 : 2);
+}
+
+static int role_score(sx_network_role_t role)
+{
+    if (role == SX_NETWORK_ROLE_UPLINK) return 0;
+    if (role == SX_NETWORK_ROLE_BACKUP) return 100;
+    if (role == SX_NETWORK_ROLE_LAST) return 200;
+    return 1000;
+}
+
+static int uplink_score(sx_network_interface_t id, sx_network_role_t role)
+{
+    return role_score(role) + interface_tiebreak_score(id);
 }
 
 static esp_netif_t *get_netif(sx_network_interface_t id)
@@ -61,6 +76,55 @@ static esp_netif_t *get_netif(sx_network_interface_t id)
     if (id == SX_NETWORK_IF_W5500) return w5500_manager_get_netif();
     if (id == SX_NETWORK_IF_4G) return esp_netif_get_handle_from_ifkey("PPP_DEF");
     return NULL;
+}
+
+static bool usable_ipv4_dns(const esp_netif_dns_info_t *dns)
+{
+    return dns != NULL && dns->ip.type == ESP_IPADDR_TYPE_V4 &&
+           dns->ip.u_addr.ip4.addr != 0;
+}
+
+static const char *configured_dns_locked(sx_network_interface_t id)
+{
+    if (id == SX_NETWORK_IF_WIFI) return s_config.wifi_sta_dns;
+    if (id == SX_NETWORK_IF_W5500) return s_config.ethernet_dns;
+    return NULL;
+}
+
+static void refresh_active_dns_locked(sx_network_interface_t id, esp_netif_t *netif)
+{
+    s_status.active_dns[0] = '\0';
+    s_status.dns_ready = false;
+    if (id == SX_NETWORK_IF_NONE || netif == NULL) return;
+
+    esp_netif_dns_info_t dns = {0};
+    esp_err_t err = esp_netif_get_dns_info(netif, ESP_NETIF_DNS_MAIN, &dns);
+    if (err != ESP_OK || !usable_ipv4_dns(&dns)) {
+        const char *fallback = configured_dns_locked(id);
+        ip4_addr_t address = {0};
+        if (fallback != NULL && ip4addr_aton(fallback, &address)) {
+            memset(&dns, 0, sizeof(dns));
+            dns.ip.type = ESP_IPADDR_TYPE_V4;
+            dns.ip.u_addr.ip4.addr = address.addr;
+            err = esp_netif_set_dns_info(netif, ESP_NETIF_DNS_MAIN, &dns);
+            if (err == ESP_OK) {
+                char text[128];
+                snprintf(text, sizeof(text),
+                         "%s did not provide DNS; using configured fallback %s",
+                         sx_network_interface_name(id), fallback);
+                ESP_LOGW(TAG, "%s", text);
+                send_system_log("WARN", "network", text);
+            } else {
+                ESP_LOGE(TAG, "set %s fallback DNS failed: %s",
+                         sx_network_interface_name(id), esp_err_to_name(err));
+            }
+        }
+    }
+    if (!usable_ipv4_dns(&dns)) return;
+
+    inet_ntoa_r(dns.ip.u_addr.ip4, s_status.active_dns,
+                sizeof(s_status.active_dns));
+    s_status.dns_ready = true;
 }
 
 static bool interface_enabled_locked(sx_network_interface_t id)
@@ -125,7 +189,8 @@ static void update_system_indicator_locked(void)
 {
     if (!s_application_ready) return;
     if (s_wifi_start_error || s_w5500_start_error || s_modem_start_error ||
-        (has_configured_uplink_locked() && s_status.active_interface == SX_NETWORK_IF_NONE)) {
+        (has_configured_uplink_locked() &&
+         (s_status.active_interface == SX_NETWORK_IF_NONE || !s_status.dns_ready))) {
         sx_led_manager_set_system_state(SX_LED_SYSTEM_WARNING);
     } else {
         sx_led_manager_set_system_state(SX_LED_SYSTEM_NORMAL);
@@ -162,12 +227,12 @@ static void select_uplink_locked(void)
     const esp_netif_ip_info_t *selected_ip = NULL;
     int best = 100000;
     if (s_config.ethernet_enabled && s_status.w5500_got_ip && is_uplink(s_config.ethernet_role)) {
-        best = score(SX_NETWORK_IF_W5500);
+        best = uplink_score(SX_NETWORK_IF_W5500, s_config.ethernet_role);
         selected = SX_NETWORK_IF_W5500;
         selected_ip = &s_w5500_ip;
     }
     if (s_config.wifi_sta_enabled && s_status.wifi_got_ip && is_uplink(s_config.wifi_sta_role)) {
-        int value = score(SX_NETWORK_IF_WIFI);
+        int value = uplink_score(SX_NETWORK_IF_WIFI, s_config.wifi_sta_role);
         if (value < best) {
             best = value;
             selected = SX_NETWORK_IF_WIFI;
@@ -175,19 +240,21 @@ static void select_uplink_locked(void)
         }
     }
     if (s_config.modem_enabled && s_status.modem_got_ip && is_uplink(s_config.modem_role)) {
-        int value = score(SX_NETWORK_IF_4G);
+        int value = uplink_score(SX_NETWORK_IF_4G, s_config.modem_role);
         if (value < best) {
             best = value;
             selected = SX_NETWORK_IF_4G;
             selected_ip = &s_modem_ip;
         }
     }
-    if (selected != s_status.active_interface) {
+    const sx_network_interface_t previous = s_status.active_interface;
+    const bool uplink_changed = selected != previous;
+    esp_netif_t *netif = get_netif(selected);
+    if (uplink_changed) {
         ESP_LOGI(TAG, "default uplink: %s -> %s",
-                 sx_network_interface_name(s_status.active_interface),
+                 sx_network_interface_name(previous),
                  sx_network_interface_name(selected));
         s_status.active_interface = selected;
-        esp_netif_t *netif = get_netif(selected);
         if (netif != NULL) {
             esp_err_t err = esp_netif_set_default_netif(netif);
             if (err != ESP_OK) ESP_LOGE(TAG, "set default netif failed: %s", esp_err_to_name(err));
@@ -195,8 +262,25 @@ static void select_uplink_locked(void)
             esp_err_t err = esp_netif_set_default_netif(NULL);
             if (err != ESP_OK) ESP_LOGE(TAG, "clear default netif failed: %s", esp_err_to_name(err));
         }
+        ++s_status.uplink_generation;
     }
     set_status_ip_locked(selected_ip);
+    refresh_active_dns_locked(selected, netif);
+    if (uplink_changed) {
+        char text[160];
+        if (selected == SX_NETWORK_IF_NONE) {
+            snprintf(text, sizeof(text), "No usable uplink; previous=%s",
+                     sx_network_interface_name(previous));
+            send_system_log("WARN", "network", text);
+        } else {
+            snprintf(text, sizeof(text),
+                     "Active uplink=%s ip=%s gateway=%s dns=%s",
+                     sx_network_interface_name(selected), s_status.ip,
+                     s_status.gateway,
+                     s_status.dns_ready ? s_status.active_dns : "unavailable");
+            send_system_log(s_status.dns_ready ? "INFO" : "WARN", "network", text);
+        }
+    }
     update_napt_locked();
     update_network_leds_locked();
     update_system_indicator_locked();
@@ -204,12 +288,21 @@ static void select_uplink_locked(void)
 
 static void log_status_locked(const char *event)
 {
-    ESP_LOGI(TAG, "%s: active=%s wifi=%d/%d eth=%d/%d 4g=%d/%d napt=%d ip=%s",
+    ESP_LOGI(TAG, "%s: active=%s wifi=%d/%d eth=%d/%d 4g=%d/%d napt=%d ip=%s dns=%s gen=%lu",
              event, sx_network_interface_name(s_status.active_interface),
              s_status.wifi_connected, s_status.wifi_got_ip,
              s_status.w5500_link_up, s_status.w5500_got_ip,
              s_status.modem_usb_connected, s_status.modem_got_ip,
-             s_status.napt_active, s_status.ip[0] ? s_status.ip : "0.0.0.0");
+             s_status.napt_active, s_status.ip[0] ? s_status.ip : "0.0.0.0",
+             s_status.dns_ready ? s_status.active_dns : "unavailable",
+             (unsigned long)s_status.uplink_generation);
+    char text[192];
+    snprintf(text, sizeof(text),
+             "%s active=%s ip=%s dns=%s",
+             event, sx_network_interface_name(s_status.active_interface),
+             s_status.ip[0] ? s_status.ip : "0.0.0.0",
+             s_status.dns_ready ? s_status.active_dns : "unavailable");
+    send_system_log(s_status.dns_ready ? "INFO" : "WARN", "network", text);
 }
 
 esp_err_t sx_network_manager_init(void)
@@ -382,6 +475,26 @@ const char *sx_network_interface_name(sx_network_interface_t id)
     return "none";
 }
 
+static bool ip_info_changed(const esp_netif_ip_info_t *old_info,
+                            const esp_netif_ip_info_t *new_info)
+{
+    return old_info->ip.addr != new_info->ip.addr ||
+           old_info->gw.addr != new_info->gw.addr ||
+           old_info->netmask.addr != new_info->netmask.addr;
+}
+
+static void record_active_address_change_locked(sx_network_interface_t id,
+                                                bool address_changed)
+{
+    if (!address_changed || s_status.active_interface != id) return;
+    ++s_status.uplink_generation;
+    char text[144];
+    snprintf(text, sizeof(text), "%s address changed: ip=%s gateway=%s dns=%s",
+             sx_network_interface_name(id), s_status.ip, s_status.gateway,
+             s_status.dns_ready ? s_status.active_dns : "unavailable");
+    send_system_log(s_status.dns_ready ? "INFO" : "WARN", "network", text);
+}
+
 void sx_network_manager_wifi_connected(void)
 {
     if (!s_mutex) return;
@@ -410,12 +523,27 @@ void sx_network_manager_wifi_got_ip(const esp_netif_ip_info_t *info)
 {
     if (!s_mutex || !info) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
+    const bool address_changed = s_status.active_interface == SX_NETWORK_IF_WIFI &&
+                                 ip_info_changed(&s_wifi_ip, info);
     s_status.wifi_connected = s_status.wifi_got_ip = true;
     s_wifi_ip = *info;
     ip_to_text(info, s_status.wifi_ip);
     update_network_leds_locked();
     select_uplink_locked();
+    record_active_address_change_locked(SX_NETWORK_IF_WIFI, address_changed);
     log_status_locked("Wi-Fi STA got IP");
+    xSemaphoreGive(s_mutex);
+}
+
+void sx_network_manager_wifi_lost_ip(void)
+{
+    if (!s_mutex) return;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    s_status.wifi_got_ip = false;
+    s_status.wifi_ip[0] = '\0';
+    memset(&s_wifi_ip, 0, sizeof(s_wifi_ip));
+    select_uplink_locked();
+    log_status_locked("Wi-Fi STA lost IP");
     xSemaphoreGive(s_mutex);
 }
 
@@ -466,12 +594,27 @@ void sx_network_manager_w5500_got_ip(const esp_netif_ip_info_t *info)
 {
     if (!s_mutex || !info) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
+    const bool address_changed = s_status.active_interface == SX_NETWORK_IF_W5500 &&
+                                 ip_info_changed(&s_w5500_ip, info);
     s_status.w5500_link_up = s_status.w5500_got_ip = true;
     s_w5500_ip = *info;
     ip_to_text(info, s_status.ethernet_ip);
     update_network_leds_locked();
     select_uplink_locked();
+    record_active_address_change_locked(SX_NETWORK_IF_W5500, address_changed);
     log_status_locked("Ethernet got IP");
+    xSemaphoreGive(s_mutex);
+}
+
+void sx_network_manager_w5500_lost_ip(void)
+{
+    if (!s_mutex) return;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    s_status.w5500_got_ip = false;
+    s_status.ethernet_ip[0] = '\0';
+    memset(&s_w5500_ip, 0, sizeof(s_w5500_ip));
+    select_uplink_locked();
+    log_status_locked("Ethernet lost IP");
     xSemaphoreGive(s_mutex);
 }
 
@@ -502,11 +645,14 @@ void sx_network_manager_modem_got_ip(const esp_netif_ip_info_t *info)
 {
     if (!s_mutex || !info) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
+    const bool address_changed = s_status.active_interface == SX_NETWORK_IF_4G &&
+                                 ip_info_changed(&s_modem_ip, info);
     s_status.modem_usb_connected = s_status.modem_got_ip = true;
     s_modem_ip = *info;
     ip_to_text(info, s_status.modem_ip);
     update_network_leds_locked();
     select_uplink_locked();
+    record_active_address_change_locked(SX_NETWORK_IF_4G, address_changed);
     log_status_locked("4G got IP");
     xSemaphoreGive(s_mutex);
 }

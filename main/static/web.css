@@ -3354,6 +3354,7 @@ canvas {
     word-break: break-word;
 }
 
+
 /* 串口数据行样式 */
 .uart-data-line {
     margin: 2px 0;

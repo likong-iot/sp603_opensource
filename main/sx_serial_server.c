@@ -12,6 +12,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_mac.h"
+#include "esp_tls_errors.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -21,6 +22,7 @@
 #include "mqtt_client.h"
 #include "nvs.h"
 #include "sx_serial_port_manager.h"
+#include "sx_network_manager.h"
 #include "sx_web_server.h"
 
 #define SERIAL_PORT_COUNT 3
@@ -304,12 +306,29 @@ static void mqtt_event_handler(void *arg, esp_event_base_t base, int32_t event_i
                      error->esp_transport_sock_errno,
                      strerror(error->esp_transport_sock_errno));
             char error_text[192];
-            snprintf(error_text, sizeof(error_text),
-                     "%s MQTT error type=%d return=%d tls=0x%x errno=%d (%s)",
-                     sx_serial_port_manager_port_label(port), error->error_type,
-                     error->connect_return_code, (unsigned)error->esp_tls_last_esp_err,
-                     error->esp_transport_sock_errno,
-                     strerror(error->esp_transport_sock_errno));
+            if (error->esp_tls_last_esp_err == ESP_ERR_ESP_TLS_CANNOT_RESOLVE_HOSTNAME) {
+                snprintf(error_text, sizeof(error_text),
+                         "%s MQTT domain resolution failed: %s",
+                         sx_serial_port_manager_port_label(port),
+                         s_runtime_configs[port].mqtt_uri);
+            } else if (error->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED) {
+                snprintf(error_text, sizeof(error_text),
+                         "%s MQTT broker refused connection (code=%d)",
+                         sx_serial_port_manager_port_label(port),
+                         error->connect_return_code);
+            } else if (error->esp_transport_sock_errno > 0) {
+                snprintf(error_text, sizeof(error_text),
+                         "%s MQTT transport failed: tls=0x%x errno=%d (%s)",
+                         sx_serial_port_manager_port_label(port),
+                         (unsigned)error->esp_tls_last_esp_err,
+                         error->esp_transport_sock_errno,
+                         strerror(error->esp_transport_sock_errno));
+            } else {
+                snprintf(error_text, sizeof(error_text),
+                         "%s MQTT transport failed: type=%d tls=0x%x",
+                         sx_serial_port_manager_port_label(port), error->error_type,
+                         (unsigned)error->esp_tls_last_esp_err);
+            }
             send_system_log("ERROR", "mqtt", error_text);
         }
     } else if (event_id == MQTT_EVENT_DATA) {
@@ -604,6 +623,27 @@ static void run_mqtt_port(int port, const sx_serial_port_config_t *cfg)
 {
     s_runtime_configs[port] = *cfg;
     const sx_serial_port_config_t *runtime = &s_runtime_configs[port];
+    bool waiting_logged = false;
+    while (s_serial_server_running && !config_changed(port, runtime)) {
+        sx_network_status_t network = {0};
+        sx_network_manager_get_status(&network);
+        if (network.active_interface != SX_NETWORK_IF_NONE && network.dns_ready) break;
+        if (!waiting_logged) {
+            char waiting_text[96];
+            snprintf(waiting_text, sizeof(waiting_text),
+                     "%s MQTT waiting for a usable uplink IP and DNS",
+                     sx_serial_port_manager_port_label(port));
+            send_system_log("INFO", "mqtt", waiting_text);
+            waiting_logged = true;
+        }
+        vTaskDelay(pdMS_TO_TICKS(250));
+    }
+    if (!s_serial_server_running || config_changed(port, runtime)) return;
+
+    sx_network_status_t mqtt_network = {0};
+    sx_network_manager_get_status(&mqtt_network);
+    const uint32_t mqtt_uplink_generation = mqtt_network.uplink_generation;
+
     ESP_LOGI(TAG, "%s MQTT starting uri=%s client_id=%s user=%s",
              sx_serial_port_manager_port_label(port), runtime->mqtt_uri,
              runtime->mqtt_client_id[0] ? runtime->mqtt_client_id : "<auto>",
@@ -646,8 +686,22 @@ static void run_mqtt_port(int port, const sx_serial_port_config_t *cfg)
         s_mqtt_clients[port] = NULL;
         return;
     }
-    while (s_serial_server_running && !config_changed(port, runtime))
+    while (s_serial_server_running && !config_changed(port, runtime)) {
+        sx_network_status_t network = {0};
+        sx_network_manager_get_status(&network);
+        if (network.active_interface == SX_NETWORK_IF_NONE ||
+            !network.dns_ready || network.uplink_generation != mqtt_uplink_generation) {
+            ESP_LOGW(TAG, "%s MQTT network changed, rebuilding client",
+                     sx_serial_port_manager_port_label(port));
+            char network_text[112];
+            snprintf(network_text, sizeof(network_text),
+                     "%s MQTT network changed; reconnecting",
+                     sx_serial_port_manager_port_label(port));
+            send_system_log("WARN", "mqtt", network_text);
+            break;
+        }
         vTaskDelay(pdMS_TO_TICKS(250));
+    }
     s_mqtt_connected[port] = false;
     esp_mqtt_client_stop(client);
     esp_mqtt_client_destroy(client);

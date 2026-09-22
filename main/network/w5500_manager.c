@@ -36,6 +36,7 @@ static esp_eth_netif_glue_handle_t s_eth_glue = NULL;
 static esp_netif_t *s_eth_netif = NULL;
 static esp_netif_dns_info_t s_w5500_dns_main = {0};
 static bool s_w5500_dns_valid = false;
+static bool s_static_address = false;
 static spi_device_interface_config_t s_w5500_devcfg = {
     .command_bits = 0,
     .address_bits = 0,
@@ -59,10 +60,18 @@ static void w5500_eth_event_handler(void *arg, esp_event_base_t event_base, int3
                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         s_w5500_link_up = true;
         sx_network_manager_w5500_link_up();
+        if (s_static_address && s_eth_netif != NULL) {
+            esp_netif_ip_info_t info = {0};
+            if (esp_netif_get_ip_info(s_eth_netif, &info) == ESP_OK &&
+                info.ip.addr != 0) {
+                sx_network_manager_w5500_got_ip(&info);
+            }
+        }
         break;
     case ETHERNET_EVENT_DISCONNECTED:
         ESP_LOGW(TAG, "W5500 Link Down");
         s_w5500_link_up = false;
+        s_w5500_dns_valid = false;
         sx_network_manager_w5500_link_down();
         break;
     case ETHERNET_EVENT_START:
@@ -82,6 +91,7 @@ static void w5500_on_got_ip(void *arg, esp_event_base_t event_base, int32_t even
     (void)event_base;
     (void)event_id;
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
+    if (event == NULL || event->esp_netif != s_eth_netif) return;
     ESP_LOGI(TAG, "W5500 Got IP:" IPSTR " Mask:" IPSTR " GW:" IPSTR,
              IP2STR(&event->ip_info.ip), IP2STR(&event->ip_info.netmask), IP2STR(&event->ip_info.gw));
     esp_err_t dns_err = esp_netif_get_dns_info(event->esp_netif,
@@ -98,6 +108,19 @@ static void w5500_on_got_ip(void *arg, esp_event_base_t event_base, int32_t even
     }
     s_w5500_link_up = true;
     sx_network_manager_w5500_got_ip(&event->ip_info);
+}
+
+static void w5500_on_lost_ip(void *arg, esp_event_base_t event_base,
+                             int32_t event_id, void *event_data)
+{
+    (void)arg;
+    (void)event_base;
+    (void)event_id;
+    (void)event_data;
+    if (s_static_address) return;
+    ESP_LOGW(TAG, "W5500 lost IP address");
+    s_w5500_dns_valid = false;
+    sx_network_manager_w5500_lost_ip();
 }
 
 static esp_err_t w5500_apply_mac(esp_eth_handle_t handle)
@@ -131,6 +154,7 @@ esp_err_t w5500_manager_init_with_role(bool lan_mode,
     if (s_initialized) {
         return ESP_OK;
     }
+    s_static_address = lan_mode || static_enabled;
 
     spi_bus_config_t buscfg = {
         .mosi_io_num = W5500_PIN_MOSI,
@@ -226,6 +250,7 @@ esp_err_t w5500_manager_init_with_role(bool lan_mode,
 
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &w5500_eth_event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &w5500_on_got_ip, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_LOST_IP, &w5500_on_lost_ip, NULL));
 
     ESP_RETURN_ON_ERROR(esp_eth_start(s_eth_handle), TAG, "eth start failed");
 

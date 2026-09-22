@@ -1,7 +1,7 @@
 {
     "version":            "1.2",
     "project_name":       "s3_iot_gateway",
-    "project_version":    "79885b6-dirty",
+    "project_version":    "f18ebb5-dirty",
     "project_path":       "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource",
     "idf_path":           "/home/master/esp/v5.5/esp-idf",
     "build_dir":          "/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build",

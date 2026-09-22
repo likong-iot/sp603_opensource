@@ -123,12 +123,15 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base,
     schedule_sta_retry();
   } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
-    if (event != NULL) {
+    if (event != NULL && event->esp_netif == s_sta_netif) {
       ESP_LOGI(TAG, "STA got ip: " IPSTR, IP2STR(&event->ip_info.ip));
       s_sta_retry_count = 0;
       cancel_sta_retry();
       sx_network_manager_wifi_got_ip(&event->ip_info);
     }
+  } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_LOST_IP) {
+    ESP_LOGW(TAG, "STA lost IP address");
+    sx_network_manager_wifi_lost_ip();
   }
 }
 
@@ -192,6 +195,10 @@ static esp_err_t ensure_wifi_driver_ready(void) {
         esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
                                    &wifi_event_handler, NULL),
         TAG, "register IP_EVENT_STA_GOT_IP handler failed");
+    ESP_RETURN_ON_ERROR(
+        esp_event_handler_register(IP_EVENT, IP_EVENT_STA_LOST_IP,
+                                   &wifi_event_handler, NULL),
+        TAG, "register IP_EVENT_STA_LOST_IP handler failed");
     s_wifi_handlers_registered = true;
   }
 

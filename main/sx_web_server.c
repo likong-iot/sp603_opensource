@@ -897,6 +897,10 @@ static esp_err_t get_devinfo_get_handler(httpd_req_t *req)
                             sx_network_interface_name(net_status.active_interface));
     cJSON_AddStringToObject(root, "gateway", net_status.gateway);
     cJSON_AddStringToObject(root, "netmask", net_status.netmask);
+    cJSON_AddStringToObject(root, "active_dns",
+                            net_status.dns_ready ? net_status.active_dns : "0.0.0.0");
+    cJSON_AddBoolToObject(root, "dns_ready", net_status.dns_ready);
+    cJSON_AddNumberToObject(root, "uplink_generation", net_status.uplink_generation);
 
     const char *address_mode = "--";
     bool active_link = false;
@@ -904,7 +908,7 @@ static esp_err_t get_devinfo_get_handler(httpd_req_t *req)
     char active_identifier[24] = "--";
     if (net_status.active_interface == SX_NETWORK_IF_W5500) {
         address_mode = net_config.ethernet_static ? "static" : "dhcp";
-        active_link = net_status.w5500_got_ip;
+        active_link = net_status.w5500_got_ip && net_status.dns_ready;
         active_netif = w5500_manager_get_netif();
         uint8_t eth_mac[6] = {0};
         esp_eth_handle_t eth_handle = w5500_manager_get_handle();
@@ -916,12 +920,12 @@ static esp_err_t get_devinfo_get_handler(httpd_req_t *req)
         }
     } else if (net_status.active_interface == SX_NETWORK_IF_WIFI) {
         address_mode = net_config.wifi_sta_static ? "static" : "dhcp";
-        active_link = net_status.wifi_got_ip;
+        active_link = net_status.wifi_got_ip && net_status.dns_ready;
         active_netif = sx_wifi_get_sta_netif();
         snprintf(active_identifier, sizeof(active_identifier), "%s", mac_str);
     } else if (net_status.active_interface == SX_NETWORK_IF_4G) {
         address_mode = "ppp";
-        active_link = net_status.modem_got_ip;
+        active_link = net_status.modem_got_ip && net_status.dns_ready;
         active_netif = esp_netif_get_handle_from_ifkey("PPP_DEF");
     }
     char dns_text[16] = "0.0.0.0";
@@ -2267,6 +2271,10 @@ static esp_err_t get_network_status_handler(httpd_req_t *req)
     cJSON_AddStringToObject(root, "netmask", status.netmask);
     cJSON_AddBoolToObject(root, "routing_enabled", status.routing_enabled);
     cJSON_AddBoolToObject(root, "napt_active", status.napt_active);
+    cJSON_AddStringToObject(root, "active_dns",
+                            status.dns_ready ? status.active_dns : "0.0.0.0");
+    cJSON_AddBoolToObject(root, "dns_ready", status.dns_ready);
+    cJSON_AddNumberToObject(root, "uplink_generation", status.uplink_generation);
     cJSON_AddBoolToObject(root, "reboot_required", status.reboot_required);
     cJSON_AddNumberToObject(root, "client_limit", NETWORK_CLIENT_LIMIT);
     add_effective_routes(root, &status, &config);
