@@ -21,7 +21,7 @@
   <meta name="x5-fullscreen" content="true">
   <meta name="x5-page-mode" content="app">
   <!-- <link rel="icon" href="favicon.ico"> -->
-  <title>SP603 多网络 IoT 网关</title>
+  <title>SP603-多串口物联网网关</title>
   <style>
     * {
       margin: 0;
@@ -2166,7 +2166,7 @@
               </image>
             </svg>
           </div>
-          <div data-v-6c3b534a="" class="title">SP603 多网络 IoT 网关</div>
+          <div data-v-6c3b534a="" class="title">SP603-多串口物联网网关</div>
         </div>
         <div data-v-6c3b534a="" class="input-container">
           <form id="login" method="post" action="/status">
@@ -2224,8 +2224,6 @@
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
       
-      console.log('Sending login data:', { username, password });
-      
       try {
         const response = await fetch('/login', {
           method: 'POST',
@@ -2247,7 +2245,9 @@
           }
         } else {
           console.error('Error fetching data. Status:', response.status);
-          loginres.textContent = '网络错误, 请稍后重试';
+          loginres.textContent = response.status === 401
+            ? '登录失败, 请检查用户名和密码'
+            : '网络错误, 请稍后重试';
           loginres.style.color = "red";
           loginres.style.textAlign = "center";
           loginres.style.marginTop = "6px";
@@ -2263,8 +2263,7 @@
 
     eyeOpen.addEventListener('click', togglePasswordVisibility);
     eyeClosed.addEventListener('click', togglePasswordVisibility);
-    loginButton.addEventListener('click', fetchData);
-    loginForm.addEventListener('submit', fetchData); // 表单提交时也调用fetchData
+    loginForm.addEventListener('submit', fetchData);
   </script>
 
 </body>

@@ -7,6 +7,7 @@
 
 #include "esp_check.h"
 #include "esp_log.h"
+#include "esp_mac.h"
 #include "nvs.h"
 
 #include "sx_network_config.h"
@@ -45,7 +46,7 @@ static const default_parameter_t s_default_parameters[] = {
     STRING_DEFAULT("ap_name", ""),
     STRING_DEFAULT("ap_password", ""),
     STRING_DEFAULT("ap_wait_time", "10"),
-    STRING_DEFAULT("host_names", "SP603 多网络 IoT 网关"),
+    STRING_DEFAULT("host_names", "SP603-多串口物联网网关"),
     STRING_DEFAULT("ntp_server", ""),
     STRING_DEFAULT("lgname", "admin"),
     STRING_DEFAULT("lgpwd", "12345678"),
@@ -68,6 +69,19 @@ static const default_parameter_t s_default_parameters[] = {
     STRING_DEFAULT("tcp_send", "0"),
     STRING_DEFAULT("tcp_time", "5"),
     STRING_DEFAULT("device_type", "SP603"),
+    STRING_DEFAULT("mqtt_use", "1"),
+    STRING_DEFAULT("mqtt_type", "0"),
+    STRING_DEFAULT("mqtt_server", "mqtt.likong-iot.com"),
+    STRING_DEFAULT("mqtt_port", "1883"),
+    STRING_DEFAULT("mqtt_username", "public"),
+    STRING_DEFAULT("mqtt_password", "Aa123456"),
+    STRING_DEFAULT("mqtt_clientid", ""),
+    STRING_DEFAULT("mqtt_pub_topic", ""),
+    STRING_DEFAULT("mqtt_sub_topic", ""),
+    STRING_DEFAULT("mqtt_qos", "0"),
+    STRING_DEFAULT("mqtt_retain", "0"),
+    STRING_DEFAULT("mqtt_send", "0"),
+    STRING_DEFAULT("mqtt_time", "5"),
     STRING_DEFAULT(SX_NVS_SCHEMA_KEY, SX_NVS_SCHEMA_VERSION),
     STRING_DEFAULT(SX_NVS_HW_PROFILE_KEY, SX_NVS_HW_PROFILE_VALUE),
 
@@ -132,6 +146,65 @@ static esp_err_t ensure_default(nvs_handle_t nvs, const default_parameter_t *par
     return err;
 }
 
+static const char *legacy_host_name(void)
+{
+    static const char value[] = "SP603 " "多网络 IoT " "网关";
+    return value;
+}
+
+static esp_err_t migrate_legacy_host_name(nvs_handle_t nvs, bool *changed)
+{
+    char current[96] = {0};
+    size_t length = sizeof(current);
+    esp_err_t err = nvs_get_str(nvs, "host_names", current, &length);
+    if (err == ESP_ERR_NVS_NOT_FOUND || (err == ESP_OK && strcmp(current, legacy_host_name()) != 0)) {
+        return ESP_OK;
+    }
+    if (err != ESP_OK) return err;
+    err = nvs_set_str(nvs, "host_names", "SP603-多串口物联网网关");
+    if (err == ESP_OK && changed != NULL) *changed = true;
+    return err;
+}
+
+static esp_err_t ensure_business_mqtt_identity(nvs_handle_t nvs, bool *changed)
+{
+    uint8_t mac[6] = {0};
+    esp_err_t err = esp_read_mac(mac, ESP_MAC_WIFI_STA);
+    if (err != ESP_OK) return err;
+
+    char mac_text[13];
+    snprintf(mac_text, sizeof(mac_text), "%02x%02x%02x%02x%02x%02x",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    char client_id[64];
+    char publish_topic[128];
+    char subscribe_topic[128];
+    snprintf(client_id, sizeof(client_id), "ST200_%s", mac_text);
+    snprintf(publish_topic, sizeof(publish_topic), "/public/%s/publish", mac_text);
+    snprintf(subscribe_topic, sizeof(subscribe_topic), "/public/%s/subscribe", mac_text);
+
+    const struct {
+        const char *key;
+        const char *value;
+    } generated[] = {
+        {"mqtt_clientid", client_id},
+        {"mqtt_pub_topic", publish_topic},
+        {"mqtt_sub_topic", subscribe_topic},
+    };
+    for (size_t i = 0; i < sizeof(generated) / sizeof(generated[0]); ++i) {
+        char current[160] = {0};
+        size_t length = sizeof(current);
+        err = nvs_get_str(nvs, generated[i].key, current, &length);
+        if (err == ESP_ERR_NVS_NOT_FOUND || (err == ESP_OK && current[0] == 0)) {
+            err = nvs_set_str(nvs, generated[i].key, generated[i].value);
+            if (err != ESP_OK) return err;
+            if (changed != NULL) *changed = true;
+        } else if (err != ESP_OK) {
+            return err;
+        }
+    }
+    return ESP_OK;
+}
+
 esp_err_t sx_storage_defaults_init(void)
 {
     nvs_handle_t nvs = 0;
@@ -151,6 +224,15 @@ esp_err_t sx_storage_defaults_init(void)
         if (added) {
             ++added_count;
         }
+    }
+
+    if (err == ESP_OK) {
+        bool migrated = false;
+        err = migrate_legacy_host_name(nvs, &migrated);
+        if (migrated) ++added_count;
+        bool mqtt_identity_changed = false;
+        if (err == ESP_OK) err = ensure_business_mqtt_identity(nvs, &mqtt_identity_changed);
+        if (mqtt_identity_changed) ++added_count;
     }
 
     if (err == ESP_OK && added_count > 0) {

@@ -7,12 +7,12 @@ size_t sx_serial_resource_get_all(sx_serial_resource_info_t *resources, size_t c
     const bool rs422 = sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422;
     const bool debug_console = sx_serial_port_manager_uart0_reserved();
     const sx_serial_resource_info_t dual[] = {
-        {"com1", "COM1 / RS485-1", 3, 3, 3, !debug_console},
-        {"com2", "COM2 / RS485-2", 1, 1, 1, true},
+        {"com1", "COM1", 3, 3, 3, !debug_console},
+        {"com2", "COM2", 1, 1, 1, true},
         {"rs232", "RS232", 2, 2, 2, true},
     };
     const sx_serial_resource_info_t rs422_resources[] = {
-        {"rs422", "RS422 (COM1 TX + COM2 RX)", 1, 1, 1, !debug_console},
+        {"rs422", "RS422", 1, 1, 1, !debug_console},
         {"rs232", "RS232", 2, 2, 2, true},
     };
     const sx_serial_resource_info_t *source = rs422 ? rs422_resources : dual;
@@ -25,21 +25,21 @@ size_t sx_serial_resource_get_all(sx_serial_resource_info_t *resources, size_t c
     return count;
 }
 
-int sx_serial_resource_tx_channel(int logical_channel)
+int sx_serial_resource_tx_port(int logical_port)
 {
-    /* async-uart keeps the RS422 direction split inside the CH1 binding. */
-    return logical_channel;
+    /* async-uart keeps the RS422 direction split inside internal index 1. */
+    return logical_port;
 }
 
-int sx_serial_resource_rx_channel(int logical_channel)
+int sx_serial_resource_rx_port(int logical_port)
 {
-    return logical_channel;
+    return logical_port;
 }
 
-int sx_serial_resource_logical_from_physical_rx(int physical_channel)
+int sx_serial_resource_logical_from_physical_rx(int physical_port)
 {
-    if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 && physical_channel == 1) {
+    if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 && physical_port == 1) {
         return 1;
     }
-    return physical_channel;
+    return physical_port;
 }

@@ -18,10 +18,11 @@ extern "C" {
 esp_err_t sx_web_server_init_storage_defaults(void);
 void http_server_init(void);
 
-void send_uart_to_websocket(const uint8_t *data, size_t len, bool is_tx, int channel);
-void send_uart_to_websocket_async(const uint8_t *data, size_t len, bool is_tx, int channel);
+void send_uart_to_websocket(const uint8_t *data, size_t len, bool is_tx, int port);
+void send_uart_to_websocket_async(const uint8_t *data, size_t len, bool is_tx, int port);
 void send_uart_to_websocket_from_port(const uint8_t *data, size_t len, bool is_tx, uart_port_t uart_num);
-void send_uart_event_to_websocket(int channel, const char *level, const char *source, const char *text);
+void send_uart_event_to_websocket(int port, const char *level, const char *source, const char *text);
+void send_system_log(const char *level, const char *source, const char *text);
 
 #ifdef __cplusplus
 }

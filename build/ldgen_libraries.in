@@ -176,5 +176,6 @@ $<TARGET_FILE:__idf_usb>
 $<TARGET_FILE:idf::espressif__iot_usbh_modem>
 $<TARGET_FILE:__idf_espressif__iot_usbh_cdc>
 $<TARGET_FILE:idf::main>
+$<TARGET_FILE:__idf_mqtt>
 $<TARGET_FILE:__idf_espressif__ethernet_init>
 $<TARGET_FILE:__idf_espressif__iot_usbh_modem>

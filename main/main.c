@@ -54,18 +54,36 @@ void app_main(void)
     ESP_ERROR_CHECK(sx_led_manager_init());
     ESP_ERROR_CHECK(sx_button_manager_init());
     ESP_ERROR_CHECK(sx_serial_port_manager_init());
-    ESP_ERROR_CHECK(sx_web_server_init_storage_defaults());
-    ESP_ERROR_CHECK(sx_network_manager_init());
-    esp_err_t network_err = sx_network_manager_start_configured();
+    esp_err_t network_init_err = sx_network_manager_init();
+    if (network_init_err != ESP_OK) {
+        sx_led_manager_set_system_state(SX_LED_SYSTEM_ERROR);
+        ESP_ERROR_CHECK(network_init_err);
+    }
+    esp_err_t network_err = sx_network_manager_start_management_network();
     if (network_err != ESP_OK) {
-        ESP_LOGE(TAG, "one or more configured network interfaces failed: %s",
+        ESP_LOGE(TAG, "management network failed: %s",
                  esp_err_to_name(network_err));
+    }
+    /* Make the management UI reachable before optional uplinks and serial
+     * services are initialized. Their status endpoints tolerate interfaces
+     * that are still starting. */
+    http_server_init();
+    ESP_ERROR_CHECK(sx_web_server_init_storage_defaults());
+
+    esp_err_t remaining_network_err = sx_network_manager_start_remaining_networks();
+    if (remaining_network_err != ESP_OK) {
+        ESP_LOGE(TAG, "one or more configured uplinks failed: %s",
+                 esp_err_to_name(remaining_network_err));
+        if (network_err == ESP_OK) network_err = remaining_network_err;
     }
     uart_init();
     create_multi_uart_rx_tasks();
-    http_server_init();
     time_manager_init();
-    ESP_ERROR_CHECK(sx_work_mode_init());
+    esp_err_t work_mode_init_err = sx_work_mode_init();
+    if (work_mode_init_err != ESP_OK) {
+        sx_led_manager_set_system_state(SX_LED_SYSTEM_ERROR);
+        ESP_ERROR_CHECK(work_mode_init_err);
+    }
 
     char work_mode[32] = {0};
     nvs_handle_t nvs = 0;
@@ -79,7 +97,12 @@ void app_main(void)
     } else {
         snprintf(work_mode, sizeof(work_mode), "serial_server");
     }
-    ESP_ERROR_CHECK(sx_work_mode_start_by_name(work_mode));
+    esp_err_t work_mode_start_err = sx_work_mode_start_by_name(work_mode);
+    if (work_mode_start_err != ESP_OK) {
+        sx_led_manager_set_system_state(SX_LED_SYSTEM_ERROR);
+        ESP_ERROR_CHECK(work_mode_start_err);
+    }
+    sx_network_manager_mark_application_ready(network_err == ESP_OK);
 
     ESP_LOGI(TAG, "hardware drivers initialized");
 }

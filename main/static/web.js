@@ -66,8 +66,8 @@ function shouldResyncTime() {
 }
 // ==================== 时间同步模块结束 ====================
 
-const basicInfoElementIds = ['host_name', 'current_time', 'uptime', 'sta_mac', 'sta_ip', 'is_dhcps',
-    'wifi_sta_ip', 'wifi_ap_ip', 'ethernet_ip', 'modem_ip', 'active_interface', 'gateway', 'netmask'];
+const basicInfoElementIds = ['host_name', 'current_time', 'uptime', 'active_interface', 'active_link',
+    'active_ip', 'gateway', 'netmask', 'active_dns', 'active_address_mode', 'active_identifier'];
 const basicInfoElements = basicInfoElementIds.reduce((obj, id) => ({ ...obj, [id]: document.getElementById(id) }), {});
 
 async function updateBasicInfo() {
@@ -78,7 +78,7 @@ async function updateBasicInfo() {
             return;
         }
         const data = await response.json();
-        basicInfoElements.host_name.textContent = data.host_names || 'SP603 多网络 IoT 网关';
+        basicInfoElements.host_name.textContent = data.host_names || 'SP603-多串口物联网网关';
 
         // 更新当前时间
         const currentTime = new Date();
@@ -100,16 +100,16 @@ async function updateBasicInfo() {
             basicInfoElements.uptime.textContent = '获取中...';
         }
 
-        basicInfoElements.sta_mac.textContent = data.device_sta_mac;
-        basicInfoElements.is_dhcps.textContent = data.is_dhcp == 2 ? 'STATIC(静态IP)' : 'DHCP(动态IP)';
-        basicInfoElements.sta_ip.textContent = data.wifi_sta_ip || data.sta_ip || '0.0.0.0';
-        if (basicInfoElements.wifi_sta_ip) basicInfoElements.wifi_sta_ip.textContent = data.wifi_sta_ip || '0.0.0.0';
-        if (basicInfoElements.wifi_ap_ip) basicInfoElements.wifi_ap_ip.textContent = data.wifi_ap_ip || '0.0.0.0';
-        if (basicInfoElements.ethernet_ip) basicInfoElements.ethernet_ip.textContent = data.ethernet_ip || '0.0.0.0';
-        if (basicInfoElements.modem_ip) basicInfoElements.modem_ip.textContent = data.modem_ip || '0.0.0.0';
-        if (basicInfoElements.active_interface) basicInfoElements.active_interface.textContent = data.active_interface || 'none';
-        if (basicInfoElements.gateway) basicInfoElements.gateway.textContent = data.gateway || '0.0.0.0';
-        if (basicInfoElements.netmask) basicInfoElements.netmask.textContent = data.netmask || '0.0.0.0';
+        const networkNames = {ethernet: 'Ethernet', wifi_sta: 'Wi-Fi 客户端', '4g': '4G 蜂窝网络', none: '暂无可用上联网'};
+        const addressModes = {dhcp: 'DHCP（自动获取）', static: '静态地址', ppp: 'PPP'};
+        basicInfoElements.active_interface.textContent = networkNames[data.active_interface] || data.active_interface || '暂无可用上联网';
+        basicInfoElements.active_link.textContent = data.active_link ? '已连接' : '未连接';
+        basicInfoElements.active_ip.textContent = data.active_ip || '0.0.0.0';
+        basicInfoElements.gateway.textContent = data.gateway || '0.0.0.0';
+        basicInfoElements.netmask.textContent = data.netmask || '0.0.0.0';
+        basicInfoElements.active_dns.textContent = data.active_dns || '0.0.0.0';
+        basicInfoElements.active_address_mode.textContent = addressModes[data.active_address_mode] || '--';
+        basicInfoElements.active_identifier.textContent = data.active_identifier || '--';
     } catch (error) {
         console.error('Failed to fetch data:', error);
     }
@@ -137,21 +137,41 @@ function formatUptime(microseconds) {
 updateBasicInfo();
 setInterval(updateBasicInfo, 5000);
 
+document.addEventListener('DOMContentLoaded', () => {
+    const routeOverview = document.getElementById('sp603RouteOverview');
+    const networkContent = document.querySelector('#netView > #content');
+    if (routeOverview && networkContent) networkContent.appendChild(routeOverview);
+});
+
 // Modbus手动缓存最大配置数
 const MAX_MODBUS_ITEMS = 256;
-// 自动采集每通道最大配置数
+// 自动采集每个接口最大配置数
 const AUTO_COLLECT_MAX_ITEMS = 60;
-const AUTO_COLLECT_CHANNELS = ['ch1', 'ch2'];
-const AUTO_COLLECT_MASTER_CHANNEL = 'ch2';
+const AUTO_COLLECT_PORTS = ['com2', 'com1'];
+const AUTO_COLLECT_MASTER_PORT = 'com1';
 const ALL_WORK_MODES = ['serial_server', 'transparent_queue', 'modbus_queue', 'modbus_cache', 'master_slave', 'auto_collect'];
 const ALL_SERIAL_PORTS = [1, 2, 3, 4, 5];
-const ALL_FILTER_CHANNELS = ['ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'log'];
-let SP603_PORT_LABELS = { 1: 'COM2 / RS485-2', 2: 'RS232', 3: 'COM1 / RS485-1' };
+const ALL_FILTER_PORTS = ['com2', 'com1', 'rs232', 'rs422', 'unused', 'log'];
+let SP603_PORT_LABELS = { 1: 'COM2', 2: 'RS232', 3: 'COM1' };
+const SP603_PORT_KEYS = { 1: 'com2', 2: 'rs232', 3: 'com1', 4: 'rs422', 5: 'unused' };
 
-// SP603 的内部通道号按 UART 资源分配（CH1=COM2、CH2=RS232、CH3=COM1），
-// 但网页按用户看到的物理接口顺序展示，避免配置卡片和通道选择顺序混乱。
+function getPortKey(port) {
+    return SP603_PORT_KEYS[Number(port)] || 'unused';
+}
+
+// 固件协议继续使用数字索引以兼容已有配置，界面始终显示物理接口名称。
 const SP603_DUAL_DISPLAY_ORDER = [3, 1, 2];
 const SP603_RS422_DISPLAY_ORDER = [1, 2];
+
+function getSp603PortLabel(port) {
+    return SP603_PORT_LABELS[Number(port)] || '串口';
+}
+
+// 自动采集配置槽1、槽2分别绑定 COM2、COM1，不对应普通串口索引2。
+function getAutoCollectPortLabel(port) {
+    const portNumber = port === 'com2' ? 1 : port === 'com1' ? 3 : 0;
+    return portNumber ? getSp603PortLabel(portNumber) : 'port';
+}
 
 function orderSp603SerialPorts(ports, layout = getSelectedSp603SerialLayout()) {
     const source = Array.isArray(ports)
@@ -161,7 +181,7 @@ function orderSp603SerialPorts(ports, layout = getSelectedSp603SerialLayout()) {
         ? SP603_RS422_DISPLAY_ORDER
         : SP603_DUAL_DISPLAY_ORDER;
     const ordered = preferred.filter(port => source.includes(port));
-    // 保留其他产品通道，并将其稳定地放在 SP603 专用顺序之后。
+    // 保留协议返回的其他索引，并将其稳定地放在 SP603 专用顺序之后。
     return ordered.concat(source.filter(port => !preferred.includes(port)).sort((a, b) => a - b));
 }
 
@@ -170,7 +190,7 @@ let AVAILABLE_SERIAL_PORTS = [1, 2];
 let UNSUPPORTED_SERIAL_PORTS = ALL_SERIAL_PORTS.filter(port => !SUPPORTED_SERIAL_PORTS.includes(port));
 let SUPPORTED_WORK_MODES = ['serial_server', 'auto_collect'];
 let UNSUPPORTED_WORK_MODES = ALL_WORK_MODES.filter(mode => !SUPPORTED_WORK_MODES.includes(mode));
-let SUPPORTED_FILTER_CHANNELS = ['ch1', 'ch2', 'log'];
+let SUPPORTED_FILTER_PORTS = ['com2', 'com1', 'log'];
 let FEATURE_MODBUS_FILTER = false;
 let FEATURE_SLAVE_MAPPING = false;
 let featureConfigLoaded = false;
@@ -186,13 +206,13 @@ function getIndependentSerialPorts() {
     return orderSp603SerialPorts(ports.filter(port => available.has(port)), layout);
 }
 
-function reorderSp603ChannelChoices() {
+function reorderSp603PortChoices() {
     const orderedPorts = orderSp603SerialPorts(ALL_SERIAL_PORTS);
     const reorderChildren = (containerSelector, itemSelector, inputPrefix, trailingSelector) => {
         const container = document.querySelector(containerSelector);
         if (!container) return;
         orderedPorts.forEach(port => {
-            const input = container.querySelector(`#${inputPrefix}_ch${port}`);
+            const input = container.querySelector('#' + inputPrefix + '_' + getPortKey(port));
             const item = input?.closest(itemSelector);
             if (item) container.appendChild(item);
         });
@@ -200,8 +220,8 @@ function reorderSp603ChannelChoices() {
         const trailing = trailingElement?.closest(itemSelector) || trailingElement;
         if (trailing) container.appendChild(trailing);
     };
-    reorderChildren('.channel-filter-container', '.channel-filter-item', 'filter', '#filter_log');
-    reorderChildren('.debug-channel-horizontal', '.debug-channel-item', 'debug', '.debug-crc-item');
+    reorderChildren('.port-filter-container', '.port-filter-item', 'filter', '#filter_log');
+    reorderChildren('.debug-port-horizontal', '.debug-port-item', 'debug', '.debug-crc-item');
 }
 
 function applyFirmwareCapabilitiesFromModeInfo(responseData) {
@@ -232,13 +252,13 @@ function applyFirmwareCapabilitiesFromModeInfo(responseData) {
             .filter(port => Number.isInteger(port) && ALL_SERIAL_PORTS.includes(port));
     }
 
-    // 后端按当前物理布局返回实际接口名称（例如 RS422 布局的 CH1）
+    // 后端按当前物理布局返回实际接口名称。
     if (Array.isArray(responseData.serial_ports)) {
         const labels = { ...SP603_PORT_LABELS };
         responseData.serial_ports.forEach(portInfo => {
-            const channel = Number(portInfo?.channel);
+            const port = Number(portInfo?.port);
             const label = typeof portInfo?.label === 'string' ? portInfo.label.trim() : '';
-            if (Number.isInteger(channel) && label) labels[channel] = label;
+            if (Number.isInteger(port) && label) labels[port] = label;
         });
         SP603_PORT_LABELS = labels;
     }
@@ -256,11 +276,10 @@ function applyFirmwareCapabilitiesFromModeInfo(responseData) {
         ? AVAILABLE_SERIAL_PORTS
         : SUPPORTED_SERIAL_PORTS;
     const orderedVisibleSerialPorts = orderSp603SerialPorts(visibleSerialPorts);
-    SUPPORTED_FILTER_CHANNELS = [...orderedVisibleSerialPorts.map(port => `ch${port}`), 'log']
-        .filter(channel => ALL_FILTER_CHANNELS.includes(channel));
+    SUPPORTED_FILTER_PORTS = [...orderedVisibleSerialPorts.map(getPortKey), 'log'].filter(port => ALL_FILTER_PORTS.includes(port));
 
     if (document.getElementById('serialIndependentCards')) {
-        const current = [...document.querySelectorAll('#serialIndependentCards [data-channel]')].map(e => Number(e.dataset.channel));
+        const current = [...document.querySelectorAll('#serialIndependentCards [data-port]')].map(e => Number(e.dataset.port));
         const desired = getIndependentSerialPorts();
         if (current.join(',') !== desired.join(',')) {
             document.getElementById('serialIndependentCards').remove();
@@ -272,12 +291,12 @@ function applyFirmwareCapabilitiesFromModeInfo(responseData) {
         const label = SP603_PORT_LABELS[port];
         const tab = document.getElementById(`serialTab${port}`);
         if (tab && label) tab.textContent = label;
-        const debugBadge = document.querySelector(`#debug_ch${port} + .channel-badge`);
+        const debugBadge = document.querySelector('#debug_' + getPortKey(port) + ' + .port-badge');
         if (debugBadge && label) debugBadge.textContent = label;
-        const filterBadge = document.querySelector(`#filter_ch${port} + .channel-badge`);
+        const filterBadge = document.querySelector('#filter_' + getPortKey(port) + ' + .port-badge');
         if (filterBadge && label) filterBadge.textContent = label;
     });
-    reorderSp603ChannelChoices();
+    reorderSp603PortChoices();
 }
 
 async function loadFeatureConfigsByCapability() {
@@ -310,6 +329,10 @@ async function postData(url = '', data = {}, options = {}) {
         body: JSON.stringify(data),
         signal: options.signal
     });
+    if (response.status === 401) {
+        window.location.replace('/');
+        throw new Error('登录已过期');
+    }
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
     const result = await response.json();
@@ -322,7 +345,7 @@ async function postData(url = '', data = {}, options = {}) {
     return result;
 }
 
-async function fetchData(url = '') {
+async function fetportData(url = '') {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒超时
@@ -333,6 +356,10 @@ async function fetchData(url = '') {
 
         clearTimeout(timeoutId); // 清除超时定时器
 
+        if (response.status === 401) {
+            window.location.replace('/');
+            throw new Error('登录已过期');
+        }
         if (!response.ok) {
             throw new Error(`HTTP错误! 状态码: ${response.status}`);
         }
@@ -390,13 +417,13 @@ const createDefaultAutoCollectItem = () => ({
     stop_bits: 1
 });
 
-const createDefaultAutoCollectChannelState = () => ({
+const createDefaultAutoCollectPortState = () => ({
     mapped_slave_addr: 1,
     items: [createDefaultAutoCollectItem()]
 });
 
 const autoCollectState = Object.fromEntries(
-    AUTO_COLLECT_CHANNELS.map(channel => [channel, createDefaultAutoCollectChannelState()])
+    AUTO_COLLECT_PORTS.map(port => [port, createDefaultAutoCollectPortState()])
 );
 
 function applyHardwareUiAdaptation() {
@@ -416,24 +443,24 @@ function applyHardwareUiAdaptation() {
     const checkedMode = document.querySelector('input[name="work_mode"]:checked');
     if (!checkedMode || !SUPPORTED_WORK_MODES.includes(checkedMode.value)) {
         const fallbackMode = SUPPORTED_WORK_MODES[0] || 'auto_collect';
-        const fallbackRadio = document.querySelector(`input[name="work_mode"][value="${fallbackMode}"]`);
+        const fallbackRadio = document.getElementById("debug_" + fallback);
         if (fallbackRadio) {
             fallbackRadio.checked = true;
         }
     }
 
-    // 2) 自动采集配置区按当前采集通道展示
-    ['ch1', 'ch2', 'ch3', 'ch4'].forEach(channel => {
-        const input = document.getElementById(`ac_${channel}_maddr`);
+    // 2) 自动采集配置区按当前采集接口展示
+    ['com2', 'com1', 'rs232', 'rs422'].forEach(port => {
+        const input = document.getElementById(`ac_${port}_maddr`);
         const section = input ? input.closest('.config-section') : null;
         if (section) {
-            section.style.display = AUTO_COLLECT_CHANNELS.includes(channel) ? '' : 'none';
+            section.style.display = AUTO_COLLECT_PORTS.includes(port) ? '' : 'none';
         }
     });
 
     const acDesc = document.querySelector('#auto_collect_config .base-desc');
     if (acDesc) {
-        acDesc.textContent = '自动采集模式使用 COM2 / RS485-2 与 COM1 / RS485-1。';
+        acDesc.textContent = '自动采集模式使用 COM2 与 COM1。';
     }
 
     // 3) 串口配置标签与面板按能力展示
@@ -454,7 +481,7 @@ function applyHardwareUiAdaptation() {
         }
         if (tab && supported && !available) {
             tab.disabled = true;
-            tab.title = port === 3 ? 'COM1 / RS485-1 当前被 UART0 调试口占用' : '当前布局占用';
+            tab.title = port === 3 ? 'COM1 当前被 UART0 调试口占用' : '当前布局占用';
         }
     });
 
@@ -472,31 +499,31 @@ function applyHardwareUiAdaptation() {
         }
     });
 
-    // 4) 调试筛选与发送通道按支持通道展示
-    reorderSp603ChannelChoices();
-    ALL_FILTER_CHANNELS.forEach(ch => {
-        const supported = SUPPORTED_FILTER_CHANNELS.includes(ch);
-        const filter = document.getElementById(`filter_${ch}`);
-        const filterItem = filter ? filter.closest('.channel-filter-item') : null;
+    // 4) 调试筛选与发送接口按固件能力展示
+    reorderSp603PortChoices();
+    ALL_FILTER_PORTS.forEach(portKey => {
+        const supported = SUPPORTED_FILTER_PORTS.includes(portKey);
+        const filter = document.getElementById("filter_" + portKey);
+        const filterItem = filter ? filter.closest('.port-filter-item') : null;
         if (filterItem) {
             filterItem.style.display = supported ? '' : 'none';
         }
 
-        const debug = document.getElementById(`debug_${ch}`);
-        const debugItem = debug ? debug.closest('.debug-channel-item') : null;
+        const debug = document.getElementById("debug_" + portKey);
+        const debugItem = debug ? debug.closest('.debug-port-item') : null;
         if (debugItem) {
             debugItem.style.display = supported ? '' : 'none';
         }
     });
 
     // 当前布局变化后，发送通道必须与显示过滤器使用同一组接口
-    const checkedDebug = document.querySelector('input[name="debug_channel"]:checked');
-    if (!checkedDebug || !SUPPORTED_FILTER_CHANNELS.includes(`ch${checkedDebug.value}`)) {
-        const fallback = SUPPORTED_FILTER_CHANNELS.find(channel => channel !== 'log');
-        const fallbackRadio = fallback && document.getElementById(`debug_${fallback}`);
+    const checkedDebug = document.querySelector('input[name="debug_port"]:checked');
+    if (!checkedDebug || !SUPPORTED_FILTER_PORTS.includes(getPortKey(checkedDebug.value))) {
+        const fallback = SUPPORTED_FILTER_PORTS.find(port => port !== 'log');
+        const fallbackRadio = document.getElementById("debug_" + fallback);
         if (fallbackRadio) fallbackRadio.checked = true;
     }
-    updateChannelSelection();
+    updatePortSelection();
     refreshSerialTab();
 
     // 5) 可选能力卡片按特性开关展示
@@ -782,7 +809,7 @@ function updateSerialConfigForCacheMode() {
     // if (typeof currentSerialPort !== 'undefined') {
     //     switchSerialTab(currentSerialPort);
     // } else {
-    //     switchSerialTab(1); // 默认显示CH1
+    //     switchSerialTab(1); // 默认显示首个可用接口
     // }
 
     // 强制重新计算容器高度，确保显示正常
@@ -1715,7 +1742,7 @@ document.querySelectorAll('input[name="work_mode"]').forEach(radio => {
 
         if (!SUPPORTED_WORK_MODES.includes(this.value)) {
             const fallbackMode = SUPPORTED_WORK_MODES[0] || 'auto_collect';
-            const fallbackRadio = document.querySelector(`input[name="work_mode"][value="${fallbackMode}"]`);
+        const fallbackRadio = document.getElementById("debug_" + fallback);
             if (fallbackRadio) {
                 applyWorkModeSelection(fallbackRadio);
             }
@@ -1862,7 +1889,7 @@ document.querySelectorAll('input[name="work_mode"]').forEach(radio => {
             updateAutoTransparentCacheUI();
 
             try {
-                const responseData = await fetchData('/mode_info');
+                const responseData = await fetportData('/mode_info');
                 // 清空现有内容
                 container.innerHTML = '';
 
@@ -1966,16 +1993,16 @@ document.querySelectorAll('input[name="work_mode"]').forEach(radio => {
             setModbusItemViews.appendChild(setModbusItemButton);
             setModbusItemButton.querySelector('.btn-container').textContent = '配置';
 
-            // 自动采集模式：CH1~CH4 为从站采集通道，CH5 为主站通道
+            // 自动采集模式：采集接口作为从站，总线接口作为主站。
             updateSerialTabsForAutoCollect();
             refreshSerialTab();
             showReplyTimeoutFields();
 
-            AUTO_COLLECT_CHANNELS.forEach(channel => {
-                if (!autoCollectState[channel].items || autoCollectState[channel].items.length === 0) {
-                    autoCollectState[channel].items = [createDefaultAutoCollectItem()];
+            AUTO_COLLECT_PORTS.forEach(port => {
+                if (!autoCollectState[port].items || autoCollectState[port].items.length === 0) {
+                    autoCollectState[port].items = [createDefaultAutoCollectItem()];
                 }
-                renderAutoCollectChannel(channel);
+                renderAutoCollectPort(port);
             });
         } else if (this.value === 'master_slave') {
             // 一主多从模式
@@ -2116,39 +2143,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // 初始化串口标签页
     initializeSerialTabs();
     // 初始化自动采集表格（默认隐藏，但保持结构）
-    AUTO_COLLECT_CHANNELS.forEach(channel => renderAutoCollectChannel(channel));
+    AUTO_COLLECT_PORTS.forEach(port => renderAutoCollectPort(port));
 
     // 首先获取服务器配置的工作模式
-    workModeFetchData();
+    workModeFetportData();
 
     loadFeatureConfigsByCapability();
 });
 
 // 更新串口标签显示文本
-function updateSerialTabsText(ch1Text, ch2Text, ch3Text, ch4Text, ch5Text) {
+function updateSerialTabsText(port1Role = '', port2Role = '', port3Role = '') {
     const serialTab1 = document.getElementById('serialTab1');
     const serialTab2 = document.getElementById('serialTab2');
     const serialTab3 = document.getElementById('serialTab3');
     const serialTab4 = document.getElementById('serialTab4');
     const serialTab5 = document.getElementById('serialTab5');
 
-    const roleSuffix = text => {
-        const match = String(text || '').match(/[（(].*?[）)]/);
-        return match ? ` ${match[0]}` : '';
-    };
-    if (serialTab1) serialTab1.textContent = `${SP603_PORT_LABELS[1] || 'CH1'}${roleSuffix(ch1Text)}`;
-    if (serialTab2) serialTab2.textContent = `${SP603_PORT_LABELS[2] || 'CH2'}${roleSuffix(ch2Text)}`;
-    if (serialTab3) serialTab3.textContent = `${SP603_PORT_LABELS[3] || 'CH3'}${roleSuffix(ch3Text)}`;
-    if (serialTab4) serialTab4.textContent = ch4Text;
-    if (serialTab5) serialTab5.textContent = ch5Text;
+    const suffix = role => role ? `（${role}）` : '';
+    if (serialTab1) serialTab1.textContent = `${getSp603PortLabel(1)}${suffix(port1Role)}`;
+    if (serialTab2) serialTab2.textContent = `${getSp603PortLabel(2)}${suffix(port2Role)}`;
+    if (serialTab3) serialTab3.textContent = `${getSp603PortLabel(3)}${suffix(port3Role)}`;
+    if (serialTab4) serialTab4.textContent = '';
+    if (serialTab5) serialTab5.textContent = '';
 }
 
 // 快捷函数
-const updateSerialTabsForTransparent = () => updateSerialTabsText('CH1（主站）', 'CH2（主站）', 'CH3（从站）', 'CH4（主站）', 'CH5（主站）');
-const updateSerialTabsForModbus = () => updateSerialTabsText('CH1 (主站)', 'CH2 (主站)', 'CH3 (从站)', 'CH4 (主站)', 'CH5 (主站)');
-const updateSerialTabsForMasterSlave = () => updateSerialTabsText('CH1 (主站)', 'CH2 (从站)', 'CH3 (从站)', 'CH4 (主站)', 'CH5 (主站)');
-const updateSerialTabsForAutoCollect = () => updateSerialTabsText('CH1 (从站)', 'CH2 (从站)', 'CH3 (从站)', 'CH4 (从站)', 'CH5 (主站)');
-const updateSerialTabsForDefault = () => updateSerialTabsText('CH1', 'CH2', 'CH3', 'CH4', 'CH5');
+const updateSerialTabsForTransparent = () => updateSerialTabsText('主站', '主站', '从站');
+const updateSerialTabsForModbus = () => updateSerialTabsText('主站', '主站', '从站');
+const updateSerialTabsForMasterSlave = () => updateSerialTabsText('主站', '从站', '从站');
+const updateSerialTabsForAutoCollect = () => updateSerialTabsText('从站', '从站', '从站');
+const updateSerialTabsForDefault = () => updateSerialTabsText();
 
 
 // 隐藏回复超时时间字段
@@ -2273,7 +2297,7 @@ function createAutoCollectTableContainer() {
     return { container, tableContent };
 }
 
-function createAutoCollectRow(channel, index, item) {
+function createAutoCollectRow(port, index, item) {
     const row = document.createElement('div');
     row.className = 'modbus-table-row';
     row.dataset.index = index;
@@ -2294,7 +2318,7 @@ function createAutoCollectRow(channel, index, item) {
 
     row.innerHTML = `
         <div class="modbus-table-cell modbus-checkbox-cell">
-            <input type="checkbox" class="ac-row-checkbox" id="ac_${channel}_row_checkbox_${index}">
+            <input type="checkbox" class="ac-row-checkbox" id="ac_${port}_row_checkbox_${index}">
         </div>
         <div class="modbus-table-cell" style="max-width: 48px;">
             <div class="switch-btn ${switchClass}" onclick="toggleAutoCollectItem(this)">
@@ -2303,14 +2327,14 @@ function createAutoCollectRow(channel, index, item) {
         </div>
         <div class="modbus-table-cell">
             <input type="number" class="base-input"
-                   id="ac_${channel}_slave_addr_${index}"
-                   name="ac_${channel}_slave_addr_${index}"
+                   id="ac_${port}_slave_addr_${index}"
+                   name="ac_${port}_slave_addr_${index}"
                    min="1" max="247" value="${slaveAddr}">
         </div>
         <div class="modbus-table-cell">
             <select class="base-input"
-                    id="ac_${channel}_function_code_${index}"
-                    name="ac_${channel}_function_code_${index}">
+                    id="ac_${port}_function_code_${index}"
+                    name="ac_${port}_function_code_${index}">
                 <option value="01" ${fc == 1 || fc == '01' ? 'selected' : ''}>01</option>
                 <option value="02" ${fc == 2 || fc == '02' ? 'selected' : ''}>02</option>
                 <option value="03" ${fc == 3 || fc == '03' ? 'selected' : ''}>03</option>
@@ -2319,38 +2343,38 @@ function createAutoCollectRow(channel, index, item) {
         </div>
         <div class="modbus-table-cell">
             <input type="number" class="base-input"
-                   id="ac_${channel}_register_addr_${index}"
-                   name="ac_${channel}_register_addr_${index}"
+                   id="ac_${port}_register_addr_${index}"
+                   name="ac_${port}_register_addr_${index}"
                    min="0" max="65535" value="${regAddr}">
         </div>
         <div class="modbus-table-cell">
             <input type="number" class="base-input"
-                   id="ac_${channel}_mapped_register_addr_${index}"
-                   name="ac_${channel}_mapped_register_addr_${index}"
+                   id="ac_${port}_mapped_register_addr_${index}"
+                   name="ac_${port}_mapped_register_addr_${index}"
                    min="0" max="65535" value="${mappedRegAddr}">
         </div>
         <div class="modbus-table-cell">
             <input type="number" class="base-input"
-                   id="ac_${channel}_register_num_${index}"
-                   name="ac_${channel}_register_num_${index}"
+                   id="ac_${port}_register_num_${index}"
+                   name="ac_${port}_register_num_${index}"
                    min="1" max="125" value="${regNum}">
         </div>
         <div class="modbus-table-cell">
             <input type="number" class="base-input"
-                   id="ac_${channel}_interval_${index}"
-                   name="ac_${channel}_interval_${index}"
+                   id="ac_${port}_interval_${index}"
+                   name="ac_${port}_interval_${index}"
                    min="10" value="${interval}">
         </div>
         <div class="modbus-table-cell">
             <input type="number" class="base-input"
-                   id="ac_${channel}_timeout_${index}"
-                   name="ac_${channel}_timeout_${index}"
+                   id="ac_${port}_timeout_${index}"
+                   name="ac_${port}_timeout_${index}"
                    min="10" value="${timeout}">
         </div>
         <div class="modbus-table-cell">
             <select class="base-input"
-                    id="ac_${channel}_baud_rate_${index}"
-                    name="ac_${channel}_baud_rate_${index}">
+                    id="ac_${port}_baud_rate_${index}"
+                    name="ac_${port}_baud_rate_${index}">
                 <option value="1200" ${baud == 1200 ? 'selected' : ''}>1200</option>
                 <option value="2400" ${baud == 2400 ? 'selected' : ''}>2400</option>
                 <option value="4800" ${baud == 4800 ? 'selected' : ''}>4800</option>
@@ -2363,8 +2387,8 @@ function createAutoCollectRow(channel, index, item) {
         </div>
         <div class="modbus-table-cell">
             <select class="base-input"
-                    id="ac_${channel}_data_bit_${index}"
-                    name="ac_${channel}_data_bit_${index}">
+                    id="ac_${port}_data_bit_${index}"
+                    name="ac_${port}_data_bit_${index}">
                 <option value="8" ${dataBits == 8 ? 'selected' : ''}>8</option>
                 <option value="7" ${dataBits == 7 ? 'selected' : ''}>7</option>
                 <option value="6" ${dataBits == 6 ? 'selected' : ''}>6</option>
@@ -2373,8 +2397,8 @@ function createAutoCollectRow(channel, index, item) {
         </div>
         <div class="modbus-table-cell">
             <select class="base-input"
-                    id="ac_${channel}_check_bit_${index}"
-                    name="ac_${channel}_check_bit_${index}">
+                    id="ac_${port}_check_bit_${index}"
+                    name="ac_${port}_check_bit_${index}">
                 <option value="0" ${parity == 0 ? 'selected' : ''}>无校验</option>
                 <option value="1" ${parity == 1 ? 'selected' : ''}>奇校验</option>
                 <option value="2" ${parity == 2 ? 'selected' : ''}>偶校验</option>
@@ -2382,8 +2406,8 @@ function createAutoCollectRow(channel, index, item) {
         </div>
         <div class="modbus-table-cell">
             <select class="base-input"
-                    id="ac_${channel}_stop_bit_${index}"
-                    name="ac_${channel}_stop_bit_${index}">
+                    id="ac_${port}_stop_bit_${index}"
+                    name="ac_${port}_stop_bit_${index}">
                 <option value="1" ${stopBits == 1 ? 'selected' : ''}>1位停止位</option>
                 <option value="2" ${stopBits == 2 ? 'selected' : ''}>2位停止位</option>
             </select>
@@ -2397,22 +2421,22 @@ function createAutoCollectRow(channel, index, item) {
     return row;
 }
 
-function renderAutoCollectChannel(channel) {
-    const container = document.getElementById(`ac_${channel}_items_container`);
+function renderAutoCollectPort(port) {
+    const container = document.getElementById(`ac_${port}_items_container`);
     if (!container) return;
 
     container.innerHTML = '';
     const { container: tableContainer, tableContent } = createAutoCollectTableContainer();
     container.appendChild(tableContainer);
 
-    const items = (autoCollectState[channel].items && autoCollectState[channel].items.length > 0)
-        ? autoCollectState[channel].items
+    const items = (autoCollectState[port].items && autoCollectState[port].items.length > 0)
+        ? autoCollectState[port].items
         : [createDefaultAutoCollectItem()];
 
-    autoCollectState[channel].items = items;
+    autoCollectState[port].items = items;
 
     items.forEach((item, idx) => {
-        const row = createAutoCollectRow(channel, idx + 1, item);
+        const row = createAutoCollectRow(port, idx + 1, item);
         tableContent.appendChild(row);
     });
 
@@ -2440,24 +2464,24 @@ function toggleAutoCollectItem(switchBtn) {
     }
 }
 
-function addAutoCollectItem(channel) {
-    const current = collectAutoChannelConfig(channel);
+function addAutoCollectItem(port) {
+    const current = collectAutoPortConfig(port);
     const stateItems = current.items ? [...current.items] : [];
     if (stateItems.length >= AUTO_COLLECT_MAX_ITEMS) {
-        showCustomAlert(`每个通道最多配置${AUTO_COLLECT_MAX_ITEMS}条`, true);
+        showCustomAlert(`每个接口最多配置${AUTO_COLLECT_MAX_ITEMS}条`, true);
         return;
     }
     stateItems.push(createDefaultAutoCollectItem());
-    autoCollectState[channel].items = stateItems;
-    renderAutoCollectChannel(channel);
+    autoCollectState[port].items = stateItems;
+    renderAutoCollectPort(port);
 }
 
-function removeAutoCollectSelected(channel) {
-    const container = document.getElementById(`ac_${channel}_items_container`);
+function removeAutoCollectSelected(port) {
+    const container = document.getElementById(`ac_${port}_items_container`);
     if (!container) return;
     const rows = container.querySelectorAll('.modbus-table-row:not(.modbus-table-header)');
     const checked = container.querySelectorAll('.ac-row-checkbox:checked');
-    const current = collectAutoChannelConfig(channel);
+    const current = collectAutoPortConfig(port);
 
     if (checked.length === 0) {
         showCustomAlert('请选择要删除的条目', true);
@@ -2475,14 +2499,14 @@ function removeAutoCollectSelected(channel) {
             if (item) remain.push(item);
         }
     });
-    autoCollectState[channel].items = remain;
-    renderAutoCollectChannel(channel);
+    autoCollectState[port].items = remain;
+    renderAutoCollectPort(port);
 }
 
-function collectAutoChannelConfig(channel) {
-    const mappedInput = document.getElementById(`ac_${channel}_maddr`);
+function collectAutoPortConfig(port) {
+    const mappedInput = document.getElementById(`ac_${port}_maddr`);
     const mapped_slave_addr = mappedInput ? (parseInt(mappedInput.value) || 1) : 1;
-    const container = document.getElementById(`ac_${channel}_items_container`);
+    const container = document.getElementById(`ac_${port}_items_container`);
     const rows = container ? container.querySelectorAll('.modbus-table-row:not(.modbus-table-header)') : [];
     const items = [];
 
@@ -2501,17 +2525,17 @@ function collectAutoChannelConfig(channel) {
 
         items.push({
             enabled,
-            real_slave_addr: safeNumber(getValue(`#ac_${channel}_slave_addr_${index}`, 1), 1),
-            function_code: safeNumber(getValue(`#ac_${channel}_function_code_${index}`, 3), 3),
-            register_addr: safeNumber(getValue(`#ac_${channel}_register_addr_${index}`, 0), 0),
-            mapped_register_addr: safeNumber(getValue(`#ac_${channel}_mapped_register_addr_${index}`, getValue(`#ac_${channel}_register_addr_${index}`, 0)), 0),
-            register_num: safeNumber(getValue(`#ac_${channel}_register_num_${index}`, 1), 1),
-            interval_ms: safeNumber(getValue(`#ac_${channel}_interval_${index}`, 100), 100),
-            timeout_ms: safeNumber(getValue(`#ac_${channel}_timeout_${index}`, 1000), 1000),
-            baudrate: safeNumber(getValue(`#ac_${channel}_baud_rate_${index}`, 9600), 9600),
-            data_bits: safeNumber(getValue(`#ac_${channel}_data_bit_${index}`, 8), 8),
-            parity: safeNumber(getValue(`#ac_${channel}_check_bit_${index}`, 0), 0),
-            stop_bits: safeNumber(getValue(`#ac_${channel}_stop_bit_${index}`, 1), 1)
+            real_slave_addr: safeNumber(getValue(`#ac_${port}_slave_addr_${index}`, 1), 1),
+            function_code: safeNumber(getValue(`#ac_${port}_function_code_${index}`, 3), 3),
+            register_addr: safeNumber(getValue(`#ac_${port}_register_addr_${index}`, 0), 0),
+            mapped_register_addr: safeNumber(getValue(`#ac_${port}_mapped_register_addr_${index}`, getValue(`#ac_${port}_register_addr_${index}`, 0)), 0),
+            register_num: safeNumber(getValue(`#ac_${port}_register_num_${index}`, 1), 1),
+            interval_ms: safeNumber(getValue(`#ac_${port}_interval_${index}`, 100), 100),
+            timeout_ms: safeNumber(getValue(`#ac_${port}_timeout_${index}`, 1000), 1000),
+            baudrate: safeNumber(getValue(`#ac_${port}_baud_rate_${index}`, 9600), 9600),
+            data_bits: safeNumber(getValue(`#ac_${port}_data_bit_${index}`, 8), 8),
+            parity: safeNumber(getValue(`#ac_${port}_check_bit_${index}`, 0), 0),
+            stop_bits: safeNumber(getValue(`#ac_${port}_stop_bit_${index}`, 1), 1)
         });
     });
 
@@ -2519,8 +2543,8 @@ function collectAutoChannelConfig(channel) {
         items.push(createDefaultAutoCollectItem());
     }
 
-    autoCollectState[channel].mapped_slave_addr = mapped_slave_addr;
-    autoCollectState[channel].items = items;
+    autoCollectState[port].mapped_slave_addr = mapped_slave_addr;
+    autoCollectState[port].items = items;
 
     return { mapped_slave_addr, items };
 }
@@ -2544,22 +2568,22 @@ function populateAutoCollectConfig(data) {
         }));
     };
 
-    AUTO_COLLECT_CHANNELS.forEach(channel => {
-        const mappedInput = document.getElementById(`ac_${channel}_maddr`);
-        autoCollectState[channel].mapped_slave_addr = data?.[channel]?.mapped_slave_addr || 1;
-        autoCollectState[channel].items = normalizeItems(data?.[channel]?.items);
+    AUTO_COLLECT_PORTS.forEach(port => {
+        const mappedInput = document.getElementById(`ac_${port}_maddr`);
+        autoCollectState[port].mapped_slave_addr = data?.[port]?.mapped_slave_addr || 1;
+        autoCollectState[port].items = normalizeItems(data?.[port]?.items);
         if (mappedInput) {
-            mappedInput.value = autoCollectState[channel].mapped_slave_addr;
+            mappedInput.value = autoCollectState[port].mapped_slave_addr;
         }
-        renderAutoCollectChannel(channel);
+        renderAutoCollectPort(port);
     });
 }
 
 // 导出自动采集配置
 function exportAutoCollectConfig() {
-    const payload = { work_mode: 'auto_collect', master_channel: AUTO_COLLECT_MASTER_CHANNEL };
-    AUTO_COLLECT_CHANNELS.forEach(channel => {
-        payload[channel] = collectAutoChannelConfig(channel);
+    const payload = { work_mode: 'auto_collect', master_port: AUTO_COLLECT_MASTER_PORT };
+    AUTO_COLLECT_PORTS.forEach(port => {
+        payload[port] = collectAutoPortConfig(port);
     });
     const jsonData = JSON.stringify(payload, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
@@ -2618,11 +2642,11 @@ function importAutoCollectConfig() {
 // 保存自动采集配置到后端
 async function saveAutoCollectConfig() {
     const payload = {};
-    AUTO_COLLECT_CHANNELS.forEach(channel => {
-        payload[channel] = collectAutoChannelConfig(channel);
+    AUTO_COLLECT_PORTS.forEach(port => {
+        payload[port] = collectAutoPortConfig(port);
     });
 
-    // 重叠检查：同一通道的映射寄存器范围是否冲突
+    // 重叠检查：同一接口的映射寄存器范围是否冲突
     const hasOverlap = (cfg) => {
         if (!cfg || !cfg.items || cfg.items.length === 0) return false;
         const ranges = cfg.items
@@ -2643,9 +2667,9 @@ async function saveAutoCollectConfig() {
         }
         return false;
     };
-    for (const channel of AUTO_COLLECT_CHANNELS) {
-        if (hasOverlap(payload[channel])) {
-            showCustomAlert(`检测到${channel.toUpperCase()}映射寄存器区间重叠，请调整后再保存`, true);
+    for (const port of AUTO_COLLECT_PORTS) {
+        if (hasOverlap(payload[port])) {
+            showCustomAlert(`检测到${getAutoCollectPortLabel(port)}映射寄存器区间重叠，请调整后再保存`, true);
             return;
         }
     }
@@ -2836,14 +2860,14 @@ function createModbusTableContainer() {
 }
 
 // 自动采集按钮的事件处理
-AUTO_COLLECT_CHANNELS.forEach(channel => {
-    const addBtn = document.getElementById(`ac_${channel}_add_item`);
+AUTO_COLLECT_PORTS.forEach(port => {
+    const addBtn = document.getElementById(`ac_${port}_add_item`);
     if (addBtn) {
-        addBtn.addEventListener('click', () => addAutoCollectItem(channel));
+        addBtn.addEventListener('click', () => addAutoCollectItem(port));
     }
-    const removeBtn = document.getElementById(`ac_${channel}_remove_item`);
+    const removeBtn = document.getElementById(`ac_${port}_remove_item`);
     if (removeBtn) {
-        removeBtn.addEventListener('click', () => removeAutoCollectSelected(channel));
+        removeBtn.addEventListener('click', () => removeAutoCollectSelected(port));
     }
 });
 const acImportBtn = document.getElementById('ac_import_btn');
@@ -3250,9 +3274,9 @@ async function workModeSubmit() {
 }
 
 // 页面加载时获取工作模式配置
-async function workModeFetchData() {
+async function workModeFetportData() {
     try {
-        const responseData = await fetchData('/mode_info');
+        const responseData = await fetportData('/mode_info');
         applyFirmwareCapabilitiesFromModeInfo(responseData);
         applyHardwareUiAdaptation();
         const modbusConfig = document.getElementById('modbus_rtu_config');
@@ -3851,12 +3875,20 @@ function showCustomAlert(message, isError = false, options = {}) {
 // Serial config API
 
 const SP603_SERIAL_BAUDS = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200];
+let savedSp603SerialLayout = null;
 function serialField(label, id, type, value, options, unit) {
     const control = type === 'select'
         ? `<select id="${id}" class="base-input">${options.map(v => `<option value="${v[0]}">${v[1]}</option>`).join('')}</select>`
         : `<input id="${id}" class="base-input" type="${type}" value="${value ?? ''}">`;
     const controlClass = unit ? ' serial-unit-control' : '';
     return `<div class="label-view label-view mt-15"><div class="label"><div class="title tip top">${label}</div></div><div class="view-container serial-field-control${controlClass}">${control}${unit ? `<span class="unit-text">${unit}</span>` : ''}</div></div>`;
+}
+
+function updateSerialProtocolFields(card) {
+    const protocol = card.querySelector('[id^="serial_protocol_"]')?.value || 'tcp_server';
+    card.querySelectorAll('[data-protocols]').forEach(group => {
+        group.hidden = !group.dataset.protocols.split(' ').includes(protocol);
+    });
 }
 
 function renderIndependentSerialCards() {
@@ -3867,29 +3899,90 @@ function renderIndependentSerialCards() {
     const cards = document.createElement('div'); cards.id = 'serialIndependentCards'; cards.className = 'serial-independent-cards';
     cards.innerHTML = getIndependentSerialPorts().map(port => {
         const label = getSelectedSp603SerialLayout() === 'rs422' && port === 1
-            ? 'RS422 (COM1 TX + COM2 RX)' : (SP603_PORT_LABELS[port] || `CH${port}`);
-        return `<section class="serial-channel-card" data-channel="${port}">
-            <div class="container serial-channel-heading"><div class="title-text"><span>${label}</span><button type="button" class="serial-collapse" aria-expanded="true" aria-label="折叠${label}配置"><i class="iconfont iconxiajiantou2"></i></button></div></div>
-            <div class="serial-channel-body">
-                <div class="serial-mode-switch" role="group"><button type="button" class="serial-mode active" data-mode="server">TCP Server</button><button type="button" class="serial-mode" data-mode="client">TCP Client</button></div>
-                <div class="serial-server-fields">${serialField('服务端端口', `serial_local_port_${port}`, 'number', 8887 + port, null, '')}</div>
-                <div class="serial-client-fields" hidden>${serialField('目标 IP 地址', `serial_remote_ip_${port}`, 'text', '', null, '')}${serialField('目标端口', `serial_remote_port_${port}`, 'number', 8887 + port, null, '')}</div>
-                ${serialField('波特率', `serial_baud_${port}`, 'select', '', SP603_SERIAL_BAUDS.map(v => [v, v]), '')}
-                ${serialField('数据位', `serial_data_${port}`, 'select', '', [[5,5],[6,6],[7,7],[8,8]], '')}
-                ${serialField('校验位', `serial_check_${port}`, 'select', '', [['0','无校验'],['1','奇校验'],['2','偶校验']], '')}
-                ${serialField('停止位', `serial_stop_${port}`, 'select', '', [['1','1位停止位'],['1.5','1.5位停止位'],['2','2位停止位']], '')}
-                ${serialField('帧时间', `serial_frame_time_${port}`, 'number', 50, null, '毫秒')}
-                ${serialField('最大帧长度', `serial_frame_len_${port}`, 'number', 512, null, '字节')}
-                ${serialField('应答超时', `serial_timeout_${port}`, 'number', 500, null, '毫秒')}
+            ? 'RS422' : getSp603PortLabel(port);
+        return `<section class="serial-port-card" data-port="${port}">
+            <div class="container serial-port-heading"><div class="title-text"><span>${label}</span><button type="button" class="serial-collapse" aria-expanded="true" aria-label="折叠${label}配置"><i class="iconfont iconxiajiantou2"></i></button></div></div>
+            <div class="serial-port-body">
+                <section class="serial-settings-section serial-network-settings">
+                    <h3>网络设置</h3>
+                    ${serialField('网络协议', `serial_protocol_${port}`, 'select', '', [
+                        ['tcp_server','TCP Server 透传'], ['tcp_client','TCP Client 透传'],
+                        ['mqtt','MQTT'], ['modbus_tcp_rtu','Modbus TCP 转 Modbus RTU']
+                    ], '')}
+                    <div data-protocols="tcp_server modbus_tcp_rtu">${serialField('监听端口', `serial_local_port_${port}`, 'number', 8887 + port, null, '')}</div>
+                    <div data-protocols="tcp_client" hidden>${serialField('目标 IP 地址', `serial_remote_ip_${port}`, 'text', '', null, '')}${serialField('目标端口', `serial_remote_port_${port}`, 'number', 8887 + port, null, '')}</div>
+                    <div data-protocols="mqtt" hidden>
+                        ${serialField('Broker URI', `serial_mqtt_uri_${port}`, 'text', 'mqtt://mqtt.likong-iot.com:1883', null, '')}
+                        ${serialField('Client ID', `serial_mqtt_client_id_${port}`, 'text', '', null, '')}
+                        ${serialField('用户名', `serial_mqtt_username_${port}`, 'text', 'public', null, '')}
+                        ${serialField('密码', `serial_mqtt_password_${port}`, 'password', '', null, '')}
+                        ${serialField('上报主题（设备发布）', `serial_mqtt_pub_${port}`, 'text', '', null, '')}
+                        ${serialField('下发主题（设备订阅）', `serial_mqtt_sub_${port}`, 'text', '', null, '')}
+                        ${serialField('QoS', `serial_mqtt_qos_${port}`, 'select', '', [[0,'QoS 0'],[1,'QoS 1'],[2,'QoS 2']], '')}
+                        ${serialField('保留消息', `serial_mqtt_retain_${port}`, 'select', '', [['0','关闭'],['1','开启']], '')}
+                    </div>
+                    <div class="serial-runtime-status" data-runtime-port="${port}">
+                        <div class="serial-runtime-head"><span>当前连接状态</span><span id="serial_runtime_badge_${port}" class="sp603-status is-muted">读取中</span></div>
+                        <div id="serial_runtime_route_${port}" class="serial-runtime-route">--</div>
+                        <div id="serial_runtime_uplink_${port}" class="serial-runtime-uplink">--</div>
+                    </div>
+                </section>
+                <section class="serial-settings-section serial-port-settings">
+                    <h3>串口设置</h3>
+                    ${serialField('波特率', `serial_baud_${port}`, 'select', '', SP603_SERIAL_BAUDS.map(v => [v, v]), '')}
+                    ${serialField('数据位', `serial_data_${port}`, 'select', '', [[5,5],[6,6],[7,7],[8,8]], '')}
+                    ${serialField('校验位', `serial_check_${port}`, 'select', '', [['0','无校验'],['1','奇校验'],['2','偶校验']], '')}
+                    ${serialField('停止位', `serial_stop_${port}`, 'select', '', [['1','1位停止位'],['1.5','1.5位停止位'],['2','2位停止位']], '')}
+                    ${serialField('帧时间', `serial_frame_time_${port}`, 'number', 50, null, '毫秒')}
+                    ${serialField('最大帧长度', `serial_frame_len_${port}`, 'number', 512, null, '字节')}
+                    ${serialField('应答超时', `serial_timeout_${port}`, 'number', 500, null, '毫秒')}
+                </section>
             </div></section>`;
     }).join('');
     host.appendChild(cards);
-    cards.querySelectorAll('.serial-channel-card').forEach(card => {
-        const modeButtons = card.querySelectorAll('.serial-mode');
-        modeButtons.forEach(btn => btn.addEventListener('click', () => { modeButtons.forEach(x => x.classList.remove('active')); btn.classList.add('active'); card.querySelector('.serial-server-fields').hidden = btn.dataset.mode !== 'server'; card.querySelector('.serial-client-fields').hidden = btn.dataset.mode !== 'client'; }));
-        card.querySelector('.serial-collapse').addEventListener('click', () => { const body = card.querySelector('.serial-channel-body'); const open = !body.hidden; body.hidden = open; const toggle = card.querySelector('.serial-collapse'); toggle.setAttribute('aria-expanded', String(!open)); toggle.classList.toggle('collapsed', open); });
+    cards.querySelectorAll('.serial-port-card').forEach(card => {
+        card.dataset.dirty = 'false';
+        const protocol = card.querySelector('[id^="serial_protocol_"]');
+        protocol?.classList.add('serial-protocol');
+        protocol?.addEventListener('change', () => updateSerialProtocolFields(card));
+        card.addEventListener('input', () => { card.dataset.dirty = 'true'; });
+        card.addEventListener('change', () => { card.dataset.dirty = 'true'; });
+        const mqttPassword = document.getElementById(`serial_mqtt_password_${card.dataset.port}`);
+        if (mqttPassword) mqttPassword.placeholder = '留空保持原密码';
+        updateSerialProtocolFields(card);
+        card.querySelector('.serial-collapse').addEventListener('click', () => { const body = card.querySelector('.serial-port-body'); const open = !body.hidden; body.hidden = open; const toggle = card.querySelector('.serial-collapse'); toggle.setAttribute('aria-expanded', String(!open)); toggle.classList.toggle('collapsed', open); });
     });
 }
+
+let serialRuntimeRefreshPending = false;
+async function refreshSerialRuntimeStatus() {
+    if (serialRuntimeRefreshPending || document.hidden) return;
+    serialRuntimeRefreshPending = true;
+    try {
+        const result = await fetportData('/serial_runtime_status');
+        (result.ports || []).forEach(item => {
+            const badge = document.getElementById(`serial_runtime_badge_${item.port}`);
+            const route = document.getElementById(`serial_runtime_route_${item.port}`);
+            const uplink = document.getElementById(`serial_runtime_uplink_${item.port}`);
+            if (!badge) return;
+            badge.textContent = item.state_text || '未启动';
+            badge.className = `sp603-status ${item.connected ? 'is-online' : (item.state === 2 ? 'is-waiting' : (item.state === 4 ? 'is-error' : 'is-muted'))}`;
+            if (route) route.textContent = item.route || '--';
+            if (uplink) uplink.textContent = `联网接口：${item.uplink || result.active_uplink || '暂无可用联网'}`;
+        });
+    } catch (error) {
+        document.querySelectorAll('.serial-runtime-status .sp603-status').forEach(badge => {
+            badge.textContent = '读取失败';
+            badge.className = 'sp603-status is-error';
+        });
+    } finally {
+        serialRuntimeRefreshPending = false;
+    }
+}
+
+setInterval(() => {
+    if (document.getElementById('serialIndependentCards')) refreshSerialRuntimeStatus();
+}, 2000);
 
 function refreshIndependentSerialCards() {
     document.getElementById('serialIndependentCards')?.remove();
@@ -3897,13 +3990,19 @@ function refreshIndependentSerialCards() {
 }
 
 async function saveAllIndependentSerialConfigs(showSuccess = true) {
-    const cards = [...document.querySelectorAll('#serialIndependentCards .serial-channel-card')];
-    if (!cards.length) return;
+    const cards = [...document.querySelectorAll('#serialIndependentCards .serial-port-card')]
+        .filter(card => card.dataset.dirty === 'true');
+    if (!cards.length) return 0;
     const button = document.getElementById('serialButton');
     if (button) button.disabled = true;
     try {
-        for (const card of cards) await saveIndependentSerialConfig(Number(card.dataset.channel), card);
+        for (const card of cards) {
+            await saveIndependentSerialConfig(Number(card.dataset.port), card);
+            card.dataset.dirty = 'false';
+        }
+        refreshSerialRuntimeStatus();
         if (showSuccess) displaySuccessMessage('串口配置保存成功');
+        return cards.length;
     } finally {
         if (button) button.disabled = false;
     }
@@ -3912,23 +4011,27 @@ async function saveAllIndependentSerialConfigs(showSuccess = true) {
 async function loadIndependentSerialConfigs() {
     renderIndependentSerialCards();
     for (const port of getIndependentSerialPorts()) {
-        try { const c = await fetchData(`/serial_set_info?port=${port}`); const card = document.querySelector(`[data-channel="${port}"]`); if (!card) continue;
+        try { const c = await fetportData(`/serial_set_info?port=${port}`); const card = document.querySelector(`[data-port="${port}"]`); if (!card) continue;
             const set = (id, value) => { const e = document.getElementById(id); if (e && value !== undefined) e.value = value; };
+            set(`serial_protocol_${port}`, c.protocol || (c.tcp_mode === 'client' ? 'tcp_client' : 'tcp_server'));
             set(`serial_baud_${port}`, c.baud_rate); set(`serial_data_${port}`, c.data_bit); set(`serial_check_${port}`, convertParityToBackend(c.check_bit)); set(`serial_stop_${port}`, c.stop_bit); set(`serial_frame_time_${port}`, c.frame_time); set(`serial_frame_len_${port}`, c.frame_len); set(`serial_timeout_${port}`, c.reply_timeout); set(`serial_local_port_${port}`, c.local_port); set(`serial_remote_ip_${port}`, c.remote_ip); set(`serial_remote_port_${port}`, c.remote_port);
-            card.querySelectorAll('.serial-mode').forEach(b => b.classList.toggle('active', b.dataset.mode === (c.tcp_mode || 'server'))); card.querySelector('.serial-server-fields').hidden = c.tcp_mode === 'client'; card.querySelector('.serial-client-fields').hidden = c.tcp_mode !== 'client';
+            set(`serial_mqtt_uri_${port}`, c.mqtt_uri); set(`serial_mqtt_client_id_${port}`, c.mqtt_client_id); set(`serial_mqtt_username_${port}`, c.mqtt_username); set(`serial_mqtt_pub_${port}`, c.mqtt_publish_topic); set(`serial_mqtt_sub_${port}`, c.mqtt_subscribe_topic); set(`serial_mqtt_qos_${port}`, c.mqtt_qos); set(`serial_mqtt_retain_${port}`, c.mqtt_retain ? '1' : '0');
+            updateSerialProtocolFields(card);
+            card.dataset.dirty = 'false';
         } catch (e) { console.warn('串口配置读取失败', port, e); }
     }
+    refreshSerialRuntimeStatus();
 }
 
 async function saveIndependentSerialConfig(port, card) {
-    const mode = card.querySelector('.serial-mode.active')?.dataset.mode || 'server';
     const value = id => document.getElementById(id)?.value || '';
+    const protocol = value(`serial_protocol_${port}`) || 'tcp_server';
     const localPort = Number(value(`serial_local_port_${port}`));
-    const payload = { serial_port: port, tcp_mode: mode, local_port: localPort, remote_ip: value(`serial_remote_ip_${port}`).trim(), remote_port: mode === 'client' ? Number(value(`serial_remote_port_${port}`)) : localPort, baud_rate: value(`serial_baud_${port}`), data_bit: value(`serial_data_${port}`), check_bit: value(`serial_check_${port}`), stop_bit: value(`serial_stop_${port}`), frame_time: value(`serial_frame_time_${port}`), frame_len: value(`serial_frame_len_${port}`), reply_timeout: value(`serial_timeout_${port}`) };
+    const payload = { serial_port: port, protocol, local_port: localPort, remote_ip: value(`serial_remote_ip_${port}`).trim(), remote_port: protocol === 'tcp_client' ? Number(value(`serial_remote_port_${port}`)) : localPort, mqtt_uri: value(`serial_mqtt_uri_${port}`).trim(), mqtt_client_id: value(`serial_mqtt_client_id_${port}`).trim(), mqtt_username: value(`serial_mqtt_username_${port}`).trim(), mqtt_password: value(`serial_mqtt_password_${port}`), mqtt_publish_topic: value(`serial_mqtt_pub_${port}`).trim(), mqtt_subscribe_topic: value(`serial_mqtt_sub_${port}`).trim(), mqtt_qos: Number(value(`serial_mqtt_qos_${port}`)), mqtt_retain: value(`serial_mqtt_retain_${port}`) === '1', baud_rate: value(`serial_baud_${port}`), data_bit: value(`serial_data_${port}`), check_bit: value(`serial_check_${port}`), stop_bit: value(`serial_stop_${port}`), frame_time: value(`serial_frame_time_${port}`), frame_len: value(`serial_frame_len_${port}`), reply_timeout: value(`serial_timeout_${port}`) };
     try {
         await postData('/serial_set', payload);
     } catch (e) {
-        showCustomAlert(`${SP603_PORT_LABELS[port] || `CH${port}`} 配置保存失败: ${e.message}`, true);
+        showCustomAlert(`${getSp603PortLabel(port)} 配置保存失败: ${e.message}`, true);
         throw e;
     }
 }
@@ -3969,7 +4072,7 @@ function switchSerialTab(portNumber) {
         selectedTab.style.borderBottom = '2px solid #009ee1';
         selectedTab.style.color = '#009ee1';
     } else {
-        console.error(`找不到CH${portNumber}配置面板或标签`);
+        console.error('串口配置面板或标签不存在');
     }
 
     currentSerialPort = portNumber;
@@ -4022,10 +4125,10 @@ async function handleSerialConfigSubmit() {
                 successCount++;
             }
         } else if (configMode === 'slave_follow') {
-            // 从机跟随：当前硬件仅保留 CH1/CH2
+            // 从机跟随：仅处理当前硬件可用接口。
             const masterPorts = getActiveSerialPorts();
             const defaultPorts = [];
-            await submitPortsWithCachedCH3(masterPorts, defaultPorts);
+            await submitPortsWithCachedInterface(masterPorts, defaultPorts);
             successCount = masterPorts.length + defaultPorts.length;
         }
 
@@ -4051,11 +4154,11 @@ async function handleSerialConfigSubmit() {
 document.getElementById('serialButton')?.addEventListener('click', handleSerialConfigSubmit);
 
 // 提交指定端口并为从机端口使用默认参数的辅助函数 - 使用模块化版本的正确实现
-async function submitPortsWithCachedCH3(masterPorts, defaultPorts) {
+async function submitPortsWithCachedInterface(masterPorts, defaultPorts) {
     const targetMasters = (Array.isArray(masterPorts) && masterPorts.length) ? masterPorts : [1, 2];
     const targetDefaults = (Array.isArray(defaultPorts) && defaultPorts.length) ? defaultPorts : [];
 
-    // 首先保存指定的主站端口（通常是CH1、CH2、CH4、CH5）
+    // 首先保存指定的主站接口。
     for (const port of targetMasters) {
         const data = SerialConfigManager.getPortConfig(port);
         await postData('/serial_set', data);
@@ -4064,7 +4167,7 @@ async function submitPortsWithCachedCH3(masterPorts, defaultPorts) {
     // 为从机端口使用默认参数
     try {
         for (const port of targetDefaults) {
-            const chData = {
+            const portData = {
                 serial_port: port,
                 baud_rate: '9600',
                 data_bit: '8',
@@ -4074,8 +4177,8 @@ async function submitPortsWithCachedCH3(masterPorts, defaultPorts) {
                 frame_len: '512',
                 reply_timeout: '500'
             };
-            await postData('/serial_set', chData);
-            console.log(`CH${port}使用默认参数保存成功:`, chData);
+            await postData('/serial_set', portData);
+            console.log('串口使用默认参数保存成功:', portData);
         }
     } catch (error) {
         console.warn('从机端口默认参数保存失败:', error);
@@ -4205,7 +4308,7 @@ function updateSyncModeCheckIcon(activeMode) {
 // 获取串口参数配置模式
 async function fetchSerialConfigMode() {
     try {
-        const response = await fetchData('/serial_config_mode_info');
+        const response = await fetportData('/serial_config_mode_info');
         const mode = response.config_mode || 'unified'; // 默认为统一配置
 
         // 设置前端选中状态
@@ -4293,7 +4396,7 @@ async function saveSerialConfigMode(mode) {
 }
 
 // 获取串口配置数据 - 使用模块化版本的正确实现
-async function serialfetchData() {
+async function serialfetportData() {
     // SP603 已使用独立串口卡片，避免旧配置面板再次发起重复请求。
     if (document.getElementById('sp603SerialLayoutInlineSave')) return;
     try {
@@ -4303,7 +4406,7 @@ async function serialfetchData() {
         // 获取所有串口的配置数据
         for (const port of getActiveSerialPorts()) {
             try {
-                const responseData = await fetchData(`/serial_set_info?port=${port}`);
+                const responseData = await fetportData(`/serial_set_info?port=${port}`);
 
                 // 使用配置管理系统设置端口数据
                 SerialConfigManager.setPortConfig(port, responseData);
@@ -4338,8 +4441,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 等待一下确保HTML中的函数都已经定义
     setTimeout(() => {
         
-        // 确保CH1相关元素存在
-        const ch1Elements = {
+        // 确保默认串口配置元素存在。
+        const serialPortElements = {
             panel: document.getElementById('serialConfig1'),
             tab: document.getElementById('serialTab1'),
             baud_rate: document.getElementById('baud_rate_1'),
@@ -4358,7 +4461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // 获取串口配置数据
-        serialfetchData();
+        serialfetportData();
     }, 300);
 });
 
@@ -4431,17 +4534,17 @@ function updateSerialCrcPreview() {
 
 // 串口指令提交 - 使用模块化版本的正确实现
 async function serialSubmit() {
-    // 获取选中的调试通道
-    const selectedChannel = document.querySelector('input[name="debug_channel"]:checked');
+    // 获取选中的调试接口。
+    const selectedPort = document.querySelector('input[name="debug_port"]:checked');
     const activePorts = getActiveSerialPorts();
-    let channel = selectedChannel ? parseInt(selectedChannel.value) : activePorts[0];
-    if (!activePorts.includes(channel)) {
-        channel = activePorts[0];
-        const fallbackRadio = document.getElementById(`debug_ch${channel}`);
+    let port = selectedPort ? parseInt(selectedPort.value) : activePorts[0];
+    if (!activePorts.includes(port)) {
+        port = activePorts[0];
+        const fallbackRadio = document.getElementById("debug_" + fallback);
         if (fallbackRadio) fallbackRadio.checked = true;
-        updateChannelSelection();
+        updatePortSelection();
     }
-    if (!Number.isInteger(channel)) {
+    if (!Number.isInteger(port)) {
         showCustomAlert('当前没有可用串口接口', true);
         return;
     }
@@ -4467,7 +4570,7 @@ async function serialSubmit() {
     const data = {
         instruction: instructionToSend,
         sendType: isHexMode ? 'hex' : 'ascii',
-        channel: channel
+        port: port
     };
 
     try {
@@ -4529,12 +4632,12 @@ let pollInterval = null;
 let uartWebSocket = null; // 串口WebSocket连接
 
 // 通道消息统计
-let channelStats = {
-    ch1: 0,
-    ch2: 0,
-    ch3: 0,
-    ch4: 0,
-    ch5: 0,
+let portStats = {
+    com2: 0,
+    com1: 0,
+    rs232: 0,
+    rs422: 0,
+    unused: 0,
     log: 0
 };
 // ==================== 时间格式化（使用ESP32统一时间）====================
@@ -4576,32 +4679,32 @@ function getCurrentTimePrefix() {
 }
 
 // 初始化通道过滤器
-function initChannelFilters() {
+function initPortFilters() {
     // 绑定过滤器复选框事件
-    SUPPORTED_FILTER_CHANNELS.forEach(channel => {
-        const checkbox = document.getElementById(`filter_${channel}`);
+    SUPPORTED_FILTER_PORTS.forEach(port => {
+        const checkbox = document.getElementById(`filter_${port}`);
         if (checkbox) {
-            checkbox.addEventListener('change', applyChannelFilter);
+            checkbox.addEventListener('change', applyPortFilter);
         }
     });
 }
 
 // 应用通道过滤器
-function applyChannelFilter() {
+function applyPortFilter() {
     const resultElement = document.getElementById('devcie_report');
     if (!resultElement) return;
 
     const lines = resultElement.querySelectorAll('.uart-data-line');
     lines.forEach(line => {
-        const channel = line.dataset.channel;
+        const port = line.dataset.port;
         const isLogLine = line.dataset.isLog === '1';
-        const channelCheckbox = document.getElementById(`filter_${channel}`);
+        const portCheckbox = document.getElementById(`filter_${port}`);
         const logCheckbox = document.getElementById('filter_log');
 
-        const channelVisible = !channelCheckbox || channelCheckbox.checked;
+        const portVisible = !portCheckbox || portCheckbox.checked;
         const logVisible = !isLogLine || !logCheckbox || logCheckbox.checked;
 
-        line.style.display = (channelVisible && logVisible) ? 'block' : 'none';
+        line.style.display = (portVisible && logVisible) ? 'block' : 'none';
     });
 }
 
@@ -4613,40 +4716,40 @@ function clearDebugLog() {
     }
 
     // 重置统计
-    channelStats = { ch1: 0, ch2: 0, ch3: 0, ch4: 0, ch5: 0, log: 0 };
-    updateChannelCounts();
+    portStats = { com2: 0, com1: 0, rs232: 0, rs422: 0, unused: 0, log: 0 };
+    updatePortCounts();
 }
 
 // 更新通道统计数量
-function updateChannelCounts() {
-    SUPPORTED_FILTER_CHANNELS.forEach(channel => {
-        const countElement = document.getElementById(`count_${channel}`);
+function updatePortCounts() {
+    SUPPORTED_FILTER_PORTS.forEach(port => {
+        const countElement = document.getElementById(`count_${port}`);
         if (countElement) {
-            countElement.textContent = channelStats[channel];
+            countElement.textContent = portStats[port];
         }
     });
 }
 
 // 创建格式化的UART数据行 - 使用模块化版本的正确实现
 function createFormattedUartRow(data, timestamp) {
-    const channel = (data.channel !== undefined && data.channel !== null) ? data.channel : '?';
-    const channelKey = `ch${channel}`;
+    const port = (data.port !== undefined && data.port !== null) ? data.port : '?';
+    const portKey = getPortKey(port);
     const isHexMode = document.getElementById('tran').checked;
 
     // 更新统计
-    if (channelStats[channelKey] !== undefined) {
-        channelStats[channelKey]++;
-        updateChannelCounts();
+    if (portStats[portKey] !== undefined) {
+        portStats[portKey]++;
+        updatePortCounts();
     }
 
     // 创建数据行元素
     const lineDiv = document.createElement('div');
-    lineDiv.className = `uart-data-line ${data.is_tx ? 'tx' : 'rx'} ${channelKey}`;
-    lineDiv.dataset.channel = channelKey;
+    lineDiv.className = `uart-data-line ${data.is_tx ? 'tx' : 'rx'} ${portKey}`;
+    lineDiv.dataset.port = portKey;
     lineDiv.dataset.isLog = '0';
 
     // 检查是否应该显示此通道
-    const checkbox = document.getElementById(`filter_${channelKey}`);
+    const checkbox = document.getElementById(`filter_${portKey}`);
     if (checkbox && !checkbox.checked) {
         lineDiv.style.display = 'none';
     }
@@ -4656,9 +4759,9 @@ function createFormattedUartRow(data, timestamp) {
     timestampSpan.className = 'uart-timestamp';
     timestampSpan.textContent = `[${timestamp}]`;
 
-    const channelSpan = document.createElement('span');
-    channelSpan.className = `uart-channel ${channelKey}`;
-    channelSpan.textContent = SP603_PORT_LABELS[channel] || `CH${channel}`;
+    const portSpan = document.createElement('span');
+    portSpan.className = `uart-port ${portKey}`;
+    portSpan.textContent = getSp603PortLabel(port);
 
     const directionSpan = document.createElement('span');
     directionSpan.className = `uart-direction ${data.is_tx ? 'tx' : 'rx'}`;
@@ -4672,7 +4775,7 @@ function createFormattedUartRow(data, timestamp) {
 
     // 组装内容
     lineDiv.appendChild(timestampSpan);
-    lineDiv.appendChild(channelSpan);
+    lineDiv.appendChild(portSpan);
     lineDiv.appendChild(directionSpan);
     lineDiv.appendChild(dataSpan);
 
@@ -4681,25 +4784,25 @@ function createFormattedUartRow(data, timestamp) {
 
 // 创建工作模式事件行（超时/丢弃/异常等），与串口数据混排显示
 function createFormattedUartEventRow(data, timestamp) {
-    const channel = (data.channel !== undefined && data.channel !== null) ? data.channel : '?';
-    const channelKey = `ch${channel}`;
+    const port = (data.port !== undefined && data.port !== null) ? data.port : '?';
+    const portKey = getPortKey(port);
     const text = data.text || '';
     const level = (data.level || 'INFO').toUpperCase();
     const source = data.source || 'unknown';
 
     // 更新统计
-    if (channelStats[channelKey] !== undefined) {
-        channelStats[channelKey]++;
+    if (portStats[portKey] !== undefined) {
+        portStats[portKey]++;
     }
-    channelStats.log++;
-    updateChannelCounts();
+    portStats.log++;
+    updatePortCounts();
 
     const lineDiv = document.createElement('div');
-    lineDiv.className = `uart-data-line event ${channelKey}`;
-    lineDiv.dataset.channel = channelKey;
+    lineDiv.className = `uart-data-line event ${portKey}`;
+    lineDiv.dataset.port = portKey;
     lineDiv.dataset.isLog = '1';
 
-    const checkbox = document.getElementById(`filter_${channelKey}`);
+    const checkbox = document.getElementById(`filter_${portKey}`);
     const logCheckbox = document.getElementById('filter_log');
     if ((checkbox && !checkbox.checked) || (logCheckbox && !logCheckbox.checked)) {
         lineDiv.style.display = 'none';
@@ -4709,9 +4812,9 @@ function createFormattedUartEventRow(data, timestamp) {
     timestampSpan.className = 'uart-timestamp';
     timestampSpan.textContent = `[${timestamp}]`;
 
-    const channelSpan = document.createElement('span');
-    channelSpan.className = `uart-channel ${channelKey}`;
-    channelSpan.textContent = SP603_PORT_LABELS[channel] || `CH${channel}`;
+    const portSpan = document.createElement('span');
+    portSpan.className = `uart-port ${portKey}`;
+    portSpan.textContent = getSp603PortLabel(port);
 
     const directionSpan = document.createElement('span');
     directionSpan.className = 'uart-direction event';
@@ -4729,7 +4832,7 @@ function createFormattedUartEventRow(data, timestamp) {
     dataSpan.textContent = text;
 
     lineDiv.appendChild(timestampSpan);
-    lineDiv.appendChild(channelSpan);
+    lineDiv.appendChild(portSpan);
     lineDiv.appendChild(directionSpan);
     lineDiv.appendChild(sourceSpan);
     lineDiv.appendChild(dataSpan);
@@ -4759,31 +4862,31 @@ function updateDisplayMode() {
 }
 
 // 初始化发送通道选择样式
-function initDebugChannelSelection() {
-    const channelRadios = document.querySelectorAll('input[name="debug_channel"]');
+function initDebugPortSelection() {
+    const portRadios = document.querySelectorAll('input[name="debug_port"]');
 
     // 为每个radio绑定change事件
-    channelRadios.forEach(radio => {
-        radio.addEventListener('change', updateChannelSelection);
+    portRadios.forEach(radio => {
+        radio.addEventListener('change', updatePortSelection);
     });
 
     // 初始化选中状态
-    updateChannelSelection();
+    updatePortSelection();
 }
 
 // 更新通道选择样式
-function updateChannelSelection() {
-    const channelItems = document.querySelectorAll('.debug-channel-item');
-    const checkedRadio = document.querySelector('input[name="debug_channel"]:checked');
+function updatePortSelection() {
+    const portItems = document.querySelectorAll('.debug-port-item');
+    const checkedRadio = document.querySelector('input[name="debug_port"]:checked');
 
     // 移除所有选中样式
-    channelItems.forEach(item => {
+    portItems.forEach(item => {
         item.classList.remove('selected');
     });
 
     // 为选中的项添加样式
     if (checkedRadio) {
-        const parentItem = checkedRadio.closest('.debug-channel-item');
+        const parentItem = checkedRadio.closest('.debug-port-item');
         if (parentItem) {
             parentItem.classList.add('selected');
         }
@@ -4839,6 +4942,10 @@ function initUartWebSocket() {
                             resultElement.scrollTop = resultElement.scrollHeight;
                         }
                     }
+                } else if (data.type === 'system_log') {
+                    systemLogEntries.push(data);
+                    if (systemLogEntries.length > 64) systemLogEntries.shift();
+                    renderSystemLogs();
                 }
             } catch (error) {
                 console.error('处理串口WebSocket消息时出错:', error);
@@ -4922,7 +5029,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initUartWebSocket();
 
     // 初始化通道过滤器
-    initChannelFilters();
+    initPortFilters();
 
     // 绑定显示模式切换事件
     const hexRadio = document.getElementById('tran');
@@ -4937,7 +5044,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 初始化发送通道选择样式
-    initDebugChannelSelection();
+    initDebugPortSelection();
     updateSerialCrcPreview();
     
     console.log('✅ 页面初始化完成');
@@ -5010,9 +5117,9 @@ async function apsetSubmit(event) {
     }
 }
 
-async function apsetfetchData() {
+async function apsetfetportData() {
     try {
-        const responseData = await fetchData('/ap_set_info');
+        const responseData = await fetportData('/ap_set_info');
         if (!responseData) {
             console.error('No data returned from /ap_set_info');
             return;
@@ -5045,9 +5152,9 @@ document.getElementById("ap_management_set").addEventListener("submit", event =>
 document.getElementById('apSetButton').addEventListener('click', apsetSubmit);
 
 
-async function netsetfetchData() {
+async function netsetfetportData() {
     try {
-        const responseData = await fetchData('/net_set_info');
+        const responseData = await fetportData('/net_set_info');
         if (!responseData) {
             console.error('No data returned from /net_set_info');
             return;
@@ -5089,8 +5196,8 @@ async function netsetfetchData() {
     }
 }
 
-netsetfetchData();
-apsetfetchData();
+netsetfetportData();
+apsetfetportData();
 
 
 // Search wifi API
@@ -5374,11 +5481,11 @@ function formatTime(microseconds) {
 }
 
 let sysFetchPending = false;
-async function sysfetchData() {
+async function sysfetportData() {
     if (sysFetchPending) return;
     sysFetchPending = true;
     try {
-        const responseData = await fetchData('/sys');
+        const responseData = await fetportData('/sys');
         systemElements.version.textContent = responseData.version;
         const formatPercent = (val) => Number.isFinite(Number(val)) ? Number(val).toFixed(1) + "%" : "---";
         systemElements.cpu0_usage.textContent = formatPercent(responseData.cpu0_usage_percent);
@@ -5403,9 +5510,43 @@ async function sysfetchData() {
     }
 }
 
+let systemLogEntries = [];
+function renderSystemLogs() {
+    const output = document.getElementById('systemLogContent');
+    if (!output) return;
+    if (systemLogEntries.length === 0) {
+        output.textContent = '暂无系统日志';
+        return;
+    }
+    output.textContent = systemLogEntries.map(entry => {
+        const timestamp = formatTimestamp(Number(entry.timestamp || 0));
+        const level = String(entry.level || 'INFO').padEnd(5, ' ');
+        const source = entry.source || 'system';
+        return `[${timestamp}] [${level}] [${source}] ${entry.text || ''}`;
+    }).join('\n');
+    output.scrollTop = output.scrollHeight;
+}
 
-setInterval(sysfetchData, 5000);
-sysfetchData();
+async function fetchSystemLogs() {
+    try {
+        const response = await fetportData('/system_logs');
+        systemLogEntries = Array.isArray(response.logs) ? response.logs : [];
+        renderSystemLogs();
+    } catch (error) {
+        console.error('系统日志读取失败:', error);
+    }
+}
+
+document.getElementById('clearSystemLogs')?.addEventListener('click', () => {
+    systemLogEntries = [];
+    renderSystemLogs();
+});
+
+
+setInterval(sysfetportData, 5000);
+sysfetportData();
+setInterval(fetchSystemLogs, 3000);
+fetchSystemLogs();
 
 // Module set API
 
@@ -5414,6 +5555,12 @@ document.getElementById("module_set").addEventListener("submit", event => event.
 async function modulesetSubmit() {
     const formData = new FormData(document.getElementById('module_set'));
     const data = Object.fromEntries(formData);
+    const confirmation = document.getElementById('confirmPwd')?.value || '';
+    if (data.lgpwd && data.lgpwd !== confirmation) {
+        showCustomAlert('两次输入的密码不一致', true);
+        return;
+    }
+    if (!data.lgpwd) delete data.lgpwd;
     try {
         await postData('/module_set', data);
         document.getElementById('moduleSetButton').textContent = "配置成功";
@@ -5426,17 +5573,27 @@ async function modulesetSubmit() {
 
 document.getElementById('moduleSetButton').addEventListener('click', modulesetSubmit);
 
-async function modulesetfetchData() {
+async function modulesetfetportData() {
     try {
-        const responseData = await fetchData('/module_set_info');
-        ['host_names', 'lgname', 'lgpwd'].forEach(id => document.getElementById(id).value = responseData[id]);
-        document.getElementById('moduleSetButton').textContent = responseData.host_names != "SP603 多网络 IoT 网关" ? '修改' : '保存';
+        const responseData = await fetportData('/module_set_info');
+        ['host_names', 'lgname'].forEach(id => document.getElementById(id).value = responseData[id] || '');
+        document.getElementById('lgpwd').value = '';
+        document.getElementById('confirmPwd').value = '';
+        document.getElementById('moduleSetButton').textContent = responseData.host_names != "SP603-多串口物联网网关" ? '修改' : '保存';
     } catch (error) {
         console.error('Failed to fetch data. Status:', error);
     }
 }
 
-modulesetfetchData();
+modulesetfetportData();
+
+document.getElementById('logoutButton')?.addEventListener('click', async () => {
+    try {
+        await fetch('/logout', {method: 'POST'});
+    } finally {
+        window.location.replace('/');
+    }
+});
 
 // OTA API
 
@@ -5574,7 +5731,7 @@ function handleDeviceRestart() {
     restart.onclick = async () => {
         deviceRestart.style.display = 'none';
         try {
-            await fetchData('/operate');
+            await fetportData('/operate');
             displaySuccessMessage('重启中，请稍后...');
             setTimeout(() => location.reload(), 5000);
         } catch (error) {
@@ -5591,7 +5748,7 @@ async function handleDeviceReset() {
     document.getElementById('restore').addEventListener('click', async () => {
         deviceReset.style.display = 'none';
         try {
-            await fetchData('/restore');
+            await fetportData('/restore');
             displaySuccessMessage('重置中，请稍后...');
             setTimeout(() => location.reload(), 5000);
         } catch (error) {
@@ -5658,7 +5815,8 @@ window.onload = function () {
     var lgpwdInput = document.getElementById('lgpwd');
     var moduleSetButton = document.getElementById('moduleSetButton');
     function checkInput() {
-        if (hostNamesInput.value && lgnameInput.value && lgpwdInput.value) {
+        if (hostNamesInput.value && lgnameInput.value &&
+            (!lgpwdInput.value || lgpwdInput.value.length >= 8)) {
             moduleSetButton.disabled = false;
         } else {
             moduleSetButton.disabled = true;
@@ -6160,7 +6318,7 @@ function setSp603Field(id, value, checked = false) {
 
 async function loadSp603NetworkConfig() {
     try {
-        const cfg = await fetchData('/network_config');
+        const cfg = await fetportData('/network_config');
         setSp603Field('nm_eth_enabled', cfg.ethernet_enabled, true);
         setSp603Field('nm_eth_role', (['backup', 'last'].includes(cfg.ethernet_role) ? 'uplink' : cfg.ethernet_role));
         setSp603Field('nm_eth_ip', cfg.ethernet_lan_ip);
@@ -6384,7 +6542,7 @@ async function refreshSp603NetworkStatus() {
     if (!output || sp603NetworkStatusPending) return;
     sp603NetworkStatusPending = true;
     try {
-        const state = await fetchData('/network_status');
+        const state = await fetportData('/network_status');
         const interfaces = state.interfaces || {};
         renderSp603NetworkInterface('ethernet', interfaces.ethernet);
         renderSp603NetworkInterface('wifi_sta', interfaces.wifi_sta);
@@ -6516,7 +6674,7 @@ function renderSp603SerialPort(port, workMode) {
 
 async function loadSp603SerialLayout() {
     try {
-        const state = await fetchData('/serial_layout');
+        const state = await fetportData('/serial_layout');
         const layout = state && (state.layout === 'rs422' || state.layout === 'dual_rs485')
             ? state.layout : 'dual_rs485';
         document.querySelectorAll('input[name="serialLayout"]').forEach(input => {
@@ -6524,9 +6682,10 @@ async function loadSp603SerialLayout() {
             // UART0 调试控制台由固件能力决定；布局选择本身不再强制置灰 RS422。
             input.disabled = false;
         });
+        savedSp603SerialLayout = layout;
         if (Array.isArray(state.ports)) state.ports.forEach(port => renderSp603SerialPort(port));
         refreshIndependentSerialCards();
-        reorderSp603ChannelChoices();
+        reorderSp603PortChoices();
     } catch (error) {
         console.error('加载 SP603 串口布局失败:', error);
     }
@@ -6549,6 +6708,7 @@ async function saveSp603SerialLayout(showFeedback = true, manageButton = true) {
     try {
         console.info('[SERIAL_LAYOUT] save', { layout });
         const result = await postData('/serial_layout', { layout });
+        savedSp603SerialLayout = layout;
         console.info('[SERIAL_LAYOUT] saved', result);
         if (showFeedback) displaySuccessMessage('SP603 串口布局已保存，重启后生效');
         if (showFeedback && result.reboot_required !== false) {
@@ -6577,11 +6737,27 @@ async function saveSerialLayoutAndConfigs() {
     const original = saveButton.innerHTML;
     saveButton.textContent = '正在保存…';
     try {
-        const layoutResult = await saveSp603SerialLayout(false, false);
-        if (!layoutResult) return;
-        await saveAllIndependentSerialConfigs(false);
-        displaySuccessMessage('串口布局和串口配置保存成功，重启后生效');
-        if (layoutResult.reboot_required !== false) {
+        const layoutChanged = savedSp603SerialLayout !== getSelectedSp603SerialLayout();
+        const dirtyPorts = document.querySelectorAll(
+            '#serialIndependentCards .serial-port-card[data-dirty="true"]'
+        ).length;
+        if (!layoutChanged && dirtyPorts === 0) {
+            displaySuccessMessage('串口配置没有变化');
+            return;
+        }
+        const layoutResult = layoutChanged
+            ? await saveSp603SerialLayout(false, false)
+            : null;
+        if (layoutChanged && !layoutResult) return;
+        const savedPorts = await saveAllIndependentSerialConfigs(false);
+        if (layoutChanged) {
+            displaySuccessMessage(savedPorts > 0
+                ? '串口布局和配置已保存，布局重启后生效'
+                : '串口布局已保存，重启后生效');
+        } else {
+            displaySuccessMessage(`${savedPorts} 路串口配置已保存并生效`);
+        }
+        if (layoutChanged && layoutResult.reboot_required !== false) {
             showRestartConfirmAfterSuccess('串口布局和串口配置已保存，是否立即重启设备使配置生效？');
         }
     } catch (error) {
@@ -6740,6 +6916,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('input[name="serialLayout"]').forEach(input => {
         input.addEventListener('change', refreshIndependentSerialCards);
-        input.addEventListener('change', reorderSp603ChannelChoices);
+        input.addEventListener('change', reorderSp603PortChoices);
     });
 });

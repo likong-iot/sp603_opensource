@@ -176,5 +176,6 @@
 /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/espressif__iot_usbh_modem/libespressif__iot_usbh_modem.a
 /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/espressif__iot_usbh_cdc/libespressif__iot_usbh_cdc.a
 /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/main/libmain.a
+/home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/mqtt/libmqtt.a
 /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/espressif__ethernet_init/libespressif__ethernet_init.a
 /home/master/project/iotGateway/sp603_iotGateWay_v1.0_opensource/build/esp-idf/espressif__iot_usbh_modem/libespressif__iot_usbh_modem.a

@@ -17,7 +17,7 @@ typedef enum {
 typedef struct {
     const char *id;
     const char *label;
-    int channel;
+    int port;
     bool present;
     bool available;
     const char *reserved_by;
@@ -33,8 +33,10 @@ esp_err_t sx_serial_port_manager_save_layout(sx_serial_layout_t layout,
 bool sx_serial_port_manager_uart0_reserved(void);
 size_t sx_serial_port_manager_get_capabilities(sx_serial_port_capability_t *ports,
                                                size_t capacity);
-bool sx_serial_port_manager_channel_available(int channel);
-const char *sx_serial_port_manager_channel_label(int channel);
+bool sx_serial_port_manager_port_available(int port);
+/* Physical port identifiers are also used as the NVS configuration prefix. */
+const char *sx_serial_port_manager_port_key(int port);
+const char *sx_serial_port_manager_port_label(int port);
 
 #ifdef __cplusplus
 }

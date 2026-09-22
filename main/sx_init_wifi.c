@@ -361,8 +361,9 @@ esp_err_t sx_wifi_init_softap_from_nvs(void) {
     ESP_LOGI(TAG, "softAP started");
   }
 
-  ESP_LOGI(TAG, "wifi_init_softap finished. SSID:'%s' password:'%s'",
-           wifi_config.ap.ssid, wifi_config.ap.password);
+  ESP_LOGI(TAG, "wifi_init_softap finished. SSID:'%s' security:%s",
+           wifi_config.ap.ssid,
+           wifi_config.ap.authmode == WIFI_AUTH_OPEN ? "open" : "protected");
   return ESP_OK;
 }
 

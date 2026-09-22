@@ -16,6 +16,7 @@
 #include "sx_work_mode.h"
 #include "sx_serial_port_manager.h"
 #include "sx_serial_resource.h"
+#include "sx_led_manager.h"
 #include "app_task_utils.h"
 
 #define TAG "async_uart"
@@ -31,8 +32,14 @@
 #define TX_WAIT_PRIMARY_MS   1000
 #define TX_WAIT_RETRY_MS     500
 
+static void serial_port_nvs_key(char *key, size_t key_size, int port,
+                                const char *field)
+{
+    snprintf(key, key_size, "%s_%s", sx_serial_port_manager_port_key(port), field);
+}
+
 typedef struct {
-    int channel;
+    int logical_port;
     bool enabled;
     uart_port_t port;
     gpio_num_t tx_pin;
@@ -40,38 +47,38 @@ typedef struct {
     gpio_num_t tx_led;
     gpio_num_t rx_led;
     const char *name;
-} uart_channel_hw_t;
+} uart_port_hw_t;
 
 typedef struct {
     uint8_t data[ASYNC_UART_BUF_SIZE];
     size_t length;
     uint64_t timestamp;
     bool has_data;
-} channel_buffer_t;
+} port_buffer_t;
 
-static uart_channel_hw_t s_channel_hw[ASYNC_UART_MAX_CHANNELS] = {
+static uart_port_hw_t s_port_hw[ASYNC_UART_MAX_PORTS] = {
     {
-        .channel = 1,
+        .logical_port = 1,
         .enabled = true,
         .port = UART_NUM_1,
         .tx_pin = U1TXD,
         .rx_pin = U1RXD,
-        .tx_led = CH1_TX_LED,
-        .rx_led = CH1_RX_LED,
-        .name = "COM2 / RS485-2 (CH1/UART1)",
+        .tx_led = COM2_TX_LED,
+        .rx_led = COM2_RX_LED,
+        .name = "COM2",
     },
     {
-        .channel = 2,
+        .logical_port = 2,
         .enabled = true,
         .port = UART_NUM_2,
         .tx_pin = U2TXD,
         .rx_pin = U2RXD,
-        .tx_led = CH2_TX_LED,
-        .rx_led = CH2_RX_LED,
-        .name = "RS232 (CH2/UART2)",
+        .tx_led = RS232_TX_LED,
+        .rx_led = RS232_RX_LED,
+        .name = "RS232",
     },
     {
-        .channel = 3,
+        .logical_port = 3,
 #if ASYNC_UART_ENABLE_UART0
         .enabled = true,
 #else
@@ -80,14 +87,11 @@ static uart_channel_hw_t s_channel_hw[ASYNC_UART_MAX_CHANNELS] = {
         .port = UART_NUM_0,
         .tx_pin = U0TXD,
         .rx_pin = U0RXD,
-        .tx_led = CH3_TX_LED,
-        .rx_led = CH3_RX_LED,
-        .name = "COM1 / RS485-1 (CH3/UART0)",
+        .tx_led = COM1_TX_LED,
+        .rx_led = COM1_RX_LED,
+        .name = "COM1",
     },
 };
-static bool s_tx_led_active[ASYNC_UART_MAX_CHANNELS] = {false};
-static bool s_rx_led_active[ASYNC_UART_MAX_CHANNELS] = {false};
-static portMUX_TYPE s_led_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
 uint8_t dataArray[] = {0};
 EXT_RAM_BSS_ATTR uint8_t uart_response[ASYNC_UART_BUF_SIZE] = {0};
@@ -97,46 +101,45 @@ size_t tx_data_len = 0;
 uart_timestamps_t uart_timestamps = {0};
 portMUX_TYPE uart_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-static EXT_RAM_BSS_ATTR channel_buffer_t s_channel_buffers[ASYNC_UART_MAX_CHANNELS] = {0};
-static portMUX_TYPE s_channel_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static EXT_RAM_BSS_ATTR port_buffer_t s_port_buffers[ASYNC_UART_MAX_PORTS] = {0};
+static portMUX_TYPE s_port_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-static channel_uart_config_t s_runtime_config[ASYNC_UART_MAX_CHANNELS] = {0};
-static bool s_runtime_config_valid[ASYNC_UART_MAX_CHANNELS] = {false};
+static serial_port_config_t s_runtime_config[ASYNC_UART_MAX_PORTS] = {0};
+static bool s_runtime_config_valid[ASYNC_UART_MAX_PORTS] = {false};
 static portMUX_TYPE s_runtime_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-static TaskHandle_t s_rx_task_handles[ASYNC_UART_MAX_CHANNELS] = {NULL};
+static TaskHandle_t s_rx_task_handles[ASYNC_UART_MAX_PORTS] = {NULL};
 
 static volatile bool s_reinit_in_progress = false;
 static portMUX_TYPE s_reinit_spinlock = portMUX_INITIALIZER_UNLOCKED;
 
-static volatile bool s_led_animation_active = false;
 static uart_config_mode_t s_uart_config_mode = UART_CONFIG_MODE_NORMAL;
 
-static int channel_to_index(int channel)
+static int port_to_index(int port)
 {
-    if (channel < 1 || channel > ASYNC_UART_MAX_CHANNELS) {
+    if (port < 1 || port > ASYNC_UART_MAX_PORTS) {
         return -1;
     }
-    return channel - 1;
+    return port - 1;
 }
 
-static int channel_from_uart_num(uart_port_t uart_num)
+static int port_from_uart_num(uart_port_t uart_num)
 {
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
-        if (s_channel_hw[i].port == uart_num) {
-            return s_channel_hw[i].channel;
+    for (int i = 0; i < ASYNC_UART_MAX_PORTS; i++) {
+        if (s_port_hw[i].port == uart_num) {
+            return s_port_hw[i].logical_port;
         }
     }
     return -1;
 }
 
-static const uart_channel_hw_t *get_channel_hw(int channel)
+static const uart_port_hw_t *get_port_hw(int port)
 {
-    int idx = channel_to_index(channel);
-    if (idx < 0 || !s_channel_hw[idx].enabled) {
+    int idx = port_to_index(port);
+    if (idx < 0 || !s_port_hw[idx].enabled) {
         return NULL;
     }
-    return &s_channel_hw[idx];
+    return &s_port_hw[idx];
 }
 
 static inline void set_reinit_in_progress(bool in_progress)
@@ -241,187 +244,106 @@ static int calc_rx_buffer_size(int frame_len)
     return ASYNC_UART_BUF_SIZE;
 }
 
-static gpio_num_t tx_led_pin_from_channel(int channel)
+static gpio_num_t tx_led_pin_from_port(int port)
 {
-    const uart_channel_hw_t *hw = get_channel_hw(channel);
+    const uart_port_hw_t *hw = get_port_hw(port);
     if (!hw) {
         return GPIO_NUM_NC;
     }
     return hw->tx_led;
 }
 
-static gpio_num_t rx_led_pin_from_channel(int channel)
+static gpio_num_t rx_led_pin_from_port(int port)
 {
-    const uart_channel_hw_t *hw = get_channel_hw(channel);
+    const uart_port_hw_t *hw = get_port_hw(port);
     if (!hw) {
         return GPIO_NUM_NC;
     }
     return hw->rx_led;
 }
 
-static void uart_led_set_level(gpio_num_t pin, uint32_t level, bool force)
+void uart_tx_led_on_by_port(int port)
 {
-    if (pin == GPIO_NUM_NC) {
-        return;
-    }
-    if (!force && s_led_animation_active) {
-        return;
-    }
-    gpio_set_level(pin, level);
+    sx_led_manager_serial_begin(tx_led_pin_from_port(port));
 }
 
-void uart_tx_led_on_by_channel(int channel)
+void uart_tx_led_off_by_port(int port)
 {
-    int idx = channel_to_index(channel);
-    const uart_channel_hw_t *hw = get_channel_hw(channel);
-    if (idx < 0 || hw == NULL) return;
-    portENTER_CRITICAL(&s_led_spinlock);
-    s_tx_led_active[idx] = true;
-    bool level = (s_tx_led_active[idx] ||
-                  (hw->tx_led == hw->rx_led && s_rx_led_active[idx])) ? 0 : 1;
-    portEXIT_CRITICAL(&s_led_spinlock);
-    uart_led_set_level(hw->tx_led, level, false);
+    sx_led_manager_serial_end(tx_led_pin_from_port(port));
 }
 
-void uart_tx_led_off_by_channel(int channel)
+void uart_rx_led_on_by_port(int port)
 {
-    int idx = channel_to_index(channel);
-    const uart_channel_hw_t *hw = get_channel_hw(channel);
-    if (idx < 0 || hw == NULL) return;
-    portENTER_CRITICAL(&s_led_spinlock);
-    s_tx_led_active[idx] = false;
-    bool level = (s_tx_led_active[idx] ||
-                  (hw->tx_led == hw->rx_led && s_rx_led_active[idx])) ? 0 : 1;
-    portEXIT_CRITICAL(&s_led_spinlock);
-    uart_led_set_level(hw->tx_led, level, false);
+    sx_led_manager_serial_begin(rx_led_pin_from_port(port));
 }
 
-void uart_rx_led_on_by_channel(int channel)
+void uart_rx_led_off_by_port(int port)
 {
-    int idx = channel_to_index(channel);
-    const uart_channel_hw_t *hw = get_channel_hw(channel);
-    if (idx < 0 || hw == NULL) return;
-    portENTER_CRITICAL(&s_led_spinlock);
-    s_rx_led_active[idx] = true;
-    bool level = (s_rx_led_active[idx] ||
-                  (hw->tx_led == hw->rx_led && s_tx_led_active[idx])) ? 0 : 1;
-    portEXIT_CRITICAL(&s_led_spinlock);
-    uart_led_set_level(hw->rx_led, level, false);
-}
-
-void uart_rx_led_off_by_channel(int channel)
-{
-    int idx = channel_to_index(channel);
-    const uart_channel_hw_t *hw = get_channel_hw(channel);
-    if (idx < 0 || hw == NULL) return;
-    portENTER_CRITICAL(&s_led_spinlock);
-    s_rx_led_active[idx] = false;
-    bool level = (s_rx_led_active[idx] ||
-                  (hw->tx_led == hw->rx_led && s_tx_led_active[idx])) ? 0 : 1;
-    portEXIT_CRITICAL(&s_led_spinlock);
-    uart_led_set_level(hw->rx_led, level, false);
+    sx_led_manager_serial_end(rx_led_pin_from_port(port));
 }
 
 void uart_tx_led_on(int uart_num)
 {
-    int channel = channel_from_uart_num((uart_port_t)uart_num);
-    if (channel > 0) {
-        uart_tx_led_on_by_channel(channel);
+    int port = port_from_uart_num((uart_port_t)uart_num);
+    if (port > 0) {
+        uart_tx_led_on_by_port(port);
     }
 }
 
 void uart_tx_led_off(int uart_num)
 {
-    int channel = channel_from_uart_num((uart_port_t)uart_num);
-    if (channel > 0) {
-        uart_tx_led_off_by_channel(channel);
+    int port = port_from_uart_num((uart_port_t)uart_num);
+    if (port > 0) {
+        uart_tx_led_off_by_port(port);
     }
 }
 
 void uart_rx_led_on(int uart_num)
 {
-    int channel = channel_from_uart_num((uart_port_t)uart_num);
-    if (channel > 0) {
-        uart_rx_led_on_by_channel(channel);
+    int port = port_from_uart_num((uart_port_t)uart_num);
+    if (port > 0) {
+        uart_rx_led_on_by_port(port);
     }
 }
 
 void uart_rx_led_off(int uart_num)
 {
-    int channel = channel_from_uart_num((uart_port_t)uart_num);
-    if (channel > 0) {
-        uart_rx_led_off_by_channel(channel);
+    int port = port_from_uart_num((uart_port_t)uart_num);
+    if (port > 0) {
+        uart_rx_led_off_by_port(port);
     }
 }
 
 void uart_led_init(void)
 {
-    uint64_t mask = 0;
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
-        if (!s_channel_hw[i].enabled) {
-            continue;
-        }
-        if (s_channel_hw[i].tx_led != GPIO_NUM_NC) {
-            mask |= (1ULL << s_channel_hw[i].tx_led);
-        }
-        if (s_channel_hw[i].rx_led != GPIO_NUM_NC) {
-            mask |= (1ULL << s_channel_hw[i].rx_led);
-        }
+    /* GPIO ownership and pulse expiry belong to the LED manager. */
+    ESP_ERROR_CHECK(sx_led_manager_init());
+    sx_led_manager_serial_clear(LED_COM1);
+    sx_led_manager_serial_clear(LED_COM2);
+    sx_led_manager_serial_clear(LED_232);
+}
+
+/* Retained for callers explicitly requesting a lamp test; normal boot and
+ * reset do not use the serial activity LEDs for an animation. */
+static void uart_led_test(unsigned duration_ms)
+{
+    for (int port = 1; port <= ASYNC_UART_MAX_PORTS; ++port) {
+        uart_tx_led_on_by_port(port);
+        uart_rx_led_on_by_port(port);
     }
-
-    if (mask == 0) {
-        return;
-    }
-
-    gpio_config_t led_cfg = {
-        .pin_bit_mask = mask,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&led_cfg);
-
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
-        if (!s_channel_hw[i].enabled) {
-            continue;
-        }
-        uart_tx_led_off_by_channel(s_channel_hw[i].channel);
-        uart_rx_led_off_by_channel(s_channel_hw[i].channel);
+    vTaskDelay(pdMS_TO_TICKS(duration_ms));
+    for (int port = 1; port <= ASYNC_UART_MAX_PORTS; ++port) {
+        uart_tx_led_off_by_port(port);
+        uart_rx_led_off_by_port(port);
     }
 }
 
-void uart_led_boot_animation(void)
-{
-    s_led_animation_active = true;
-    for (int ch = 1; ch <= ASYNC_UART_MAX_CHANNELS; ch++) {
-        uart_led_set_level(rx_led_pin_from_channel(ch), 0, true);
-    }
-    vTaskDelay(pdMS_TO_TICKS(250));
-    for (int ch = 1; ch <= ASYNC_UART_MAX_CHANNELS; ch++) {
-        uart_led_set_level(rx_led_pin_from_channel(ch), 1, true);
-    }
-    s_led_animation_active = false;
-}
+void uart_led_boot_animation(void) { uart_led_test(250); }
+void uart_led_reset_animation(void) { uart_led_test(120); }
 
-void uart_led_reset_animation(void)
+void set_current_runtime_config(int port, const serial_port_config_t *config)
 {
-    s_led_animation_active = true;
-    for (int ch = 1; ch <= ASYNC_UART_MAX_CHANNELS; ch++) {
-        uart_led_set_level(tx_led_pin_from_channel(ch), 0, true);
-        uart_led_set_level(rx_led_pin_from_channel(ch), 0, true);
-    }
-    vTaskDelay(pdMS_TO_TICKS(120));
-    for (int ch = 1; ch <= ASYNC_UART_MAX_CHANNELS; ch++) {
-        uart_led_set_level(tx_led_pin_from_channel(ch), 1, true);
-        uart_led_set_level(rx_led_pin_from_channel(ch), 1, true);
-    }
-    s_led_animation_active = false;
-}
-
-void set_current_runtime_config(int channel, const channel_uart_config_t *config)
-{
-    int idx = channel_to_index(channel);
+    int idx = port_to_index(port);
     if (idx < 0 || config == NULL) {
         return;
     }
@@ -432,9 +354,9 @@ void set_current_runtime_config(int channel, const channel_uart_config_t *config
     portEXIT_CRITICAL(&s_runtime_spinlock);
 }
 
-esp_err_t get_current_runtime_config(int channel, channel_uart_config_t *config)
+esp_err_t get_current_runtime_config(int port, serial_port_config_t *config)
 {
-    int idx = channel_to_index(channel);
+    int idx = port_to_index(port);
     if (idx < 0 || config == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
@@ -450,9 +372,9 @@ esp_err_t get_current_runtime_config(int channel, channel_uart_config_t *config)
     return valid ? ESP_OK : ESP_ERR_NOT_FOUND;
 }
 
-void clear_runtime_config(int channel)
+void clear_runtime_config(int port)
 {
-    int idx = channel_to_index(channel);
+    int idx = port_to_index(port);
     if (idx < 0) {
         return;
     }
@@ -463,31 +385,31 @@ void clear_runtime_config(int channel)
     portEXIT_CRITICAL(&s_runtime_spinlock);
 }
 
-static void clear_all_channel_buffers(void)
+static void clear_all_port_buffers(void)
 {
-    portENTER_CRITICAL(&s_channel_spinlock);
-    memset(s_channel_buffers, 0, sizeof(s_channel_buffers));
-    portEXIT_CRITICAL(&s_channel_spinlock);
+    portENTER_CRITICAL(&s_port_spinlock);
+    memset(s_port_buffers, 0, sizeof(s_port_buffers));
+    portEXIT_CRITICAL(&s_port_spinlock);
 }
 
-void clear_channel_data(int channel)
+void clear_port_data(int port)
 {
-    int idx = channel_to_index(channel);
+    int idx = port_to_index(port);
     if (idx < 0) {
         return;
     }
 
-    portENTER_CRITICAL(&s_channel_spinlock);
-    memset(s_channel_buffers[idx].data, 0, sizeof(s_channel_buffers[idx].data));
-    s_channel_buffers[idx].length = 0;
-    s_channel_buffers[idx].timestamp = 0;
-    s_channel_buffers[idx].has_data = false;
-    portEXIT_CRITICAL(&s_channel_spinlock);
+    portENTER_CRITICAL(&s_port_spinlock);
+    memset(s_port_buffers[idx].data, 0, sizeof(s_port_buffers[idx].data));
+    s_port_buffers[idx].length = 0;
+    s_port_buffers[idx].timestamp = 0;
+    s_port_buffers[idx].has_data = false;
+    portEXIT_CRITICAL(&s_port_spinlock);
 }
 
-int get_channel_data(int channel, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp)
+int get_port_data(int port, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp)
 {
-    int idx = channel_to_index(channel);
+    int idx = port_to_index(port);
     if (idx < 0 || buffer == NULL || buffer_size == 0) {
         return -1;
     }
@@ -495,16 +417,16 @@ int get_channel_data(int channel, uint8_t *buffer, size_t buffer_size, uint64_t 
     size_t copy_size = 0;
     uint64_t ts = 0;
 
-    portENTER_CRITICAL(&s_channel_spinlock);
-    if (s_channel_buffers[idx].has_data) {
-        copy_size = s_channel_buffers[idx].length;
+    portENTER_CRITICAL(&s_port_spinlock);
+    if (s_port_buffers[idx].has_data) {
+        copy_size = s_port_buffers[idx].length;
         if (copy_size > buffer_size) {
             copy_size = buffer_size;
         }
-        memcpy(buffer, s_channel_buffers[idx].data, copy_size);
-        ts = s_channel_buffers[idx].timestamp;
+        memcpy(buffer, s_port_buffers[idx].data, copy_size);
+        ts = s_port_buffers[idx].timestamp;
     }
-    portEXIT_CRITICAL(&s_channel_spinlock);
+    portEXIT_CRITICAL(&s_port_spinlock);
 
     if (copy_size == 0) {
         return 0;
@@ -517,9 +439,9 @@ int get_channel_data(int channel, uint8_t *buffer, size_t buffer_size, uint64_t 
     return (int)copy_size;
 }
 
-int take_channel_data(int channel, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp)
+int take_port_data(int port, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp)
 {
-    int idx = channel_to_index(channel);
+    int idx = port_to_index(port);
     if (idx < 0 || buffer == NULL || buffer_size == 0) {
         return -1;
     }
@@ -527,20 +449,20 @@ int take_channel_data(int channel, uint8_t *buffer, size_t buffer_size, uint64_t
     size_t copy_size = 0;
     uint64_t ts = 0;
 
-    portENTER_CRITICAL(&s_channel_spinlock);
-    if (s_channel_buffers[idx].has_data) {
-        copy_size = s_channel_buffers[idx].length;
+    portENTER_CRITICAL(&s_port_spinlock);
+    if (s_port_buffers[idx].has_data) {
+        copy_size = s_port_buffers[idx].length;
         if (copy_size > buffer_size) {
             copy_size = buffer_size;
         }
-        memcpy(buffer, s_channel_buffers[idx].data, copy_size);
-        ts = s_channel_buffers[idx].timestamp;
+        memcpy(buffer, s_port_buffers[idx].data, copy_size);
+        ts = s_port_buffers[idx].timestamp;
 
-        s_channel_buffers[idx].length = 0;
-        s_channel_buffers[idx].timestamp = 0;
-        s_channel_buffers[idx].has_data = false;
+        s_port_buffers[idx].length = 0;
+        s_port_buffers[idx].timestamp = 0;
+        s_port_buffers[idx].has_data = false;
     }
-    portEXIT_CRITICAL(&s_channel_spinlock);
+    portEXIT_CRITICAL(&s_port_spinlock);
 
     if (copy_size == 0) {
         return 0;
@@ -598,13 +520,13 @@ static const char *stop_bits_to_nvs_string(uart_stop_bits_t stop_bits)
     }
 }
 
-static void fill_default_config(int channel, channel_uart_config_t *config)
+static void fill_default_config(int port, serial_port_config_t *config)
 {
     if (!config) {
         return;
     }
 
-    config->channel = channel;
+    config->port = port;
     config->baudrate = DEFAULT_BAUDRATE;
     config->data_bits = DEFAULT_DATA_BITS;
     config->parity = DEFAULT_PARITY;
@@ -614,7 +536,7 @@ static void fill_default_config(int channel, channel_uart_config_t *config)
     config->timeout = DEFAULT_TIMEOUT;
 }
 
-static esp_err_t write_channel_config_to_nvs(const channel_uart_config_t *config)
+static esp_err_t write_port_config_to_nvs(const serial_port_config_t *config)
 {
     if (config == NULL) {
         return ESP_ERR_INVALID_ARG;
@@ -629,29 +551,29 @@ static esp_err_t write_channel_config_to_nvs(const channel_uart_config_t *config
     char key[32];
     char value[24];
 
-    snprintf(key, sizeof(key), "ch%d_baud_rate", config->channel);
+    serial_port_nvs_key(key, sizeof(key), config->port, "baud");
     snprintf(value, sizeof(value), "%d", config->baudrate);
     ESP_GOTO_ON_ERROR(nvs_set_str(handle, key, value), out, TAG, "set %s failed", key);
 
-    snprintf(key, sizeof(key), "ch%d_data_bit", config->channel);
+    serial_port_nvs_key(key, sizeof(key), config->port, "data");
     snprintf(value, sizeof(value), "%d", (int)normalize_data_bits(config->data_bits) + 5);
     ESP_GOTO_ON_ERROR(nvs_set_str(handle, key, value), out, TAG, "set %s failed", key);
 
-    snprintf(key, sizeof(key), "ch%d_check_bit", config->channel);
+    serial_port_nvs_key(key, sizeof(key), config->port, "parity");
     ESP_GOTO_ON_ERROR(nvs_set_str(handle, key, parity_to_nvs_string(config->parity)), out, TAG, "set %s failed", key);
 
-    snprintf(key, sizeof(key), "ch%d_stop_bit", config->channel);
+    serial_port_nvs_key(key, sizeof(key), config->port, "stop");
     ESP_GOTO_ON_ERROR(nvs_set_str(handle, key, stop_bits_to_nvs_string(config->stop_bits)), out, TAG, "set %s failed", key);
 
-    snprintf(key, sizeof(key), "ch%d_frame_time", config->channel);
+    serial_port_nvs_key(key, sizeof(key), config->port, "ftime");
     snprintf(value, sizeof(value), "%d", normalize_frame_time(config->frame_time));
     ESP_GOTO_ON_ERROR(nvs_set_str(handle, key, value), out, TAG, "set %s failed", key);
 
-    snprintf(key, sizeof(key), "ch%d_frame_len", config->channel);
+    serial_port_nvs_key(key, sizeof(key), config->port, "flen");
     snprintf(value, sizeof(value), "%d", normalize_frame_len(config->frame_len));
     ESP_GOTO_ON_ERROR(nvs_set_str(handle, key, value), out, TAG, "set %s failed", key);
 
-    snprintf(key, sizeof(key), "ch%d_timeout", config->channel);
+    serial_port_nvs_key(key, sizeof(key), config->port, "timeout");
     snprintf(value, sizeof(value), "%d", config->timeout > 0 ? config->timeout : DEFAULT_TIMEOUT);
     ESP_GOTO_ON_ERROR(nvs_set_str(handle, key, value), out, TAG, "set %s failed", key);
 
@@ -677,14 +599,14 @@ static esp_err_t nvs_get_str_fixed(nvs_handle_t handle, const char *key, char *o
     return nvs_get_str(handle, key, out, &required);
 }
 
-esp_err_t get_channel_uart_config_from_nvs(int channel, channel_uart_config_t *config)
+esp_err_t get_port_uart_config_from_nvs(int port, serial_port_config_t *config)
 {
-    int idx = channel_to_index(channel);
+    int idx = port_to_index(port);
     if (idx < 0 || config == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    const uart_channel_hw_t *hw = &s_channel_hw[idx];
+    const uart_port_hw_t *hw = &s_port_hw[idx];
     if (!hw->enabled) {
         return ESP_ERR_NOT_SUPPORTED;
     }
@@ -697,22 +619,22 @@ esp_err_t get_channel_uart_config_from_nvs(int channel, channel_uart_config_t *c
 
     char key[32];
     char value[24];
-    channel_uart_config_t cfg;
-    fill_default_config(channel, &cfg);
+    serial_port_config_t cfg;
+    fill_default_config(port, &cfg);
 
-    snprintf(key, sizeof(key), "ch%d_baud_rate", channel);
+    serial_port_nvs_key(key, sizeof(key), port, "baud");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
     cfg.baudrate = atoi(value);
 
-    snprintf(key, sizeof(key), "ch%d_data_bit", channel);
+    serial_port_nvs_key(key, sizeof(key), port, "data");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
     cfg.data_bits = normalize_data_bits((uart_word_length_t)atoi(value));
 
-    snprintf(key, sizeof(key), "ch%d_check_bit", channel);
+    serial_port_nvs_key(key, sizeof(key), port, "parity");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
     cfg.parity = parse_parity_from_string(value);
 
-    snprintf(key, sizeof(key), "ch%d_stop_bit", channel);
+    serial_port_nvs_key(key, sizeof(key), port, "stop");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
     if (strcmp(value, "1.5") == 0) {
         cfg.stop_bits = UART_STOP_BITS_1_5;
@@ -722,15 +644,15 @@ esp_err_t get_channel_uart_config_from_nvs(int channel, channel_uart_config_t *c
         cfg.stop_bits = UART_STOP_BITS_1;
     }
 
-    snprintf(key, sizeof(key), "ch%d_frame_time", channel);
+    serial_port_nvs_key(key, sizeof(key), port, "ftime");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
     cfg.frame_time = normalize_frame_time(atoi(value));
 
-    snprintf(key, sizeof(key), "ch%d_frame_len", channel);
+    serial_port_nvs_key(key, sizeof(key), port, "flen");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
     cfg.frame_len = normalize_frame_len(atoi(value));
 
-    snprintf(key, sizeof(key), "ch%d_timeout", channel);
+    serial_port_nvs_key(key, sizeof(key), port, "timeout");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
     cfg.timeout = atoi(value);
     if (cfg.timeout <= 0) {
@@ -744,13 +666,13 @@ out:
     return ret;
 }
 
-bool compare_uart_config(const channel_uart_config_t *config1, const channel_uart_config_t *config2)
+bool compare_uart_config(const serial_port_config_t *config1, const serial_port_config_t *config2)
 {
     if (config1 == NULL || config2 == NULL) {
         return false;
     }
 
-    return (config1->channel == config2->channel) &&
+    return (config1->port == config2->port) &&
            (config1->baudrate == config2->baudrate) &&
            (normalize_data_bits(config1->data_bits) == normalize_data_bits(config2->data_bits)) &&
            (normalize_parity(config1->parity) == normalize_parity(config2->parity)) &&
@@ -760,18 +682,18 @@ bool compare_uart_config(const channel_uart_config_t *config1, const channel_uar
            (config1->timeout == config2->timeout);
 }
 
-static esp_err_t apply_channel_config_internal(const channel_uart_config_t *config, bool reinstall_driver)
+static esp_err_t apply_port_config_internal(const serial_port_config_t *config, bool reinstall_driver)
 {
     if (config == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    const uart_channel_hw_t *hw = get_channel_hw(config->channel);
+    const uart_port_hw_t *hw = get_port_hw(config->port);
     if (hw == NULL) {
         return ESP_ERR_NOT_SUPPORTED;
     }
 
-    channel_uart_config_t cfg = *config;
+    serial_port_config_t cfg = *config;
     cfg.data_bits = normalize_data_bits(cfg.data_bits);
     cfg.parity = normalize_parity(cfg.parity);
     cfg.stop_bits = normalize_stop_bits(cfg.stop_bits);
@@ -823,8 +745,8 @@ static esp_err_t apply_channel_config_internal(const channel_uart_config_t *conf
     ESP_RETURN_ON_ERROR(uart_set_rx_full_threshold(hw->port, rx_threshold), TAG, "set threshold failed for %s", hw->name);
 
     uart_flush(hw->port);
-    clear_channel_data(cfg.channel);
-    set_current_runtime_config(cfg.channel, &cfg);
+    clear_port_data(cfg.port);
+    set_current_runtime_config(cfg.port, &cfg);
 
     ESP_LOGI(TAG, "%s configured: baud=%d data=%d parity=%d stop=%d frame_time=%d frame_len=%d",
              hw->name,
@@ -838,9 +760,9 @@ static esp_err_t apply_channel_config_internal(const channel_uart_config_t *conf
     return ESP_OK;
 }
 
-esp_err_t restart_single_channel(int channel, const channel_uart_config_t *config)
+esp_err_t restart_single_port(int port, const serial_port_config_t *config)
 {
-    if (config == NULL || config->channel != channel) {
+    if (config == NULL || config->port != port) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -849,7 +771,7 @@ esp_err_t restart_single_channel(int channel, const channel_uart_config_t *confi
         suspend_all_uart_rx_tasks();
     }
 
-    esp_err_t ret = apply_channel_config_internal(config, true);
+    esp_err_t ret = apply_port_config_internal(config, true);
     if (manage_tasks) {
         resume_all_uart_rx_tasks();
     }
@@ -857,16 +779,17 @@ esp_err_t restart_single_channel(int channel, const channel_uart_config_t *confi
     return ret;
 }
 
-esp_err_t quick_reconfigure_channel(int channel, const channel_uart_config_t *config)
+esp_err_t quick_reconfigure_port(int port, const serial_port_config_t *config)
 {
-    if (config == NULL || config->channel != channel) {
+    if (config == NULL || config->port != port) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    esp_err_t ret = apply_channel_config_internal(config, false);
+    esp_err_t ret = apply_port_config_internal(config, false);
     if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "quick reconfigure CH%d failed(%s), fallback restart", channel, esp_err_to_name(ret));
-        return restart_single_channel(channel, config);
+        ESP_LOGW(TAG, "quick reconfigure %s failed(%s), fallback restart",
+                 sx_serial_port_manager_port_label(port), esp_err_to_name(ret));
+        return restart_single_port(port, config);
     }
 
     return ESP_OK;
@@ -876,8 +799,8 @@ void configure_uart0(int baudrate, uart_word_length_t data_bits,
                      uart_parity_t parity, uart_stop_bits_t stop_bits,
                      int frame_time, int frame_len)
 {
-    channel_uart_config_t cfg = {
-        .channel = 3,
+    serial_port_config_t cfg = {
+        .port = 3,
         .baudrate = baudrate,
         .data_bits = data_bits,
         .parity = parity,
@@ -887,7 +810,7 @@ void configure_uart0(int baudrate, uart_word_length_t data_bits,
         .timeout = DEFAULT_TIMEOUT,
     };
 
-    esp_err_t ret = restart_single_channel(3, &cfg);
+    esp_err_t ret = restart_single_port(3, &cfg);
     if (ret != ESP_OK) {
         ESP_LOGW(TAG, "configure_uart0 skipped: %s", esp_err_to_name(ret));
     }
@@ -897,8 +820,8 @@ void configure_uart1(int baudrate, uart_word_length_t data_bits,
                      uart_parity_t parity, uart_stop_bits_t stop_bits,
                      int frame_time, int frame_len)
 {
-    channel_uart_config_t cfg = {
-        .channel = 1,
+    serial_port_config_t cfg = {
+        .port = 1,
         .baudrate = baudrate,
         .data_bits = data_bits,
         .parity = parity,
@@ -908,7 +831,7 @@ void configure_uart1(int baudrate, uart_word_length_t data_bits,
         .timeout = DEFAULT_TIMEOUT,
     };
 
-    esp_err_t ret = restart_single_channel(1, &cfg);
+    esp_err_t ret = restart_single_port(1, &cfg);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "configure_uart1 failed: %s", esp_err_to_name(ret));
     }
@@ -918,8 +841,8 @@ void configure_uart2(int baudrate, uart_word_length_t data_bits,
                      uart_parity_t parity, uart_stop_bits_t stop_bits,
                      int frame_time, int frame_len)
 {
-    channel_uart_config_t cfg = {
-        .channel = 2,
+    serial_port_config_t cfg = {
+        .port = 2,
         .baudrate = baudrate,
         .data_bits = data_bits,
         .parity = parity,
@@ -929,7 +852,7 @@ void configure_uart2(int baudrate, uart_word_length_t data_bits,
         .timeout = DEFAULT_TIMEOUT,
     };
 
-    esp_err_t ret = restart_single_channel(2, &cfg);
+    esp_err_t ret = restart_single_port(2, &cfg);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "configure_uart2 failed: %s", esp_err_to_name(ret));
     }
@@ -937,9 +860,9 @@ void configure_uart2(int baudrate, uart_word_length_t data_bits,
 
 void uart_configure(int baudrate, uart_word_length_t data_bits,
                     uart_parity_t parity, uart_stop_bits_t stop_bits,
-                    int frame_time, int frame_len, int uart_channel)
+                    int frame_time, int frame_len, int uart_port)
 {
-    switch (uart_channel) {
+    switch (uart_port) {
     case 1:
         configure_uart1(baudrate, data_bits, parity, stop_bits, frame_time, frame_len);
         break;
@@ -950,14 +873,14 @@ void uart_configure(int baudrate, uart_word_length_t data_bits,
         configure_uart0(baudrate, data_bits, parity, stop_bits, frame_time, frame_len);
         break;
     default:
-        ESP_LOGW(TAG, "uart_configure invalid channel=%d", uart_channel);
+        ESP_LOGW(TAG, "uart_configure invalid port=%d", uart_port);
         break;
     }
 }
 
-void select_uart_channel(int channel)
+void select_uart_port(int port)
 {
-    ESP_LOGI(TAG, "select_uart_channel(%d): this project uses explicit channel routing", channel);
+    ESP_LOGI(TAG, "select_uart_port(%d): this project uses explicit port routing", port);
 }
 
 static void update_tx_mirror(const uint8_t *data, size_t length)
@@ -991,39 +914,42 @@ int sendDataToUart(char *data, size_t length, uart_port_t uart_num)
         return tx_bytes;
     }
 
+    /* Only a successful driver write indicates TX activity. Keep the lamp
+     * on while the final bytes drain, then let the manager expire the pulse. */
+    uart_tx_led_on(uart_num);
     esp_err_t err = uart_wait_tx_done(uart_num, pdMS_TO_TICKS(TX_WAIT_PRIMARY_MS));
     if (err != ESP_OK) {
         vTaskDelay(pdMS_TO_TICKS(10));
         (void)uart_wait_tx_done(uart_num, pdMS_TO_TICKS(TX_WAIT_RETRY_MS));
     }
 
+    uart_tx_led_off(uart_num);
     send_uart_to_websocket_from_port((const uint8_t *)data, (size_t)tx_bytes, true, uart_num);
 
     return tx_bytes;
 }
 
-void tx_tasks_to_channel(uint8_t data[], size_t length, int channel)
+void tx_tasks_to_port(uint8_t data[], size_t length, int port)
 {
-    const int physical_tx_channel = sx_serial_resource_tx_channel(channel);
-    const uart_channel_hw_t *hw = get_channel_hw(physical_tx_channel);
+    const int physical_tx_port = sx_serial_resource_tx_port(port);
+    const uart_port_hw_t *hw = get_port_hw(physical_tx_port);
     if (hw == NULL || data == NULL || length == 0) {
-        ESP_LOGW(TAG, "logical CH%d has no TX resource (physical=%d)", channel, physical_tx_channel);
+        ESP_LOGW(TAG, "%s has no TX resource (physical index=%d)",
+                 sx_serial_port_manager_port_label(port), physical_tx_port);
         return;
     }
 
-    uart_tx_led_on_by_channel(physical_tx_channel);
     (void)sendDataToUart((char *)data, length, hw->port);
-    uart_tx_led_off_by_channel(physical_tx_channel);
 }
 
-void send_data_to_channel(int channel, char *data, size_t length)
+void send_data_to_port(int port, char *data, size_t length)
 {
-    tx_tasks_to_channel((uint8_t *)data, length, channel);
+    tx_tasks_to_port((uint8_t *)data, length, port);
 }
 
-static void rx_task_for_channel_loop(int channel)
+static void rx_task_for_port_loop(int port)
 {
-    const uart_channel_hw_t *hw = get_channel_hw(channel);
+    const uart_port_hw_t *hw = get_port_hw(port);
     if (!hw) {
         return;
     }
@@ -1034,7 +960,8 @@ static void rx_task_for_channel_loop(int channel)
         frame_buf = (uint8_t *)malloc(ASYNC_UART_BUF_SIZE);
     }
     if (!frame_buf) {
-        ESP_LOGE(TAG, "malloc frame buffer failed for CH%d", channel);
+        ESP_LOGE(TAG, "malloc frame buffer failed for %s",
+                 sx_serial_port_manager_port_label(port));
         return;
     }
 
@@ -1044,9 +971,9 @@ static void rx_task_for_channel_loop(int channel)
             continue;
         }
 
-        channel_uart_config_t cfg;
-        if (get_current_runtime_config(channel, &cfg) != ESP_OK) {
-            fill_default_config(channel, &cfg);
+        serial_port_config_t cfg;
+        if (get_current_runtime_config(port, &cfg) != ESP_OK) {
+            fill_default_config(port, &cfg);
         }
 
         int frame_time_ms = normalize_frame_time(cfg.frame_time);
@@ -1076,10 +1003,9 @@ static void rx_task_for_channel_loop(int channel)
             }
         }
 
-        /* Indicate a completed frame, not every byte/read wake-up.  This
-         * prevents COM2 from appearing continuously active on line noise. */
-        uart_rx_led_on_by_channel(channel);
-
+        /* Show one pulse for a completed frame. Per-read pulses make line
+         * noise look like continuous COM activity. */
+        sx_led_manager_serial_activity(hw->rx_led);
         uart_timestamps.rx_timestamp = esp_timer_get_time();
 
         portENTER_CRITICAL(&uart_spinlock);
@@ -1088,22 +1014,20 @@ static void rx_task_for_channel_loop(int channel)
         response_len = total;
         portEXIT_CRITICAL(&uart_spinlock);
 
-        int idx = channel_to_index(channel);
+        int idx = port_to_index(port);
         if (idx >= 0) {
-            portENTER_CRITICAL(&s_channel_spinlock);
-            memcpy(s_channel_buffers[idx].data, frame_buf, total);
-            s_channel_buffers[idx].length = total;
-            s_channel_buffers[idx].timestamp = uart_timestamps.rx_timestamp;
-            s_channel_buffers[idx].has_data = true;
-            portEXIT_CRITICAL(&s_channel_spinlock);
+            portENTER_CRITICAL(&s_port_spinlock);
+            memcpy(s_port_buffers[idx].data, frame_buf, total);
+            s_port_buffers[idx].length = total;
+            s_port_buffers[idx].timestamp = uart_timestamps.rx_timestamp;
+            s_port_buffers[idx].has_data = true;
+            portEXIT_CRITICAL(&s_port_spinlock);
         }
 
-        const int logical_channel = sx_serial_resource_logical_from_physical_rx(channel);
-        send_uart_to_websocket_async(frame_buf, total, false, logical_channel);
-        sx_work_mode_handle_uart_data(logical_channel, frame_buf, total);
+        const int logical_port = sx_serial_resource_logical_from_physical_rx(port);
+        send_uart_to_websocket_async(frame_buf, total, false, logical_port);
+        sx_work_mode_handle_uart_data(logical_port, frame_buf, total);
 
-        vTaskDelay(pdMS_TO_TICKS(20));
-        uart_rx_led_off_by_channel(channel);
     }
 
     free(frame_buf);
@@ -1112,14 +1036,14 @@ static void rx_task_for_channel_loop(int channel)
 void rx_task_for_uart(uart_port_t uart_num, void *arg)
 {
     (void)arg;
-    int channel = channel_from_uart_num(uart_num);
-    if (channel < 1) {
+    int port = port_from_uart_num(uart_num);
+    if (port < 1) {
         ESP_LOGE(TAG, "rx_task_for_uart invalid uart_num=%d", uart_num);
         delete_self_app_task_with_caps();
         return;
     }
 
-    rx_task_for_channel_loop(channel);
+    rx_task_for_port_loop(port);
 }
 
 void rx_task_for_uart_wrapper(void *arg)
@@ -1130,8 +1054,8 @@ void rx_task_for_uart_wrapper(void *arg)
 
 void create_multi_uart_rx_tasks(void)
 {
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
-        const uart_channel_hw_t *hw = &s_channel_hw[i];
+    for (int i = 0; i < ASYNC_UART_MAX_PORTS; i++) {
+        const uart_port_hw_t *hw = &s_port_hw[i];
         if (!hw->enabled) {
             continue;
         }
@@ -1140,12 +1064,12 @@ void create_multi_uart_rx_tasks(void)
         }
         /* RS422 consumes COM1 TX + COM2 RX; UART0 is TX-only in this layout. */
         if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 &&
-            hw->channel == 3) {
+            hw->port == 3) {
             continue;
         }
 
         char name[20];
-        snprintf(name, sizeof(name), "rx_uart_ch%d", hw->channel);
+        snprintf(name, sizeof(name), "rx_uart_ch%d", hw->port);
         BaseType_t ok = create_app_task_psram(rx_task_for_uart_wrapper,
                                               name,
                                               4096,
@@ -1166,7 +1090,7 @@ void suspend_all_uart_rx_tasks(void)
         return;
     }
 
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
+    for (int i = 0; i < ASYNC_UART_MAX_PORTS; i++) {
         TaskHandle_t h = s_rx_task_handles[i];
         if (h && eTaskGetState(h) != eDeleted) {
             vTaskSuspend(h);
@@ -1180,7 +1104,7 @@ void resume_all_uart_rx_tasks(void)
         return;
     }
 
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
+    for (int i = 0; i < ASYNC_UART_MAX_PORTS; i++) {
         TaskHandle_t h = s_rx_task_handles[i];
         if (h && eTaskGetState(h) == eSuspended) {
             vTaskResume(h);
@@ -1190,7 +1114,7 @@ void resume_all_uart_rx_tasks(void)
 
 void stop_all_uart_tasks(void)
 {
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
+    for (int i = 0; i < ASYNC_UART_MAX_PORTS; i++) {
         TaskHandle_t h = s_rx_task_handles[i];
         if (h && eTaskGetState(h) != eDeleted) {
             delete_app_task_with_caps(h);
@@ -1198,10 +1122,9 @@ void stop_all_uart_tasks(void)
         s_rx_task_handles[i] = NULL;
     }
 
-    for (int ch = 1; ch <= ASYNC_UART_MAX_CHANNELS; ch++) {
-        uart_tx_led_off_by_channel(ch);
-        uart_rx_led_off_by_channel(ch);
-    }
+    sx_led_manager_serial_clear(LED_COM1);
+    sx_led_manager_serial_clear(LED_COM2);
+    sx_led_manager_serial_clear(LED_232);
 }
 
 void stop_rx_task(void)
@@ -1209,29 +1132,30 @@ void stop_rx_task(void)
     stop_all_uart_tasks();
 }
 
-esp_err_t send_data_with_temp_config(int channel,
-                                     const channel_uart_config_t *temp_config,
+esp_err_t send_data_with_temp_config(int port,
+                                     const serial_port_config_t *temp_config,
                                      const uint8_t *data,
                                      size_t data_len)
 {
-    if (temp_config == NULL || data == NULL || data_len == 0 || temp_config->channel != channel) {
+    if (temp_config == NULL || data == NULL || data_len == 0 || temp_config->port != port) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    channel_uart_config_t current;
+    serial_port_config_t current;
     bool need_reconfigure = true;
-    if (get_current_runtime_config(channel, &current) == ESP_OK) {
+    if (get_current_runtime_config(port, &current) == ESP_OK) {
         need_reconfigure = !compare_uart_config(&current, temp_config);
     }
 
     if (need_reconfigure) {
-        ESP_RETURN_ON_ERROR(quick_reconfigure_channel(channel, temp_config), TAG,
-                            "quick reconfigure failed for CH%d", channel);
-        set_current_runtime_config(channel, temp_config);
+        ESP_RETURN_ON_ERROR(quick_reconfigure_port(port, temp_config), TAG,
+                            "quick reconfigure failed for %s",
+                            sx_serial_port_manager_port_label(port));
+        set_current_runtime_config(port, temp_config);
         vTaskDelay(pdMS_TO_TICKS(5));
     }
 
-    tx_tasks_to_channel((uint8_t *)data, data_len, channel);
+    tx_tasks_to_port((uint8_t *)data, data_len, port);
     return ESP_OK;
 }
 
@@ -1245,30 +1169,31 @@ void set_uart_config_mode(uart_config_mode_t mode)
     s_uart_config_mode = mode;
 }
 
-esp_err_t smart_send_data_to_ch5(uart_config_mode_t work_mode,
-                                 int source_channel,
+esp_err_t smart_send_data_to_bus(uart_config_mode_t work_mode,
+                                 int source_port,
                                  const uint8_t *data,
                                  size_t data_len)
 {
-    const int target_channel = 2; /* 项目现实映射：CH2(UART2) */
+    const int target_port = 2; /* RS232/UART2 */
 
     if (data == NULL || data_len == 0) {
         return ESP_ERR_INVALID_ARG;
     }
 
     if (work_mode == UART_CONFIG_MODE_SLAVE_FOLLOW) {
-        channel_uart_config_t source_cfg;
-        ESP_RETURN_ON_ERROR(get_current_runtime_config(source_channel, &source_cfg), TAG,
-                            "source CH%d config unavailable", source_channel);
+        serial_port_config_t source_cfg;
+        ESP_RETURN_ON_ERROR(get_current_runtime_config(source_port, &source_cfg), TAG,
+                            "source %s config unavailable",
+                            sx_serial_port_manager_port_label(source_port));
 
-        channel_uart_config_t target_cfg = source_cfg;
-        target_cfg.channel = target_channel;
-        ESP_RETURN_ON_ERROR(send_data_with_temp_config(target_channel, &target_cfg, data, data_len), TAG,
+        serial_port_config_t target_cfg = source_cfg;
+        target_cfg.port = target_port;
+        ESP_RETURN_ON_ERROR(send_data_with_temp_config(target_port, &target_cfg, data, data_len), TAG,
                             "follow-mode send failed");
         return ESP_OK;
     }
 
-    tx_tasks_to_channel((uint8_t *)data, data_len, target_channel);
+    tx_tasks_to_port((uint8_t *)data, data_len, target_port);
     return ESP_OK;
 }
 
@@ -1299,8 +1224,8 @@ void uart_reinit(int baudrate1, uart_word_length_t data_bits1, uart_parity_t par
     set_reinit_in_progress(true);
     suspend_all_uart_rx_tasks();
 
-    channel_uart_config_t c1 = {
-        .channel = 1,
+    serial_port_config_t c1 = {
+        .port = 1,
         .baudrate = baudrate1,
         .data_bits = data_bits1,
         .parity = parity1,
@@ -1309,8 +1234,8 @@ void uart_reinit(int baudrate1, uart_word_length_t data_bits1, uart_parity_t par
         .frame_len = frame_len1,
         .timeout = DEFAULT_TIMEOUT,
     };
-    channel_uart_config_t c2 = {
-        .channel = 2,
+    serial_port_config_t c2 = {
+        .port = 2,
         .baudrate = baudrate2,
         .data_bits = data_bits2,
         .parity = parity2,
@@ -1319,8 +1244,8 @@ void uart_reinit(int baudrate1, uart_word_length_t data_bits1, uart_parity_t par
         .frame_len = frame_len2,
         .timeout = DEFAULT_TIMEOUT,
     };
-    channel_uart_config_t c3 = {
-        .channel = 3,
+    serial_port_config_t c3 = {
+        .port = 3,
         .baudrate = baudrate3,
         .data_bits = data_bits3,
         .parity = parity3,
@@ -1330,13 +1255,13 @@ void uart_reinit(int baudrate1, uart_word_length_t data_bits1, uart_parity_t par
         .timeout = DEFAULT_TIMEOUT,
     };
 
-    (void)restart_single_channel(1, &c1);
-    (void)restart_single_channel(2, &c2);
-    (void)restart_single_channel(3, &c3);
+    (void)restart_single_port(1, &c1);
+    (void)restart_single_port(2, &c2);
+    (void)restart_single_port(3, &c3);
 
-    ESP_LOGW(TAG, "uart_reinit: CH4/CH5 args ignored (not present in this hardware project)");
+    ESP_LOGW(TAG, "uart_reinit: unsupported legacy serial arguments ignored");
 
-    clear_all_channel_buffers();
+    clear_all_port_buffers();
     set_reinit_in_progress(false);
     resume_all_uart_rx_tasks();
 }
@@ -1345,11 +1270,11 @@ void deinit_all_uart_drivers_for_ota(void)
 {
     stop_all_uart_tasks();
 
-    for (int i = 0; i < ASYNC_UART_MAX_CHANNELS; i++) {
-        if (!s_channel_hw[i].enabled) {
+    for (int i = 0; i < ASYNC_UART_MAX_PORTS; i++) {
+        if (!s_port_hw[i].enabled) {
             continue;
         }
-        (void)uart_driver_delete(s_channel_hw[i].port);
+        (void)uart_driver_delete(s_port_hw[i].port);
     }
 }
 
@@ -1357,32 +1282,31 @@ void uart_init(void)
 {
     if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 &&
         !sx_serial_port_manager_uart0_reserved()) {
-        s_channel_hw[0].tx_pin = U0TXD;
-        s_channel_hw[0].rx_pin = U1RXD;
-        s_channel_hw[0].tx_led = LED_COM1;
-        s_channel_hw[0].rx_led = LED_COM2;
-        s_channel_hw[0].name = "RS422 (COM1 TX + COM2 RX, CH1/UART1)";
-        s_channel_hw[2].enabled = false;
+        s_port_hw[0].tx_pin = U0TXD;
+        s_port_hw[0].rx_pin = U1RXD;
+        s_port_hw[0].tx_led = LED_COM1;
+        s_port_hw[0].rx_led = LED_COM2;
+        s_port_hw[0].name = "RS422";
+        s_port_hw[2].enabled = false;
         ESP_LOGI(TAG, "RS422 compatibility layout active: logical TX=COM1, RX=COM2");
     }
     uart_led_init();
-    uart_led_boot_animation();
 
-    clear_all_channel_buffers();
+    clear_all_port_buffers();
 
-    for (int ch = 1; ch <= ASYNC_UART_MAX_CHANNELS; ch++) {
-        const uart_channel_hw_t *hw = get_channel_hw(ch);
+    for (int port = 1; port <= ASYNC_UART_MAX_PORTS; port++) {
+        const uart_port_hw_t *hw = get_port_hw(port);
         if (hw == NULL) {
             continue;
         }
-        channel_uart_config_t cfg;
-        esp_err_t err = get_channel_uart_config_from_nvs(ch, &cfg);
+        serial_port_config_t cfg;
+        esp_err_t err = get_port_uart_config_from_nvs(port, &cfg);
         if (err != ESP_OK) {
-            fill_default_config(ch, &cfg);
-            (void)write_channel_config_to_nvs(&cfg);
+            fill_default_config(port, &cfg);
+            (void)write_port_config_to_nvs(&cfg);
         }
 
-        err = restart_single_channel(ch, &cfg);
+        err = restart_single_port(port, &cfg);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "init config failed for %s: %s", hw->name, esp_err_to_name(err));
         }

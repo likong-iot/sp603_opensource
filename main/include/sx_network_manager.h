@@ -43,7 +43,10 @@ typedef struct {
 } sx_network_status_t;
 
 esp_err_t sx_network_manager_init(void);
+esp_err_t sx_network_manager_start_management_network(void);
+esp_err_t sx_network_manager_start_remaining_networks(void);
 esp_err_t sx_network_manager_start_configured(void);
+void sx_network_manager_mark_application_ready(bool startup_ok);
 void sx_network_manager_get_status(sx_network_status_t *status);
 void sx_network_manager_get_config(sx_network_config_t *config);
 esp_err_t sx_network_manager_save_config(const sx_network_config_t *config);

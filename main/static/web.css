@@ -11,28 +11,47 @@
 #serialConfigContent > #serialUnifiedConfig,
 #serialConfigContent > .separate-config-panel,
 #serialConfigContent > .label-view:has(#serialButton) { display: none !important; }
-.serial-channel-card { border: 1px solid var(--BG-2); border-radius: var(--RADIUS-0); background: var(--BG-1); overflow: hidden; }
-.serial-channel-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; min-height: 50px; background: var(--BG-1); border-bottom: 1px solid var(--BG-2); }
-.serial-channel-heading .title-text { display: flex; align-items: center; gap: 12px; font-weight: 600; }
+.serial-port-card { border: 1px solid var(--BG-2); border-radius: var(--RADIUS-0); background: var(--BG-1); overflow: hidden; }
+.serial-port-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; min-height: 50px; background: var(--BG-1); border-bottom: 1px solid var(--BG-2); }
+.serial-port-heading .title-text { display: flex; align-items: center; gap: 12px; font-weight: 600; }
 .serial-collapse { cursor: pointer; color: #677487; font-size: 18px; }
-.serial-channel-body { padding: 0 20px 18px; }
+.serial-port-body { padding: 0 20px 18px; }
+.serial-settings-section { padding: 16px 0 6px; }
+.serial-settings-section + .serial-settings-section { border-top: 1px solid var(--BG-2); margin-top: 10px; }
+.serial-settings-section h3 { color: var(--FG-1); font-size: 15px; font-weight: 600; line-height: 24px; }
+.serial-settings-section > [data-protocols][hidden] { display: none; }
+.serial-runtime-status { margin-top: 16px; padding: 12px 14px; border-top: 1px solid var(--BG-2); background: rgba(var(--BG-2-RGB), .22); min-width: 0; }
+.serial-runtime-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--FG-1); font-size: 14px; font-weight: 600; }
+.serial-runtime-route, .serial-runtime-uplink { margin-top: 7px; color: var(--FG-2); font-size: 13px; line-height: 20px; overflow-wrap: anywhere; }
 .serial-mode-switch { display: flex; gap: 0; margin-top: 16px; }
 .serial-mode { border: 1px solid var(--BG-3); background: var(--BG-1); color: var(--FG-2); padding: 8px 16px; cursor: pointer; }
 .serial-mode:first-child { border-radius: 4px 0 0 4px; }
 .serial-mode:last-child { border-radius: 0 4px 4px 0; margin-left: -1px; }
 .serial-mode.active { color: var(--WHITE); background: var(--BRAND); border-color: var(--BRAND); }
 .serial-field-control { display: flex; align-items: center; gap: 8px; }
-.serial-channel-body .serial-field-control .base-input {
+.serial-port-body .serial-field-control .base-input {
     width: 308px;
     max-width: 100%;
     flex: 0 1 308px;
     box-sizing: border-box;
 }
-@media (max-width: 700px) { .serial-channel-heading { padding: 12px; } .serial-channel-body { padding: 0 12px 14px; } .serial-channel-heading .main-btn { min-width: 64px; } }
+@media (max-width: 700px) { .serial-port-heading { padding: 12px; } .serial-port-body { padding: 0 12px 14px; } .serial-port-heading .main-btn { min-width: 64px; } }
 
 .serial-settings-header .header-save-btn { margin-left: auto; }
 .serial-layout-inline-row { margin-top: 16px; }
 .serial-layout-inline-row .view-container { flex-wrap: wrap; gap: 10px; }
+
+/* Dynamic serial cards must determine the expanded container height. */
+#serialConfigContent:not(.collapsed) {
+    max-height: none !important;
+    height: auto;
+    overflow: visible;
+}
+
+#serialConfigContent.collapsed {
+    max-height: 0 !important;
+    overflow: hidden;
+}
 
 body,
 html {
@@ -393,7 +412,7 @@ body[data-theme=dark] select.base-input option {
     }
     
     /* 独立串口卡片：移动端控件填满可用宽度 */
-    .serial-channel-body .serial-field-control .base-input {
+    .serial-port-body .serial-field-control .base-input {
         width: 100%;
         max-width: 100%;
         min-width: 0;
@@ -3199,7 +3218,7 @@ canvas {
 }
 
 /* 通道过滤器样式 */
-.channel-filter-container {
+.port-filter-container {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -3215,7 +3234,7 @@ canvas {
     box-sizing: border-box; /* 包含边框和内边距 */
 }
 
-.channel-filter-item {
+.port-filter-item {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -3225,15 +3244,15 @@ canvas {
     transition: background-color 0.3s;
 }
 
-.channel-filter-item:hover {
+.port-filter-item:hover {
     background: var(--BG-AREA);
 }
 
-.channel-filter-item input[type="checkbox"] {
+.port-filter-item input[type="checkbox"] {
     margin: 0;
 }
 
-.channel-badge {
+.port-badge {
     display: inline-block;
     padding: 2px 8px;
     border-radius: 4px;
@@ -3244,31 +3263,31 @@ canvas {
     min-width: 35px;
 }
 
-.channel-badge.ch1 {
+.port-badge.com2 {
     background: #4CAF50; /* 绿色 - 通道1 */
 }
 
-.channel-badge.ch2 {
+.port-badge.com1 {
     background: #2196F3; /* 蓝色 - 通道2 */
 }
 
-.channel-badge.ch3 {
+.port-badge.rs232 {
     background: #FF9800; /* 橙色 - 通道3 */
 }
 
-.channel-badge.ch4 {
+.port-badge.rs422 {
     background: #9C27B0; /* 紫色 - 通道4 */
 }
 
-.channel-badge.ch5 {
+.port-badge.unused {
     background: #607D8B; /* 蓝灰 - 通道5 */
 }
 
-.channel-badge.crc {
+.port-badge.crc {
     background: #455A64; /* 深灰蓝 - CRC */
 }
 
-.channel-badge.log {
+.port-badge.log {
     background: #795548; /* 棕色 - 日志 */
 }
 
@@ -3318,6 +3337,23 @@ canvas {
     box-sizing: border-box; /* 包含边框和内边距在宽度计算中 */
 }
 
+.system-log-content {
+    margin: 0 20px 20px;
+    min-height: 180px;
+    max-height: 360px;
+    overflow: auto;
+    padding: 10px;
+    background: var(--BG-1);
+    border: 1px solid var(--BG-3);
+    border-radius: var(--RADIUS-1);
+    color: var(--FG-1);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 /* 串口数据行样式 */
 .uart-data-line {
     margin: 2px 0;
@@ -3341,23 +3377,23 @@ canvas {
     border-left: 3px solid #FF9800;
 }
 
-.uart-data-line.ch1 {
+.uart-data-line.com2 {
     border-left-color: #4CAF50;
 }
 
-.uart-data-line.ch2 {
+.uart-data-line.com1 {
     border-left-color: #2196F3;
 }
 
-.uart-data-line.ch3 {
+.uart-data-line.rs232 {
     border-left-color: #FF9800;
 }
 
-.uart-data-line.ch4 {
+.uart-data-line.rs422 {
     border-left-color: #9C27B0;
 }
 
-.uart-data-line.ch5 {
+.uart-data-line.unused {
     border-left-color: #607D8B;
 }
 
@@ -3366,7 +3402,7 @@ canvas {
     font-size: 11px;
 }
 
-.uart-channel {
+.uart-port {
     font-weight: bold;
     padding: 1px 4px;
     border-radius: 2px;
@@ -3374,23 +3410,23 @@ canvas {
     font-size: 11px;
 }
 
-.uart-channel.ch1 {
+.uart-port.com2 {
     background: #4CAF50;
 }
 
-.uart-channel.ch2 {
+.uart-port.com1 {
     background: #2196F3;
 }
 
-.uart-channel.ch3 {
+.uart-port.rs232 {
     background: #FF9800;
 }
 
-.uart-channel.ch4 {
+.uart-port.rs422 {
     background: #9C27B0;
 }
 
-.uart-channel.ch5 {
+.uart-port.unused {
     background: #607D8B;
 }
 
@@ -3428,7 +3464,7 @@ canvas {
 }
 
 /* 发送通道横向布局样式 */
-.debug-channel-horizontal {
+.debug-port-horizontal {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -3443,7 +3479,7 @@ canvas {
     box-sizing: border-box; /* 包含边框和内边距在宽度计算中 */
 }
 
-.debug-channel-item {
+.debug-port-item {
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -3459,27 +3495,27 @@ canvas {
     transform: scale(0.95); /* 未选中时稍微缩小 */
 }
 
-.debug-channel-item.debug-crc-item {
+.debug-port-item.debug-crc-item {
     opacity: 1;
     transform: scale(1);
 }
 
-.debug-channel-item:hover {
+.debug-port-item:hover {
     background: var(--BG-AREA);
     opacity: 0.7;
     transform: scale(0.98);
 }
 
-.debug-channel-item input[type="radio"] {
+.debug-port-item input[type="radio"] {
     margin: 0;
 }
 
-.debug-channel-item input[type="checkbox"] {
+.debug-port-item input[type="checkbox"] {
     margin: 0;
 }
 
 /* 选中状态的强化样式 */
-.debug-channel-item:has(input[type="radio"]:checked) {
+.debug-port-item:has(input[type="radio"]:checked) {
     opacity: 1 !important; /* 选中时完全不透明 */
     transform: scale(1) !important; /* 选中时正常大小 */
     background: var(--BG-AREA) !important;
@@ -3488,16 +3524,16 @@ canvas {
 }
 
 /* 兼容性：针对不支持:has()的浏览器 */
-.debug-channel-item input[type="radio"]:checked + .channel-badge {
+.debug-port-item input[type="radio"]:checked + .port-badge {
     box-shadow: 0 0 0 2px var(--WHITE), 0 0 0 4px currentColor;
 }
 
-.debug-channel-item input[type="radio"]:checked {
+.debug-port-item input[type="radio"]:checked {
     /* 当radio被选中时，给父容器添加样式 */
 }
 
 /* 通过JavaScript添加的选中类 */
-.debug-channel-item.selected {
+.debug-port-item.selected {
     opacity: 1 !important;
     transform: scale(1) !important;
     background: var(--BG-AREA) !important;
@@ -3505,7 +3541,7 @@ canvas {
     box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3) !important;
 }
 
-.debug-channel-item.debug-crc-item:has(input[type="checkbox"]:checked) {
+.debug-port-item.debug-crc-item:has(input[type="checkbox"]:checked) {
     background: var(--BG-AREA);
     border: 2px solid #455A64;
     box-shadow: 0 2px 8px rgba(69, 90, 100, 0.3);
@@ -3517,7 +3553,7 @@ canvas {
 
 /* 响应式设计 */
 @media screen and (max-width: 750px) {
-    .channel-filter-container {
+    .port-filter-container {
         gap: 6px;
         padding: 6px;
         margin: 0;
@@ -3525,12 +3561,12 @@ canvas {
         max-width: 100%;
     }
     
-    .channel-filter-item {
+    .port-filter-item {
         gap: 4px;
         padding: 2px 4px;
     }
     
-    .channel-badge {
+    .port-badge {
         min-width: 30px;
         font-size: 11px;
     }
@@ -3582,7 +3618,7 @@ canvas {
         width: 100%; /* 移动端使用容器的全宽 */
     }
     
-    .debug-channel-horizontal {
+    .debug-port-horizontal {
         justify-content: center;
         gap: 15px;
         padding: 8px;
@@ -3590,17 +3626,17 @@ canvas {
         width: 100%; /* 使用容器的全宽 */
     }
     
-    .view-container:has(.debug-channel-horizontal) {
+    .view-container:has(.debug-port-horizontal) {
         margin: 0 5px; /* 移动端与接收框保持一致的边距 */
         max-width: calc(100% - 10px);
     }
     
-    .debug-channel-container {
+    .debug-port-container {
         margin: 0 5px;
         max-width: calc(100% - 10px);
     }
     
-    .debug-channel-item {
+    .debug-port-item {
         gap: 6px;
         padding: 6px 8px;
     }
@@ -3980,7 +4016,7 @@ canvas {
     }
 
     /* 移动端显示过滤通道布局 */
-    .channel-filter-container {
+    .port-filter-container {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
@@ -3989,14 +4025,14 @@ canvas {
         margin: 0;
     }
 
-    .channel-filter-item {
+    .port-filter-item {
         flex: 1;
         min-width: 80px;
         padding: 5px 8px; /* 增加每个选项的内边距 */
     }
 
     /* 移动端发送通道选择布局 */
-    .debug-channel-horizontal {
+    .debug-port-horizontal {
         display: flex;
         flex-wrap: wrap;
         gap: 15px;
@@ -4007,7 +4043,7 @@ canvas {
         box-sizing: border-box;
     }
 
-    .debug-channel-item {
+    .debug-port-item {
         flex: none;
         min-width: auto;
         padding: 5px 8px; /* 增加每个选项的内边距 */
@@ -5498,6 +5534,13 @@ canvas {
         margin-left: 8px;
         margin-right: 8px;
     }
+
+    /* Keep every runtime field aligned even when newly added rows do not
+     * carry the generated data-v attribute used by the legacy selector. */
+    #main.base-info #infoView .sp603-basic-info-card > .label-view {
+        margin-left: calc(25% - 92px);
+        margin-right: 20px;
+    }
 }
 
 /* 网络管理页两个卡片统一样式（网络设置/AP管理） */
@@ -6580,7 +6623,7 @@ canvas {
 /* 统一卡片标题栏操作：与串口服务器保持一致，保存类操作固定在右上角。 */
 .card-view > .container,
 .card-view > form > .container,
-.serial-channel-heading {
+.serial-port-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -6593,7 +6636,7 @@ canvas {
 
 .card-view > .container .title-text,
 .card-view > form > .container .title-text,
-.serial-channel-heading .title-text {
+.serial-port-heading .title-text {
     min-width: 0;
     flex: 1 1 auto;
 }
@@ -6613,12 +6656,12 @@ canvas {
     box-sizing: border-box;
 }
 
-.serial-channel-card {
+.serial-port-card {
     min-width: 0;
     box-sizing: border-box;
 }
 
-.serial-channel-heading .title-text {
+.serial-port-heading .title-text {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -6653,21 +6696,21 @@ canvas {
     transform: rotate(-90deg);
 }
 
-.serial-channel-body {
+.serial-port-body {
     min-width: 0;
     box-sizing: border-box;
 }
 
-.serial-channel-body .label-view,
-.serial-channel-body .view-container,
-.serial-channel-body .custom-input {
+.serial-port-body .label-view,
+.serial-port-body .view-container,
+.serial-port-body .custom-input {
     min-width: 0;
 }
 
 @media screen and (max-width: 750px) {
     .card-view > .container,
     .card-view > form > .container,
-    .serial-channel-heading {
+    .serial-port-heading {
         min-height: 44px;
         padding: 10px 12px;
     }
@@ -6679,11 +6722,11 @@ canvas {
         min-width: 64px;
     }
 
-    .serial-channel-body {
+    .serial-port-body {
         padding: 0 12px 14px;
     }
 
-    .serial-channel-body .base-input {
+    .serial-port-body .base-input {
         width: 100%;
         max-width: 100%;
         box-sizing: border-box;
@@ -6710,7 +6753,7 @@ canvas {
 }
 
 /* 独立串口卡片：输入框随卡片内容区收缩，单位固定在输入框右端。 */
-.serial-channel-body .serial-field-control {
+.serial-port-body .serial-field-control {
     min-width: 0 !important;
     width: 308px !important;
     max-width: 100% !important;
@@ -6718,7 +6761,7 @@ canvas {
     position: relative;
 }
 
-.serial-channel-body .serial-field-control .base-input {
+.serial-port-body .serial-field-control .base-input {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -6726,11 +6769,11 @@ canvas {
     box-sizing: border-box;
 }
 
-.serial-channel-body .serial-unit-control .base-input {
+.serial-port-body .serial-unit-control .base-input {
     padding-right: 48px !important;
 }
 
-.serial-channel-body .serial-unit-control .unit-text {
+.serial-port-body .serial-unit-control .unit-text {
     position: absolute;
     top: 50%;
     right: 10px;
@@ -6743,14 +6786,14 @@ canvas {
 }
 
 /* 调试过滤项保持紧凑，避免长标题或弹性宽度撑坏色块。 */
-#serial_ctl .channel-filter-container,
-#serial_ctl .debug-channel-horizontal {
+#serial_ctl .port-filter-container,
+#serial_ctl .debug-port-horizontal {
     min-width: 0;
     overflow: hidden;
 }
 
-#serial_ctl .channel-filter-item,
-#serial_ctl .debug-channel-item {
+#serial_ctl .port-filter-item,
+#serial_ctl .debug-port-item {
     flex: 0 0 auto;
     min-width: 0;
     max-width: 100%;
@@ -6758,7 +6801,7 @@ canvas {
     white-space: nowrap;
 }
 
-#serial_ctl .channel-badge {
+#serial_ctl .port-badge {
     min-width: 0;
     white-space: nowrap;
 }
@@ -6786,26 +6829,26 @@ canvas {
 }
 
 @media screen and (max-width: 750px) {
-    .serial-channel-body .serial-field-control {
+    .serial-port-body .serial-field-control {
         width: 100% !important;
         max-width: 100% !important;
         flex: 1 1 auto !important;
     }
 
-    .serial-channel-body .serial-field-control .base-input {
+    .serial-port-body .serial-field-control .base-input {
         width: 100% !important;
         max-width: 100% !important;
     }
 
-    #serial_ctl .channel-filter-container,
-    #serial_ctl .debug-channel-horizontal {
+    #serial_ctl .port-filter-container,
+    #serial_ctl .debug-port-horizontal {
         justify-content: flex-start;
         gap: 6px;
         padding: 6px;
     }
 
-    #serial_ctl .channel-filter-item,
-    #serial_ctl .debug-channel-item {
+    #serial_ctl .port-filter-item,
+    #serial_ctl .debug-port-item {
         padding: 4px 6px;
     }
 
@@ -6839,16 +6882,16 @@ canvas {
 
 /* 移动端串口调试过滤标题使用短文案，避免标题色块被长文本撑开。 */
 @media screen and (max-width: 750px) {
-    #serial_ctl .label-view:has(#filter_ch1) > .label .title {
+    #serial_ctl .label-view:has(#filter_com2) > .label .title {
         font-size: 0;
     }
-    #serial_ctl .label-view:has(#filter_ch1) > .label .title::after {
+    #serial_ctl .label-view:has(#filter_com2) > .label .title::after {
         content: '过滤';
         font-size: 15px;
     }
 }
 /* 串口参数输入统一长度，桌面端对齐，移动端按内容区自适应。 */
-#serialConfigContent .serial-channel-body .serial-field-control,
+#serialConfigContent .serial-port-body .serial-field-control,
 #serialConfigContent .serial-config-panel .view-container .custom-input,
 #serialConfigContent .serial-config-panel .view-container .baud-container {
     width: 360px !important;
@@ -6859,7 +6902,7 @@ canvas {
 
 #serialConfigContent .serial-config-panel .view-container input.base-input,
 #serialConfigContent .serial-config-panel .view-container select.base-input,
-#serialConfigContent .serial-channel-body .serial-field-control .base-input {
+#serialConfigContent .serial-port-body .serial-field-control .base-input {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -6867,7 +6910,7 @@ canvas {
 }
 
 @media screen and (max-width: 750px) {
-    #serialConfigContent .serial-channel-body .serial-field-control,
+    #serialConfigContent .serial-port-body .serial-field-control,
     #serialConfigContent .serial-config-panel .view-container .custom-input,
     #serialConfigContent .serial-config-panel .view-container .baud-container {
         width: 100% !important;

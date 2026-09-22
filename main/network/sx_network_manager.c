@@ -20,7 +20,12 @@ static esp_netif_ip_info_t s_wifi_ip;
 static esp_netif_ip_info_t s_w5500_ip;
 static esp_netif_ip_info_t s_modem_ip;
 static esp_netif_t *s_napt_netif;
-static bool s_started;
+static bool s_management_started;
+static bool s_remaining_started;
+static bool s_application_ready;
+static bool s_wifi_start_error;
+static bool s_w5500_start_error;
+static bool s_modem_start_error;
 
 static void ip_to_text(const esp_netif_ip_info_t *info, char out[16])
 {
@@ -56,6 +61,75 @@ static esp_netif_t *get_netif(sx_network_interface_t id)
     if (id == SX_NETWORK_IF_W5500) return w5500_manager_get_netif();
     if (id == SX_NETWORK_IF_4G) return esp_netif_get_handle_from_ifkey("PPP_DEF");
     return NULL;
+}
+
+static bool interface_enabled_locked(sx_network_interface_t id)
+{
+    if (id == SX_NETWORK_IF_WIFI) return s_config.wifi_ap_enabled || s_config.wifi_sta_enabled;
+    if (id == SX_NETWORK_IF_W5500) return s_config.ethernet_enabled;
+    if (id == SX_NETWORK_IF_4G) return s_config.modem_enabled;
+    return false;
+}
+
+static bool wifi_ap_is_running_locked(void)
+{
+    return s_config.wifi_ap_enabled &&
+           s_status.wifi_ap_started;
+}
+
+static bool ethernet_is_provider_locked(void)
+{
+    return s_config.ethernet_enabled &&
+           s_config.ethernet_role == SX_NETWORK_ROLE_DOWNLINK &&
+           s_status.w5500_started;
+}
+
+static sx_led_network_state_t interface_led_state_locked(sx_network_interface_t id)
+{
+    if (!interface_enabled_locked(id)) return SX_LED_NETWORK_OFF;
+    if ((id == SX_NETWORK_IF_WIFI && s_wifi_start_error) ||
+        (id == SX_NETWORK_IF_W5500 && s_w5500_start_error) ||
+        (id == SX_NETWORK_IF_4G && s_modem_start_error)) {
+        return SX_LED_NETWORK_ERROR;
+    }
+    if (id == SX_NETWORK_IF_WIFI && s_status.active_interface == id) {
+        return wifi_ap_is_running_locked()
+                   ? SX_LED_NETWORK_ONLINE_AND_PROVIDER
+                   : SX_LED_NETWORK_ONLINE;
+    }
+    if (id == SX_NETWORK_IF_WIFI && wifi_ap_is_running_locked()) {
+        return SX_LED_NETWORK_PROVIDER;
+    }
+    if (s_status.active_interface == id) return SX_LED_NETWORK_ONLINE;
+    if (id == SX_NETWORK_IF_W5500 && ethernet_is_provider_locked()) {
+        return SX_LED_NETWORK_PROVIDER;
+    }
+    return SX_LED_NETWORK_STARTING;
+}
+
+static void update_network_leds_locked(void)
+{
+    sx_led_manager_set_lan(interface_led_state_locked(SX_NETWORK_IF_W5500));
+    sx_led_manager_set_wifi(interface_led_state_locked(SX_NETWORK_IF_WIFI));
+    sx_led_manager_set_4g(interface_led_state_locked(SX_NETWORK_IF_4G));
+}
+
+static bool has_configured_uplink_locked(void)
+{
+    return (s_config.ethernet_enabled && is_uplink(s_config.ethernet_role)) ||
+           (s_config.wifi_sta_enabled && is_uplink(s_config.wifi_sta_role)) ||
+           (s_config.modem_enabled && is_uplink(s_config.modem_role));
+}
+
+static void update_system_indicator_locked(void)
+{
+    if (!s_application_ready) return;
+    if (s_wifi_start_error || s_w5500_start_error || s_modem_start_error ||
+        (has_configured_uplink_locked() && s_status.active_interface == SX_NETWORK_IF_NONE)) {
+        sx_led_manager_set_system_state(SX_LED_SYSTEM_WARNING);
+    } else {
+        sx_led_manager_set_system_state(SX_LED_SYSTEM_NORMAL);
+    }
 }
 
 static void update_napt_locked(void)
@@ -124,6 +198,8 @@ static void select_uplink_locked(void)
     }
     set_status_ip_locked(selected_ip);
     update_napt_locked();
+    update_network_leds_locked();
+    update_system_indicator_locked();
 }
 
 static void log_status_locked(const char *event)
@@ -151,12 +227,16 @@ esp_err_t sx_network_manager_init(void)
     return ESP_OK;
 }
 
-esp_err_t sx_network_manager_start_configured(void)
+esp_err_t sx_network_manager_start_management_network(void)
 {
     if (s_mutex == NULL) return ESP_ERR_INVALID_STATE;
-    if (s_started) return ESP_OK;
-    s_started = true;
+    if (s_management_started) return ESP_OK;
+    s_management_started = true;
+    s_wifi_start_error = false;
     esp_err_t first_error = ESP_OK;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    update_network_leds_locked();
+    xSemaphoreGive(s_mutex);
 
     sx_led_manager_set_wifi((s_config.wifi_ap_enabled || s_config.wifi_sta_enabled)
                                 ? SX_LED_NETWORK_STARTING : SX_LED_NETWORK_OFF);
@@ -173,19 +253,31 @@ esp_err_t sx_network_manager_start_configured(void)
                                                  s_config.wifi_ap_role == SX_NETWORK_ROLE_LOCAL ||
                                                      s_config.wifi_ap_dhcp_enabled);
         if (err != ESP_OK) {
-            sx_led_manager_set_wifi(SX_LED_NETWORK_ERROR);
             ESP_LOGE(TAG, "start Wi-Fi failed: %s", esp_err_to_name(err));
             first_error = err;
-        } else if (s_config.wifi_ap_enabled) {
-            sx_led_manager_set_wifi(SX_LED_NETWORK_ONLINE);
         }
         if (err == ESP_OK) {
             xSemaphoreTake(s_mutex, portMAX_DELAY);
             s_status.wifi_ap_started = s_config.wifi_ap_enabled;
             s_status.wifi_sta_started = s_config.wifi_sta_enabled;
+            update_network_leds_locked();
             xSemaphoreGive(s_mutex);
+        } else {
+            s_wifi_start_error = true;
         }
     }
+
+    return first_error;
+}
+
+esp_err_t sx_network_manager_start_remaining_networks(void)
+{
+    if (s_mutex == NULL) return ESP_ERR_INVALID_STATE;
+    if (s_remaining_started) return ESP_OK;
+    s_remaining_started = true;
+    s_w5500_start_error = false;
+    s_modem_start_error = false;
+    esp_err_t first_error = ESP_OK;
 
     sx_led_manager_set_lan(s_config.ethernet_enabled ? SX_LED_NETWORK_STARTING : SX_LED_NETWORK_OFF);
     if (s_config.ethernet_enabled) {
@@ -195,30 +287,42 @@ esp_err_t sx_network_manager_start_configured(void)
             s_config.ethernet_static, s_config.ethernet_gateway, s_config.ethernet_dns,
             s_config.ethernet_dhcp_enabled);
         if (err != ESP_OK) {
-            sx_led_manager_set_lan(SX_LED_NETWORK_ERROR);
             ESP_LOGE(TAG, "start Ethernet failed: %s", esp_err_to_name(err));
             if (first_error == ESP_OK) first_error = err;
         } else {
             xSemaphoreTake(s_mutex, portMAX_DELAY);
             s_status.w5500_started = true;
+            update_network_leds_locked();
             xSemaphoreGive(s_mutex);
         }
+        if (err != ESP_OK) s_w5500_start_error = true;
     }
 
     sx_led_manager_set_4g(s_config.modem_enabled ? SX_LED_NETWORK_STARTING : SX_LED_NETWORK_OFF);
     if (s_config.modem_enabled) {
         esp_err_t err = modem_manager_init();
         if (err != ESP_OK) {
-            sx_led_manager_set_4g(SX_LED_NETWORK_ERROR);
             ESP_LOGE(TAG, "start 4G failed: %s", esp_err_to_name(err));
             if (first_error == ESP_OK) first_error = err;
         } else {
             xSemaphoreTake(s_mutex, portMAX_DELAY);
             s_status.modem_started = true;
+            update_network_leds_locked();
             xSemaphoreGive(s_mutex);
         }
+        if (err != ESP_OK) s_modem_start_error = true;
     }
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    update_network_leds_locked();
+    xSemaphoreGive(s_mutex);
     return first_error;
+}
+
+esp_err_t sx_network_manager_start_configured(void)
+{
+    esp_err_t management_err = sx_network_manager_start_management_network();
+    esp_err_t remaining_err = sx_network_manager_start_remaining_networks();
+    return management_err != ESP_OK ? management_err : remaining_err;
 }
 
 void sx_network_manager_get_status(sx_network_status_t *status)
@@ -257,6 +361,19 @@ esp_err_t sx_network_manager_save_config(const sx_network_config_t *config)
     return ESP_OK;
 }
 
+void sx_network_manager_mark_application_ready(bool startup_ok)
+{
+    if (s_mutex == NULL) return;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    s_application_ready = true;
+    if (!startup_ok) {
+        sx_led_manager_set_system_state(SX_LED_SYSTEM_WARNING);
+    } else {
+        update_system_indicator_locked();
+    }
+    xSemaphoreGive(s_mutex);
+}
+
 const char *sx_network_interface_name(sx_network_interface_t id)
 {
     if (id == SX_NETWORK_IF_WIFI) return "wifi_sta";
@@ -270,7 +387,7 @@ void sx_network_manager_wifi_connected(void)
     if (!s_mutex) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     s_status.wifi_connected = true;
-    sx_led_manager_set_wifi(SX_LED_NETWORK_STARTING);
+    update_network_leds_locked();
     log_status_locked("Wi-Fi STA connected");
     xSemaphoreGive(s_mutex);
 }
@@ -283,7 +400,7 @@ void sx_network_manager_wifi_disconnected(void)
     s_status.wifi_got_ip = false;
     s_status.wifi_ip[0] = '\0';
     memset(&s_wifi_ip, 0, sizeof(s_wifi_ip));
-    sx_led_manager_set_wifi(s_config.wifi_ap_enabled ? SX_LED_NETWORK_ONLINE : SX_LED_NETWORK_STARTING);
+    update_network_leds_locked();
     select_uplink_locked();
     log_status_locked("Wi-Fi STA disconnected");
     xSemaphoreGive(s_mutex);
@@ -296,7 +413,7 @@ void sx_network_manager_wifi_got_ip(const esp_netif_ip_info_t *info)
     s_status.wifi_connected = s_status.wifi_got_ip = true;
     s_wifi_ip = *info;
     ip_to_text(info, s_status.wifi_ip);
-    sx_led_manager_set_wifi(SX_LED_NETWORK_ONLINE);
+    update_network_leds_locked();
     select_uplink_locked();
     log_status_locked("Wi-Fi STA got IP");
     xSemaphoreGive(s_mutex);
@@ -327,8 +444,7 @@ void sx_network_manager_w5500_link_up(void)
     if (!s_mutex) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     s_status.w5500_link_up = true;
-    sx_led_manager_set_lan(s_config.ethernet_role == SX_NETWORK_ROLE_DOWNLINK
-                               ? SX_LED_NETWORK_ONLINE : SX_LED_NETWORK_STARTING);
+    update_network_leds_locked();
     log_status_locked("Ethernet link up");
     xSemaphoreGive(s_mutex);
 }
@@ -340,7 +456,7 @@ void sx_network_manager_w5500_link_down(void)
     s_status.w5500_link_up = s_status.w5500_got_ip = false;
     s_status.ethernet_ip[0] = '\0';
     memset(&s_w5500_ip, 0, sizeof(s_w5500_ip));
-    sx_led_manager_set_lan(SX_LED_NETWORK_STARTING);
+    update_network_leds_locked();
     select_uplink_locked();
     log_status_locked("Ethernet link down");
     xSemaphoreGive(s_mutex);
@@ -353,7 +469,7 @@ void sx_network_manager_w5500_got_ip(const esp_netif_ip_info_t *info)
     s_status.w5500_link_up = s_status.w5500_got_ip = true;
     s_w5500_ip = *info;
     ip_to_text(info, s_status.ethernet_ip);
-    sx_led_manager_set_lan(SX_LED_NETWORK_ONLINE);
+    update_network_leds_locked();
     select_uplink_locked();
     log_status_locked("Ethernet got IP");
     xSemaphoreGive(s_mutex);
@@ -364,7 +480,7 @@ void sx_network_manager_modem_connected(void)
     if (!s_mutex) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     s_status.modem_usb_connected = true;
-    sx_led_manager_set_4g(SX_LED_NETWORK_STARTING);
+    update_network_leds_locked();
     log_status_locked("4G modem connected");
     xSemaphoreGive(s_mutex);
 }
@@ -376,7 +492,7 @@ void sx_network_manager_modem_disconnected(void)
     s_status.modem_usb_connected = s_status.modem_got_ip = false;
     s_status.modem_ip[0] = '\0';
     memset(&s_modem_ip, 0, sizeof(s_modem_ip));
-    sx_led_manager_set_4g(SX_LED_NETWORK_STARTING);
+    update_network_leds_locked();
     select_uplink_locked();
     log_status_locked("4G disconnected");
     xSemaphoreGive(s_mutex);
@@ -389,7 +505,7 @@ void sx_network_manager_modem_got_ip(const esp_netif_ip_info_t *info)
     s_status.modem_usb_connected = s_status.modem_got_ip = true;
     s_modem_ip = *info;
     ip_to_text(info, s_status.modem_ip);
-    sx_led_manager_set_4g(SX_LED_NETWORK_ONLINE);
+    update_network_leds_locked();
     select_uplink_locked();
     log_status_locked("4G got IP");
     xSemaphoreGive(s_mutex);

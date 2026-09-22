@@ -20,17 +20,17 @@ typedef struct {
 } ac_runtime_item_t;
 
 typedef struct {
-    int channel;
+    int port;
     uint8_t mapped_slave_addr;
     int items_count;
-    ac_runtime_item_t items[AC_MAX_ITEMS_PER_CHANNEL];
+    ac_runtime_item_t items[AC_MAX_ITEMS_PER_PORT];
     SemaphoreHandle_t mutex;
     TaskHandle_t polling_task;
-} ac_channel_runtime_t;
+} ac_port_runtime_t;
 
-/* SP603 双 RS485：内部 CH1=COM2/RS485-2，CH3=COM1/RS485-1。 */
-static const int s_ac_collect_channels[AC_COLLECT_CHANNEL_COUNT] = {1, 3};
-static ac_channel_runtime_t s_runtime[AC_COLLECT_CHANNEL_COUNT] = {0};
+/* SP603 双 RS485：配置槽依次绑定 COM2、COM1。 */
+static const int s_ac_collect_ports[AC_COLLECT_PORT_COUNT] = {1, 3};
+static ac_port_runtime_t s_runtime[AC_COLLECT_PORT_COUNT] = {0};
 static bool s_running = false;
 
 static uint16_t modbus_crc16(const uint8_t *data, size_t len)
@@ -64,7 +64,7 @@ static bool verify_crc(const uint8_t *frame, int total_len)
     return recv_crc == calc_crc;
 }
 
-static void fill_default_item(int channel, ac_item_config_t *it)
+static void fill_default_item(int port, ac_item_config_t *it)
 {
     memset(it, 0, sizeof(*it));
     it->enabled = true;
@@ -76,7 +76,7 @@ static void fill_default_item(int channel, ac_item_config_t *it)
     it->interval_ms = 100;
     it->timeout_ms = 1000;
 
-    it->uart.channel = channel;
+    it->uart.port = port;
     it->uart.baudrate = 9600;
     it->uart.data_bits = UART_DATA_8_BITS;
     it->uart.parity = UART_PARITY_DISABLE;
@@ -86,24 +86,24 @@ static void fill_default_item(int channel, ac_item_config_t *it)
     it->uart.timeout = 1000;
 }
 
-static void fill_default_channel_cfg(int channel, ac_channel_config_t *cfg)
+static void fill_default_port_cfg(int port, ac_port_config_t *cfg)
 {
     memset(cfg, 0, sizeof(*cfg));
     cfg->mapped_slave_addr = 1;
     cfg->items_count = 1;
-    fill_default_item(channel, &cfg->items[0]);
+    fill_default_item(port, &cfg->items[0]);
 }
 
-static esp_err_t load_channel_config_from_nvs(nvs_handle_t nvs,
+static esp_err_t load_port_config_from_nvs(nvs_handle_t nvs,
                                               const char *prefix,
-                                              int channel,
-                                              ac_channel_config_t *cfg)
+                                              int port,
+                                              ac_port_config_t *cfg)
 {
     if (prefix == NULL || cfg == NULL) {
         return ESP_ERR_INVALID_ARG;
     }
 
-    fill_default_channel_cfg(channel, cfg);
+    fill_default_port_cfg(port, cfg);
 
     char key[32];
     uint8_t u8 = 0;
@@ -122,14 +122,14 @@ static esp_err_t load_channel_config_from_nvs(nvs_handle_t nvs,
     if (count < 0) {
         count = 0;
     }
-    if (count > AC_MAX_ITEMS_PER_CHANNEL) {
-        count = AC_MAX_ITEMS_PER_CHANNEL;
+    if (count > AC_MAX_ITEMS_PER_PORT) {
+        count = AC_MAX_ITEMS_PER_PORT;
     }
 
     cfg->items_count = count;
     for (int i = 0; i < cfg->items_count; i++) {
         ac_item_config_t *it = &cfg->items[i];
-        fill_default_item(channel, it);
+        fill_default_item(port, it);
 
         snprintf(key, sizeof(key), "%s_item%d_en", prefix, i);
         if (nvs_get_u8(nvs, key, &u8) == ESP_OK) {
@@ -212,7 +212,7 @@ static esp_err_t load_channel_config_from_nvs(nvs_handle_t nvs,
             }
         }
 
-        it->uart.channel = channel;
+        it->uart.port = port;
         it->uart.frame_time = 50;
         it->uart.frame_len = 512;
         it->uart.timeout = 1000;
@@ -223,7 +223,7 @@ static esp_err_t load_channel_config_from_nvs(nvs_handle_t nvs,
 
 static void ac_polling_task(void *arg)
 {
-    ac_channel_runtime_t *runtime = (ac_channel_runtime_t *)arg;
+    ac_port_runtime_t *runtime = (ac_port_runtime_t *)arg;
     if (runtime == NULL) {
         delete_self_app_task_with_caps();
         return;
@@ -262,12 +262,12 @@ static void ac_polling_task(void *arg)
             req[6] = (uint8_t)(crc & 0xFF);
             req[7] = (uint8_t)((crc >> 8) & 0xFF);
 
-            channel_uart_config_t uart_cfg = rt->cfg.uart;
-            uart_cfg.channel = runtime->channel;
+            serial_port_config_t uart_cfg = rt->cfg.uart;
+            uart_cfg.port = runtime->port;
 
             xSemaphoreGive(runtime->mutex);
 
-            esp_err_t send_ret = send_data_with_temp_config(runtime->channel,
+            esp_err_t send_ret = send_data_with_temp_config(runtime->port,
                                                             &uart_cfg,
                                                             req,
                                                             sizeof(req));
@@ -276,7 +276,7 @@ static void ac_polling_task(void *arg)
                 int waited = 0;
                 while (waited < (int)rt->cfg.timeout_ms) {
                     uint64_t ts = 0;
-                    int n = take_channel_data(runtime->channel, rx_buf, sizeof(rx_buf), &ts);
+                    int n = take_port_data(runtime->port, rx_buf, sizeof(rx_buf), &ts);
                     if (n > 0 && n >= 5 && verify_crc(rx_buf, n)) {
                         if (rx_buf[0] == rt->cfg.real_slave_addr &&
                             rx_buf[1] == rt->cfg.function_code) {
@@ -315,7 +315,7 @@ static void ac_polling_task(void *arg)
 
 esp_err_t sx_auto_collect_deinit(void)
 {
-    for (int i = 0; i < AC_COLLECT_CHANNEL_COUNT; i++) {
+    for (int i = 0; i < AC_COLLECT_PORT_COUNT; i++) {
         if (s_runtime[i].polling_task != NULL) {
             delete_app_task_with_caps(s_runtime[i].polling_task);
             s_runtime[i].polling_task = NULL;
@@ -350,25 +350,25 @@ esp_err_t sx_auto_collect_init(void)
         return ESP_OK;
     }
 
-    ac_channel_config_t *cfg = (ac_channel_config_t *)calloc(1, sizeof(ac_channel_config_t));
+    ac_port_config_t *cfg = (ac_port_config_t *)calloc(1, sizeof(ac_port_config_t));
     if (cfg == NULL) {
         nvs_close(nvs);
-        ESP_LOGE(TAG, "alloc ac channel config failed");
+        ESP_LOGE(TAG, "alloc ac port config failed");
         return ESP_ERR_NO_MEM;
     }
 
-    for (int i = 0; i < AC_COLLECT_CHANNEL_COUNT; i++) {
+    for (int i = 0; i < AC_COLLECT_PORT_COUNT; i++) {
         char prefix[8];
         snprintf(prefix, sizeof(prefix), "ac%d", i + 1);
 
-        int channel = s_ac_collect_channels[i];
-        load_channel_config_from_nvs(nvs, prefix, channel, cfg);
+        int port = s_ac_collect_ports[i];
+        load_port_config_from_nvs(nvs, prefix, port, cfg);
 
-        s_runtime[i].channel = channel;
+        s_runtime[i].port = port;
         s_runtime[i].mapped_slave_addr = cfg->mapped_slave_addr;
         s_runtime[i].items_count = cfg->items_count;
-        if (s_runtime[i].items_count > AC_MAX_ITEMS_PER_CHANNEL) {
-            s_runtime[i].items_count = AC_MAX_ITEMS_PER_CHANNEL;
+        if (s_runtime[i].items_count > AC_MAX_ITEMS_PER_PORT) {
+            s_runtime[i].items_count = AC_MAX_ITEMS_PER_PORT;
         }
 
         for (int item = 0; item < s_runtime[i].items_count; item++) {
@@ -380,12 +380,12 @@ esp_err_t sx_auto_collect_init(void)
 
         s_runtime[i].mutex = xSemaphoreCreateMutex();
         if (s_runtime[i].mutex == NULL) {
-            ESP_LOGE(TAG, "create mutex failed for AC channel %d", channel);
+            ESP_LOGE(TAG, "create mutex failed for AC port %d", port);
             continue;
         }
 
         char task_name[16];
-        snprintf(task_name, sizeof(task_name), "ac_poll_ch%d", channel);
+        snprintf(task_name, sizeof(task_name), "ac_poll_ch%d", port);
         BaseType_t ok = create_app_task_psram(ac_polling_task,
                                               task_name,
                                               8192,
@@ -397,10 +397,10 @@ esp_err_t sx_auto_collect_init(void)
             vSemaphoreDelete(s_runtime[i].mutex);
             s_runtime[i].mutex = NULL;
             s_runtime[i].polling_task = NULL;
-            ESP_LOGE(TAG, "create polling task failed for AC channel %d", channel);
+            ESP_LOGE(TAG, "create polling task failed for AC port %d", port);
         } else {
-            ESP_LOGI(TAG, "auto collect polling started on CH%d (items=%d)",
-                     channel,
+            ESP_LOGI(TAG, "auto collect polling started on %s (items=%d)",
+                     port == 1 ? "COM2" : "COM1",
                      s_runtime[i].items_count);
         }
     }

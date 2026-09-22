@@ -31,7 +31,7 @@ static void restart_task(void *arg)
         sx_led_manager_indicate_factory_reset();
         (void)sx_work_mode_stop_current();
         stop_all_uart_tasks();
-        vTaskDelay(pdMS_TO_TICKS(800));
+        vTaskDelay(pdMS_TO_TICKS(1600));
         esp_err_t err = nvs_flash_erase();
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "NVS erase failed: %s; rebooting without retry", esp_err_to_name(err));
@@ -39,7 +39,7 @@ static void restart_task(void *arg)
     } else {
         ESP_LOGW(TAG, "software restart requested by panel key");
         sx_led_manager_indicate_restart();
-        vTaskDelay(pdMS_TO_TICKS(350));
+        vTaskDelay(pdMS_TO_TICKS(600));
     }
 
     esp_restart();

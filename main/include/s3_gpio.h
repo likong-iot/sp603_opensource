@@ -1,8 +1,8 @@
 #ifndef S3_GPIO_H
 #define S3_GPIO_H
 //串口
-#define U0TXD GPIO_NUM_43
-#define U0RXD GPIO_NUM_44//485 1
+#define U0TXD GPIO_NUM_4
+#define U0RXD GPIO_NUM_5//485 1
 #define U1TXD GPIO_NUM_3
 #define U1RXD GPIO_NUM_21//485 2
 #define U2RXD GPIO_NUM_18
@@ -22,13 +22,16 @@
 #define USB_DP_ESP32 GPIO_NUM_20
 //按键
 #define KEY GPIO_NUM_9
-// 面板状态灯：使用功能名作为代码标识，LED1~LED7 为原理图位号。
-#define LED_SYS  GPIO_NUM_42 // LED1: 系统状态
-#define LED_LAN  GPIO_NUM_45 // LED2: 有线网络状态
-#define LED_COM1 GPIO_NUM_39 // LED3: COM1/RS485-1 数据状态
-#define LED_WIFI GPIO_NUM_48 // LED4: Wi-Fi 状态
-#define LED_COM2 GPIO_NUM_6  // LED5: COM2/RS485-2 数据状态
-#define LED_4G   GPIO_NUM_40 // LED6: AIR780E 4G 状态
-#define LED_232  GPIO_NUM_7  // LED7: RS232 数据状态
+// 面板灯经 ULN2003 驱动：GPIO 高电平亮，低电平灭。
+// LED1~LED7 是原理图中的网络名
+#define SX_LED_ON_LEVEL  1
+#define SX_LED_OFF_LEVEL 0
+#define LED_SYS  GPIO_NUM_45 // LED4: LED_NTEDAT，软件用作系统状态
+#define LED_LAN  GPIO_NUM_48 // LED1: 有线网络状态
+#define LED_COM1 GPIO_NUM_39 // LED2: COM1/RS485-1 数据状态
+#define LED_WIFI GPIO_NUM_40  // LED3: Wi-Fi 状态
+#define LED_COM2 GPIO_NUM_42  // LED7: COM2/RS485-2 数据状态
+#define LED_4G   GPIO_NUM_6 // LED5: AIR780E 4G 状态
+#define LED_232  GPIO_NUM_7  // LED6: RS232 数据状态
 
 #endif // S3_GPIO_H

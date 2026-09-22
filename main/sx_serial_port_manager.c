@@ -101,12 +101,12 @@ size_t sx_serial_port_manager_get_capabilities(sx_serial_port_capability_t *port
     const bool debug = sx_serial_port_manager_uart0_reserved();
     const bool rs422 = s_layout == SX_SERIAL_LAYOUT_RS422;
     const sx_serial_port_capability_t dual[] = {
-        {"com1", "COM1 / RS485-1", 3, true, !debug, debug ? "uart0_debug_console" : ""},
-        {"com2", "COM2 / RS485-2", 1, true, true, ""},
+        {"com1", "COM1", 3, true, !debug, debug ? "uart0_debug_console" : ""},
+        {"com2", "COM2", 1, true, true, ""},
         {"rs232", "RS232", 2, true, true, ""},
     };
     const sx_serial_port_capability_t rs422_resource[] = {
-        {"rs422", "RS422 (COM1 TX + COM2 RX)", 1, true, !debug, debug ? "uart0_debug_console" : ""},
+        {"rs422", "RS422", 1, true, !debug, debug ? "uart0_debug_console" : ""},
         {"rs232", "RS232", 2, true, true, ""},
     };
     const sx_serial_port_capability_t *all = rs422 ? rs422_resource : dual;
@@ -116,18 +116,27 @@ size_t sx_serial_port_manager_get_capabilities(sx_serial_port_capability_t *port
     return count;
 }
 
-bool sx_serial_port_manager_channel_available(int channel)
+bool sx_serial_port_manager_port_available(int port)
 {
-    if (s_layout == SX_SERIAL_LAYOUT_RS422) return channel == 1 || channel == 2;
-    if (channel == 1 || channel == 2) return true;
-    return channel == 3 && !sx_serial_port_manager_uart0_reserved();
+    if (s_layout == SX_SERIAL_LAYOUT_RS422) return port == 1 || port == 2;
+    if (port == 1 || port == 2) return true;
+    return port == 3 && !sx_serial_port_manager_uart0_reserved();
 }
 
-const char *sx_serial_port_manager_channel_label(int channel)
+const char *sx_serial_port_manager_port_key(int port)
 {
-    if (s_layout == SX_SERIAL_LAYOUT_RS422 && channel == 1) return "RS422 (COM1 TX + COM2 RX)";
-    if (channel == 1) return "COM2 / RS485-2";
-    if (channel == 2) return "RS232";
-    if (channel == 3) return "COM1 / RS485-1";
+    if (s_layout == SX_SERIAL_LAYOUT_RS422 && port == 1) return "rs422";
+    if (port == 1) return "com2";
+    if (port == 2) return "rs232";
+    if (port == 3) return "com1";
     return "unknown";
+}
+
+const char *sx_serial_port_manager_port_label(int port)
+{
+    if (s_layout == SX_SERIAL_LAYOUT_RS422 && port == 1) return "RS422";
+    if (port == 1) return "COM2";
+    if (port == 2) return "RS232";
+    if (port == 3) return "COM1";
+    return "未知串口";
 }

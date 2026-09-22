@@ -38,5 +38,6 @@ idf_component_register(
         "freertos"
         "lwip"
         "esp_eth"
+        "mqtt"
         "json"
 )

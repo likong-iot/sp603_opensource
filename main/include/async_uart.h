@@ -18,12 +18,11 @@ extern "C" {
 #include "sdkconfig.h"
 
 /*
- * 项目现实串口映射（无 CH432）
- * CH1 -> COM2 / RS485-2；RS422 布局时为 COM1 TX + COM2 RX
- * CH2 -> RS232
- * CH3 -> COM1 / RS485-1（能力保留；UART0 调试开启时被占用）
+ * 内部索引1 -> COM2；RS422 布局时代表 RS422
+ * 内部索引2 -> RS232
+ * 内部索引3 -> COM1（UART0 调试开启时被占用）
  */
-#define ASYNC_UART_MAX_CHANNELS 3
+#define ASYNC_UART_MAX_PORTS 3
 
 #ifndef ASYNC_UART_ENABLE_UART0
 #if defined(CONFIG_ESP_CONSOLE_UART) && CONFIG_ESP_CONSOLE_UART && \
@@ -40,16 +39,16 @@ extern "C" {
 
 /*
  * 串口数据灯映射：每个接口仅有一个数据灯，TX/RX 共用。
- * CH1/UART1 -> COM2 (LED5, RS485-2)
- * CH2/UART2 -> 232  (LED7, RS232)
- * CH3/UART0 -> COM1 (LED3, RS485-1)
+ * COM2/UART1 -> LED7
+ * RS232/UART2 -> LED6
+ * COM1/UART0 -> LED2
  */
-#define CH1_TX_LED LED_COM2
-#define CH1_RX_LED LED_COM2
-#define CH2_TX_LED LED_232
-#define CH2_RX_LED LED_232
-#define CH3_TX_LED LED_COM1
-#define CH3_RX_LED LED_COM1
+#define COM2_TX_LED LED_COM2
+#define COM2_RX_LED LED_COM2
+#define RS232_TX_LED LED_232
+#define RS232_RX_LED LED_232
+#define COM1_TX_LED LED_COM1
+#define COM1_RX_LED LED_COM1
 
 typedef struct {
     uint64_t tx_timestamp;
@@ -57,7 +56,7 @@ typedef struct {
 } uart_timestamps_t;
 
 typedef struct {
-    int channel;
+    int port;
     int baudrate;
     uart_word_length_t data_bits;
     uart_parity_t parity;
@@ -65,7 +64,7 @@ typedef struct {
     int frame_time; /* ms, 用于收包帧边界 */
     int frame_len;  /* 用于 RX 阈值/缓存规划 */
     int timeout;    /* 协议层超时参数，保留 */
-} channel_uart_config_t;
+} serial_port_config_t;
 
 typedef enum {
     UART_CONFIG_MODE_NORMAL = 0,
@@ -89,20 +88,20 @@ void resume_all_uart_rx_tasks(void);
 void stop_all_uart_tasks(void);
 
 int sendDataToUart(char *data, size_t length, uart_port_t uart_num);
-void tx_tasks_to_channel(uint8_t data[], size_t length, int channel);
-void send_data_to_channel(int channel, char *data, size_t length);
+void tx_tasks_to_port(uint8_t data[], size_t length, int port);
+void send_data_to_port(int port, char *data, size_t length);
 
 void rx_task_for_uart(uart_port_t uart_num, void *arg);
 void rx_task_for_uart_wrapper(void *arg);
 
-int get_channel_data(int channel, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp);
-int take_channel_data(int channel, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp);
-void clear_channel_data(int channel);
+int get_port_data(int port, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp);
+int take_port_data(int port, uint8_t *buffer, size_t buffer_size, uint64_t *timestamp);
+void clear_port_data(int port);
 
-void select_uart_channel(int channel);
+void select_uart_port(int port);
 void uart_configure(int baudrate, uart_word_length_t data_bits,
                     uart_parity_t parity, uart_stop_bits_t stop_bits,
-                    int frame_time, int frame_len, int uart_channel);
+                    int frame_time, int frame_len, int uart_port);
 void configure_uart0(int baudrate, uart_word_length_t data_bits,
                      uart_parity_t parity, uart_stop_bits_t stop_bits,
                      int frame_time, int frame_len);
@@ -114,7 +113,7 @@ void configure_uart2(int baudrate, uart_word_length_t data_bits,
                      int frame_time, int frame_len);
 
 /*
- * 兼容旧接口：项目无 CH4/CH5，传入参数会被忽略并记录告警日志。
+ * 兼容旧函数签名：本项目仅使用前三组参数，其余参数会被忽略。
  */
 void uart_reinit(int baudrate1, uart_word_length_t data_bits1, uart_parity_t parity1, uart_stop_bits_t stop_bits1,
                  int frame_time1, int frame_len1,
@@ -127,17 +126,17 @@ void uart_reinit(int baudrate1, uart_word_length_t data_bits1, uart_parity_t par
                  int baudrate5, uart_word_length_t data_bits5, uart_parity_t parity5, uart_stop_bits_t stop_bits5,
                  int frame_time5, int frame_len5);
 
-bool compare_uart_config(const channel_uart_config_t *config1, const channel_uart_config_t *config2);
-esp_err_t restart_single_channel(int channel, const channel_uart_config_t *config);
-esp_err_t quick_reconfigure_channel(int channel, const channel_uart_config_t *config);
+bool compare_uart_config(const serial_port_config_t *config1, const serial_port_config_t *config2);
+esp_err_t restart_single_port(int port, const serial_port_config_t *config);
+esp_err_t quick_reconfigure_port(int port, const serial_port_config_t *config);
 
-void set_current_runtime_config(int channel, const channel_uart_config_t *config);
-esp_err_t get_current_runtime_config(int channel, channel_uart_config_t *config);
-void clear_runtime_config(int channel);
-esp_err_t get_channel_uart_config_from_nvs(int channel, channel_uart_config_t *config);
+void set_current_runtime_config(int port, const serial_port_config_t *config);
+esp_err_t get_current_runtime_config(int port, serial_port_config_t *config);
+void clear_runtime_config(int port);
+esp_err_t get_port_uart_config_from_nvs(int port, serial_port_config_t *config);
 
-esp_err_t send_data_with_temp_config(int channel,
-                                     const channel_uart_config_t *temp_config,
+esp_err_t send_data_with_temp_config(int port,
+                                     const serial_port_config_t *temp_config,
                                      const uint8_t *data,
                                      size_t data_len);
 
@@ -146,19 +145,19 @@ void uart_tx_led_on(int uart_num);
 void uart_tx_led_off(int uart_num);
 void uart_rx_led_on(int uart_num);
 void uart_rx_led_off(int uart_num);
-void uart_tx_led_on_by_channel(int channel);
-void uart_tx_led_off_by_channel(int channel);
-void uart_rx_led_on_by_channel(int channel);
-void uart_rx_led_off_by_channel(int channel);
+void uart_tx_led_on_by_port(int port);
+void uart_tx_led_off_by_port(int port);
+void uart_rx_led_on_by_port(int port);
+void uart_rx_led_off_by_port(int port);
 void uart_led_boot_animation(void);
 void uart_led_reset_animation(void);
 
 uart_config_mode_t get_uart_config_mode(void);
 void set_uart_config_mode(uart_config_mode_t mode);
 
-/* 兼容旧业务接口：本项目将“总线发送口”映射为 CH2(UART2) */
-esp_err_t smart_send_data_to_ch5(uart_config_mode_t work_mode,
-                                 int source_channel,
+/* 兼容旧业务逻辑：“总线发送口”使用 RS232/UART2。 */
+esp_err_t smart_send_data_to_bus(uart_config_mode_t work_mode,
+                                 int source_port,
                                  const uint8_t *data,
                                  size_t data_len);
 
