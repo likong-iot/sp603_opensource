@@ -67,6 +67,7 @@ void sx_network_manager_w5500_got_ip(const esp_netif_ip_info_t *ip_info);
 void sx_network_manager_w5500_lost_ip(void);
 void sx_network_manager_modem_connected(void);
 void sx_network_manager_modem_disconnected(void);
+void sx_network_manager_modem_net_disconnected(void);
 void sx_network_manager_modem_got_ip(const esp_netif_ip_info_t *ip_info);
 
 #ifdef __cplusplus

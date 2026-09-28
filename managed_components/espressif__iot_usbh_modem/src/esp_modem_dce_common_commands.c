@@ -145,6 +145,7 @@ static esp_err_t esp_modem_dce_handle_read_pin(esp_modem_dce_t *dce, const char 
 {
     esp_err_t err = ESP_FAIL;
     if (strstr(line, MODEM_RESULT_CODE_ERROR)) {
+        ESP_LOGW("esp_modem_dce", "AT+CPIN? modem response: %s", line);
         err = esp_modem_process_command_done(dce, ESP_MODEM_STATE_FAIL);
         return err;
     }
@@ -155,6 +156,7 @@ static esp_err_t esp_modem_dce_handle_read_pin(esp_modem_dce_t *dce, const char 
         err = ESP_OK;
     } else if (strstr(line, "PIN") || strstr(line, "PUK")) {
         int *ready = (int*)dce->handle_line_ctx;
+        ESP_LOGW("esp_modem_dce", "AT+CPIN? SIM state: %s", line);
         *ready = false;
         err = ESP_OK;
     }

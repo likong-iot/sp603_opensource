@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <inttypes.h>
+#include <stdio.h>
 #include <esp_check.h>
 #include <esp_event.h>
 #include <esp_log.h>
@@ -13,6 +14,7 @@
 #include "app_task_utils.h"
 #include "s3_gpio.h"
 #include "sx_network_manager.h"
+#include "sx_web_server.h"
 
 static const char *TAG = "modem_mgr";
 static const char *TAG_EVENT = "4g_event";
@@ -28,6 +30,11 @@ static bool s_ip_event_registered = false;
 #define MODEM_MANAGER_TASK_PRIORITY      (5)
 #define MODEM_POWER_PULSE_MS              (2000)
 #define MODEM_POWER_BOOT_WAIT_MS          (5000)
+#define MODEM_STARTUP_MAX_ATTEMPTS         (3)
+#define MODEM_STARTUP_USB_TIMEOUT_MS       (30000)
+#define MODEM_STARTUP_USB_PROBE_MS          (3000)
+#define MODEM_STARTUP_PPP_TIMEOUT_MS       (70000)
+#define MODEM_STARTUP_RETRY_DELAY_MS       (5000)
 
 static void modem_manager_task(void *arg);
 static void modem_ip_event_handler(void *handler_args, esp_event_base_t base, int32_t id, void *event_data);
@@ -54,6 +61,28 @@ static void modem_manager_power_on_pulse(void)
     ESP_LOGI(TAG, "waiting %d ms for AIR780E power-up",
              MODEM_POWER_BOOT_WAIT_MS);
     vTaskDelay(pdMS_TO_TICKS(MODEM_POWER_BOOT_WAIT_MS));
+}
+
+static bool modem_manager_wait_for_usb(uint32_t timeout_ms)
+{
+    const TickType_t start = xTaskGetTickCount();
+    const TickType_t timeout_ticks = pdMS_TO_TICKS(timeout_ms);
+    while (!s_modem_usb_connected &&
+           (TickType_t)(xTaskGetTickCount() - start) < timeout_ticks) {
+        vTaskDelay(pdMS_TO_TICKS(250));
+    }
+    return s_modem_usb_connected;
+}
+
+static bool modem_manager_wait_for_ppp(uint32_t timeout_ms)
+{
+    const TickType_t start = xTaskGetTickCount();
+    const TickType_t timeout_ticks = pdMS_TO_TICKS(timeout_ms);
+    while (s_modem_usb_connected && !s_modem_connected &&
+           (TickType_t)(xTaskGetTickCount() - start) < timeout_ticks) {
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+    return s_modem_connected;
 }
 
 static bool modem_manager_try_get_ppp_ip(esp_netif_ip_info_t *ip_info)
@@ -112,6 +141,7 @@ static void modem_event_handler(void *handler_args, esp_event_base_t base, int32
         esp_netif_ip_info_t ip_info = {0};
         if (modem_manager_try_get_ppp_ip(&ip_info)) {
             if (ip_info.ip.addr != 0) {
+                sx_network_manager_modem_got_ip(&ip_info);
                 ESP_LOGI(TAG_EVENT, "PPP IP:" IPSTR " GW:" IPSTR " MASK:" IPSTR,
                          IP2STR(&ip_info.ip), IP2STR(&ip_info.gw), IP2STR(&ip_info.netmask));
             } else {
@@ -132,7 +162,7 @@ static void modem_event_handler(void *handler_args, esp_event_base_t base, int32
     case MODEM_EVENT_NET_DISCONN:
         ESP_LOGW(TAG_EVENT, "PPP 拨号断开，等待重试");
         s_modem_connected = false;
-        sx_network_manager_modem_disconnected();
+        sx_network_manager_modem_net_disconnected();
         break;
     case MODEM_EVENT_WIFI_STA_CONN: {
         intptr_t cnt = (intptr_t)event_data;
@@ -179,7 +209,7 @@ static void modem_ip_event_handler(void *handler_args, esp_event_base_t base, in
 
     if (id == IP_EVENT_PPP_LOST_IP) {
         s_modem_connected = false;
-        sx_network_manager_modem_disconnected();
+        sx_network_manager_modem_net_disconnected();
         ESP_LOGW(TAG_EVENT, "收到 PPP LOST IP 事件");
     }
 }
@@ -189,26 +219,120 @@ static void modem_manager_task(void *arg)
 {
     (void)arg;
     esp_err_t err = ESP_OK;
-
-    ESP_LOGI(TAG, "开始初始化 4G 模组并拨号");
-    modem_manager_power_on_pulse();
     modem_config_t modem_cfg = MODEM_DEFAULT_CONFIG();
     // 非阻塞返回，避免在 PPP 未建链时卡住整个 modem_manager_task
     modem_cfg.flags |= MODEM_FLAGS_INIT_NOT_BLOCK | MODEM_FLAGS_INIT_NOT_FORCE_RESET;
     modem_cfg.handler = modem_event_handler;
     modem_cfg.handler_arg = NULL;
-    err = modem_board_init(&modem_cfg);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "modem board init failed (%s)", esp_err_to_name(err));
-        goto exit;
+    for (int attempt = 1; attempt <= MODEM_STARTUP_MAX_ATTEMPTS; ++attempt) {
+        char web_log[160];
+        snprintf(web_log, sizeof(web_log), "AIR780E 启动尝试 %d/%d",
+                 attempt, MODEM_STARTUP_MAX_ATTEMPTS);
+        send_system_log("INFO", "4g", web_log);
+        ESP_LOGI(TAG, "开始初始化 AIR780E（第 %d/%d 次）", attempt,
+                 MODEM_STARTUP_MAX_ATTEMPTS);
+        s_modem_usb_connected = false;
+
+        err = modem_board_init(&modem_cfg);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "AIR780E 初始化失败（第 %d/%d 次）: %s", attempt,
+                     MODEM_STARTUP_MAX_ATTEMPTS, esp_err_to_name(err));
+            snprintf(web_log, sizeof(web_log), "AIR780E 初始化失败（第 %d/%d 次）：%s",
+                     attempt, MODEM_STARTUP_MAX_ATTEMPTS, esp_err_to_name(err));
+            send_system_log("WARN", "4g", web_log);
+        } else {
+            /* Start the USB host before touching PWRKEY. On retries the modem
+             * may still be booting from the previous pulse, so first give an
+             * already powered modem a chance to enumerate. */
+            if (!modem_manager_wait_for_usb(MODEM_STARTUP_USB_PROBE_MS)) {
+                ESP_LOGI(TAG, "未发现 AIR780E USB CDC，触发 PWRKEY 启动");
+                snprintf(web_log, sizeof(web_log),
+                         "未发现 AIR780E USB CDC，触发 PWRKEY 启动（第 %d 次）", attempt);
+                send_system_log("INFO", "4g", web_log);
+                modem_manager_power_on_pulse();
+            } else {
+                ESP_LOGI(TAG, "AIR780E 已处于开机状态，跳过 PWRKEY");
+            }
+
+            if (!s_modem_usb_connected &&
+                !modem_manager_wait_for_usb(MODEM_STARTUP_USB_TIMEOUT_MS)) {
+                ESP_LOGW(TAG, "等待 AIR780E USB CDC 连接超时（%d ms）",
+                         MODEM_STARTUP_USB_TIMEOUT_MS);
+                snprintf(web_log, sizeof(web_log), "等待 AIR780E USB CDC 连接超时（%d ms）",
+                         MODEM_STARTUP_USB_TIMEOUT_MS);
+                send_system_log("WARN", "4g", web_log);
+                err = ESP_ERR_TIMEOUT;
+            } else {
+                s_modem_ready = true;
+                ESP_LOGI(TAG, "AIR780E USB 已连接，等待 PPP 拨号");
+                snprintf(web_log, sizeof(web_log),
+                         "AIR780E USB CDC 已连接，等待 PPP 拨号（第 %d 次）", attempt);
+                send_system_log("INFO", "4g", web_log);
+
+                if (modem_manager_wait_for_ppp(MODEM_STARTUP_PPP_TIMEOUT_MS)) {
+                    s_modem_ready = true;
+                    ESP_LOGI(TAG, "AIR780E 已获取 PPP IP，启动成功");
+                    snprintf(web_log, sizeof(web_log),
+                             "AIR780E 已获取 PPP IP，启动成功（第 %d 次）", attempt);
+                    send_system_log("INFO", "4g", web_log);
+                    break;
+                }
+
+                if (s_modem_usb_connected) {
+                    ESP_LOGW(TAG,
+                             "等待 AIR780E PPP IP 超时（%d ms），保持 CDC 在线并由组件继续重拨",
+                             MODEM_STARTUP_PPP_TIMEOUT_MS);
+                    snprintf(web_log, sizeof(web_log),
+                             "AIR780E USB CDC 在线但 PPP 未就绪，组件将继续检测 SIM 并重拨");
+                } else {
+                    ESP_LOGW(TAG,
+                             "等待 PPP 期间 AIR780E USB CDC 断开，组件将等待设备重新连接");
+                    snprintf(web_log, sizeof(web_log),
+                             "AIR780E USB CDC 已断开，组件将等待设备重新连接");
+                }
+                send_system_log("WARN", "4g", web_log);
+                /* USB 枚举成功后由 modem 组件负责 SIM/PPP 自动恢复，
+                 * 不再从外层销毁实例或重新触发 PWRKEY。 */
+                err = ESP_OK;
+                break;
+            }
+
+            esp_err_t deinit_err = modem_board_deinit();
+            if (deinit_err != ESP_OK) {
+                ESP_LOGE(TAG, "清理未启动的 AIR780E 实例失败: %s，停止重试",
+                         esp_err_to_name(deinit_err));
+                snprintf(web_log, sizeof(web_log), "清理 AIR780E 实例失败，停止重试：%s",
+                         esp_err_to_name(deinit_err));
+                send_system_log("ERROR", "4g", web_log);
+                err = deinit_err;
+                break;
+            }
+            s_modem_usb_connected = false;
+            s_modem_connected = false;
+            sx_network_manager_modem_disconnected();
+        }
+
+        if (attempt < MODEM_STARTUP_MAX_ATTEMPTS) {
+            ESP_LOGI(TAG, "%d ms 后重试 AIR780E 启动", MODEM_STARTUP_RETRY_DELAY_MS);
+            snprintf(web_log, sizeof(web_log), "%d ms 后重试 AIR780E 启动",
+                     MODEM_STARTUP_RETRY_DELAY_MS);
+            send_system_log("INFO", "4g", web_log);
+            vTaskDelay(pdMS_TO_TICKS(MODEM_STARTUP_RETRY_DELAY_MS));
+        }
     }
 
-    s_modem_ready = true;
-    ESP_LOGI(TAG, "4G 模组初始化完成（已关闭 4G->Wi-Fi AP 共享逻辑）");
+    if (s_modem_ready) {
+        ESP_LOGI(TAG, "4G 模组初始化完成（已关闭 4G->Wi-Fi AP 共享逻辑）");
+    } else if (err == ESP_OK) {
+        err = ESP_ERR_TIMEOUT;
+    }
 
-exit:
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "4G 模组初始化任务失败: %s", esp_err_to_name(err));
+        char web_log[128];
+        snprintf(web_log, sizeof(web_log), "AIR780E 启动失败，已停止重试：%s",
+                 esp_err_to_name(err));
+        send_system_log("ERROR", "4g", web_log);
     }
     s_modem_task_handle = NULL;
     delete_self_app_task_with_caps();

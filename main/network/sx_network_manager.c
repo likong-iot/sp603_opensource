@@ -641,6 +641,20 @@ void sx_network_manager_modem_disconnected(void)
     xSemaphoreGive(s_mutex);
 }
 
+void sx_network_manager_modem_net_disconnected(void)
+{
+    if (!s_mutex) return;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    /* PPP may redial while the USB CDC/DTE remains connected. */
+    s_status.modem_got_ip = false;
+    s_status.modem_ip[0] = '\0';
+    memset(&s_modem_ip, 0, sizeof(s_modem_ip));
+    update_network_leds_locked();
+    select_uplink_locked();
+    log_status_locked("4G PPP disconnected");
+    xSemaphoreGive(s_mutex);
+}
+
 void sx_network_manager_modem_got_ip(const esp_netif_ip_info_t *info)
 {
     if (!s_mutex || !info) return;

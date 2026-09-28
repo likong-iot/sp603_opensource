@@ -98,7 +98,7 @@ void sx_network_config_set_defaults(sx_network_config_t *config)
     copy_text(config->ap_ip, sizeof(config->ap_ip), "192.168.4.1");
     copy_text(config->ap_netmask, sizeof(config->ap_netmask), "255.255.255.0");
 
-    config->modem_enabled = false;
+    config->modem_enabled = true;
     config->modem_role = SX_NETWORK_ROLE_UPLINK;
 
     config->routing_enabled = true;

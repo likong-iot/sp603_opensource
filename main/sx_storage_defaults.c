@@ -108,7 +108,7 @@ static const default_parameter_t s_default_parameters[] = {
     STRING_DEFAULT("nm_ap_mask", "255.255.255.0"),
     U8_DEFAULT("nm_ap_dhcp", 1),
 
-    U8_DEFAULT("nm_4g_en", 0),
+    U8_DEFAULT("nm_4g_en", 1),
     U8_DEFAULT("nm_4g_role", SX_NETWORK_ROLE_UPLINK),
 };
 
