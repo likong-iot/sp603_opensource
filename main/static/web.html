@@ -14,7 +14,7 @@
     <!-- <link rel="icon" href="favicon.ico"> -->
     <title>SP603-多串口物联网网关</title>
 
-    <link rel="stylesheet" type="text/css" href="web.css?v=20260928-2">
+    <link rel="stylesheet" type="text/css" href="web.css?v=20260928-5">
 </head>
 
 <body data-theme="light">
@@ -189,7 +189,7 @@
                                 <div class="label"><div class="title tip"> 连接状态 </div></div>
                                 <div class="view-container"><div data-v-721c7581="" class="base-text" id="active_link"></div></div>
                             </div>
-                            <div class="label-view label-view mt-6"><div class="label"><div class="title tip"> IP 地址 </div></div><div class="view-container"><div class="base-text" id="active_ip"></div></div></div>
+                            <div id="active_ip_row" class="label-view label-view mt-6"><div class="label"><div class="title tip"> IP 地址 </div></div><div class="view-container"><div class="base-text" id="active_ip"></div></div></div>
                             <div class="label-view label-view mt-6"><div class="label"><div class="title tip"> 子网掩码 </div></div><div class="view-container"><div class="base-text" id="netmask"></div></div></div>
                             <div class="label-view label-view mt-6"><div class="label"><div class="title tip"> 网关 </div></div><div class="view-container"><div class="base-text" id="gateway"></div></div></div>
                             <div class="label-view label-view mt-6"><div class="label"><div class="title tip"> DNS </div></div><div class="view-container"><div class="base-text" id="active_dns"></div></div></div>
@@ -1462,7 +1462,7 @@
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">接口开关</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_sta_enabled" type="checkbox"><span>启用 Wi-Fi 客户端</span></label></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><div class="base-text">上网</div><input id="nm_sta_role" type="hidden" value="uplink"></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">Wi-Fi 名称</div></div><div class="view-container"><input id="nm_sta_ssid" class="base-input" placeholder="请输入 Wi-Fi 名称"><button id="nm_sta_scan" type="button" class="main-btn sp603-inline-btn">搜索</button></div></div>
-                                    <div class="label-view mt-15"><div class="label"><div class="title tip">接入点密码</div></div><div class="view-container"><input id="nm_sta_password" class="base-input" type="password" placeholder="留空保持原密码"></div></div>
+                                    <div class="label-view mt-15"><div class="label"><div class="title tip">接入点密码</div></div><div class="view-container"><div class="sp603-password-field"><input id="nm_sta_password" class="base-input" type="password" autocomplete="current-password" placeholder="请输入接入点密码"><button type="button" class="sp603-password-toggle" data-password-target="nm_sta_password" aria-label="显示接入点密码" title="显示密码"></button></div></div></div>
                                     <div id="scanList" class="label-view mt-15" style="display:none"><div class="label"><div class="title tip">扫描列表</div></div><div class="view-container"><div class="base-text" style="width:210px"><table id="wifitable" style="color:var(--FG-3);width:100%"><tr style="color:var(--FG-3)"><th style="text-align:left">Wi-Fi 名称</th><th style="text-align:left">信号强度</th></tr><tr id="clusss"></tr></table></div></div></div>
                                     <div class="label-view mt-10"><div class="label"><div class="title tip"></div></div><div class="view-container"><div id="nm_sta_scan_message" class="sp603-scan-message" aria-live="polite"></div></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">静态 IPv4</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_sta_static" type="checkbox"><span>使用静态 IP（关闭则 DHCP）</span></label></div></div>
@@ -1478,7 +1478,7 @@
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><select id="nm_ap_role" class="base-input"><option value="downlink">提供网络</option><option value="local">仅提供控制界面</option></select></div></div>
                                     <div id="nm_ap_dhcp_row" class="label-view mt-15"><div class="label"><div class="title tip">DHCP 服务</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_ap_dhcp_enabled" type="checkbox"><span>为连接热点的设备自动分配 IP</span></label><span class="sp603-help-text">仅“提供网络”时可修改</span></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">热点名称</div></div><div class="view-container"><input id="nm_ap_ssid" class="base-input" placeholder="留空使用 SP603 默认名称"></div></div>
-                                    <div class="label-view mt-15"><div class="label"><div class="title tip">热点密码</div></div><div class="view-container"><input id="nm_ap_password" class="base-input" type="password" placeholder="留空保持原密码，至少 8 位"></div></div>
+                                    <div class="label-view mt-15"><div class="label"><div class="title tip">热点密码</div></div><div class="view-container"><div class="sp603-password-field"><input id="nm_ap_password" class="base-input" type="password" autocomplete="current-password" placeholder="至少 8 位"><button type="button" class="sp603-password-toggle" data-password-target="nm_ap_password" aria-label="显示热点密码" title="显示密码"></button></div></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">热点 IP 地址</div></div><div class="view-container"><input id="nm_ap_ip" class="base-input" value="192.168.4.1" placeholder="IPv4 地址"></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">子网掩码</div></div><div class="view-container"><input id="nm_ap_mask" class="base-input" value="255.255.255.0" placeholder="子网掩码"></div></div>
                                     <div id="nm_ap_timeout_row" class="label-view mt-15" style="display:none"><div class="label"><div class="title tip">自动关闭时间</div></div><div class="view-container"><select id="nm_ap_timeout_minutes" class="base-input"><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option><option value="60">1 小时</option><option value="120">2 小时</option><option value="360">6 小时</option><option value="720">12 小时</option><option value="1440">24 小时</option><option value="0">始终开启</option></select></div></div>
@@ -1489,7 +1489,7 @@
                                     <div class="container theme"><div class="title-text">4G 蜂窝网络 <span id="nm_status_4g" class="sp603-status is-muted">读取中</span></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">接口开关</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_4g_enabled" type="checkbox"><span>启用 4G</span></label></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><div class="base-text">上网</div><input id="nm_4g_role" type="hidden" value="uplink"></div></div>
-                                    <div class="label-view mt-15"><div class="label"><div class="title tip">运行状态</div></div><div class="view-container"><span>Modem：<strong id="nm_link_4g">--</strong>　IP：<strong id="nm_ip_4g">--</strong></span></div></div>
+                                    <div class="label-view mt-15"><div class="label"><div class="title tip">运行状态</div></div><div class="view-container"><span>Modem：<strong id="nm_link_4g">--</strong></span></div></div>
                                 </section>
                             </div>
                         </form>
@@ -2453,7 +2453,7 @@
         });
     </script>
 
-    <script src="web.js?v=20260928-2"></script>
+    <script src="web.js?v=20260928-6"></script>
 </body>
 
 </html>

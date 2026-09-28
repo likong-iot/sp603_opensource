@@ -105,6 +105,8 @@ async function updateBasicInfo() {
         basicInfoElements.active_interface.textContent = networkNames[data.active_interface] || data.active_interface || '暂无可用上联网';
         basicInfoElements.active_link.textContent = data.active_link ? '已连接' : '未连接';
         basicInfoElements.active_ip.textContent = data.active_ip || '0.0.0.0';
+        const activeIpRow = document.getElementById('active_ip_row');
+        if (activeIpRow) activeIpRow.style.display = data.active_interface === '4g' ? 'none' : '';
         basicInfoElements.gateway.textContent = data.gateway || '0.0.0.0';
         basicInfoElements.netmask.textContent = data.netmask || '0.0.0.0';
         basicInfoElements.active_dns.textContent = data.dns_ready === false
@@ -3877,18 +3879,60 @@ function showCustomAlert(message, isError = false, options = {}) {
 
 const SP603_SERIAL_BAUDS = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200];
 let savedSp603SerialLayout = null;
+let sp603SerialConfigLoadGeneration = 0;
 function serialField(label, id, type, value, options, unit) {
+    const input = `<input id="${id}" class="base-input" type="${type}" value="${value ?? ''}">`;
     const control = type === 'select'
         ? `<select id="${id}" class="base-input">${options.map(v => `<option value="${v[0]}">${v[1]}</option>`).join('')}</select>`
-        : `<input id="${id}" class="base-input" type="${type}" value="${value ?? ''}">`;
+        : type === 'password'
+            ? `<div class="sp603-password-field"><input id="${id}" class="base-input" type="password" autocomplete="current-password" value="${value ?? ''}"><button type="button" class="sp603-password-toggle" data-password-target="${id}" aria-label="显示密码" title="显示密码"></button></div>`
+            : input;
     const controlClass = unit ? ' serial-unit-control' : '';
     return `<div class="label-view label-view mt-15"><div class="label"><div class="title tip top">${label}</div></div><div class="view-container serial-field-control${controlClass}">${control}${unit ? `<span class="unit-text">${unit}</span>` : ''}</div></div>`;
 }
 
+function initializeSp603PasswordToggles(root = document) {
+    const openEyeTemplate = document.getElementById('eyeOpen');
+    const closedEyeTemplate = document.getElementById('eyeClosed');
+    if (!openEyeTemplate || !closedEyeTemplate) return;
+    root.querySelectorAll('.sp603-password-toggle[data-password-target]').forEach(button => {
+        if (button.dataset.passwordInitialized === 'true') return;
+        const input = document.getElementById(button.dataset.passwordTarget);
+        if (!input) return;
+        const openEye = openEyeTemplate.cloneNode(true);
+        const closedEye = closedEyeTemplate.cloneNode(true);
+        openEye.removeAttribute('id');
+        openEye.removeAttribute('style');
+        closedEye.removeAttribute('id');
+        closedEye.removeAttribute('style');
+        button.replaceChildren(openEye, closedEye);
+        const sync = () => {
+            const hidden = input.type === 'password';
+            openEye.style.display = hidden ? 'none' : 'block';
+            closedEye.style.display = hidden ? 'block' : 'none';
+            button.setAttribute('aria-label', hidden ? '显示密码' : '隐藏密码');
+            button.title = hidden ? '显示密码' : '隐藏密码';
+            button.setAttribute('aria-pressed', hidden ? 'false' : 'true');
+        };
+        button.addEventListener('click', () => {
+            input.type = input.type === 'password' ? 'text' : 'password';
+            sync();
+            input.focus();
+        });
+        button.dataset.passwordInitialized = 'true';
+        sync();
+    });
+}
+
 function updateSerialProtocolFields(card) {
-    const protocol = card.querySelector('[id^="serial_protocol_"]')?.value || 'tcp_server';
+    const selector = card.querySelector('[id^="serial_protocol_"]');
+    const protocol = selector?.value || 'tcp_server';
+    card.dataset.protocol = protocol;
     card.querySelectorAll('[data-protocols]').forEach(group => {
-        group.hidden = !group.dataset.protocols.split(' ').includes(protocol);
+        const visible = group.dataset.protocols.split(' ').includes(protocol);
+        group.hidden = !visible;
+        group.style.display = visible ? '' : 'none';
+        group.setAttribute('aria-hidden', visible ? 'false' : 'true');
     });
 }
 
@@ -3948,8 +3992,7 @@ function renderIndependentSerialCards() {
         protocol?.addEventListener('change', () => updateSerialProtocolFields(card));
         card.addEventListener('input', () => { card.dataset.dirty = 'true'; });
         card.addEventListener('change', () => { card.dataset.dirty = 'true'; });
-        const mqttPassword = document.getElementById(`serial_mqtt_password_${card.dataset.port}`);
-        if (mqttPassword) mqttPassword.placeholder = '留空保持原密码';
+        initializeSp603PasswordToggles(card);
         updateSerialProtocolFields(card);
         card.querySelector('.serial-collapse').addEventListener('click', () => { const body = card.querySelector('.serial-port-body'); const open = !body.hidden; body.hidden = open; const toggle = card.querySelector('.serial-collapse'); toggle.setAttribute('aria-expanded', String(!open)); toggle.classList.toggle('collapsed', open); });
     });
@@ -4010,13 +4053,15 @@ async function saveAllIndependentSerialConfigs(showSuccess = true) {
 }
 
 async function loadIndependentSerialConfigs() {
+    const generation = ++sp603SerialConfigLoadGeneration;
     renderIndependentSerialCards();
     for (const port of getIndependentSerialPorts()) {
-        try { const c = await fetportData(`/serial_set_info?port=${port}`); const card = document.querySelector(`[data-port="${port}"]`); if (!card) continue;
+        try { const c = await fetportData(`/serial_set_info?port=${port}`); const card = document.querySelector(`#serialIndependentCards .serial-port-card[data-port="${port}"]`); if (!card) continue;
+            if (generation !== sp603SerialConfigLoadGeneration || !card.isConnected) return;
             const set = (id, value) => { const e = document.getElementById(id); if (e && value !== undefined) e.value = value; };
             set(`serial_protocol_${port}`, c.protocol || (c.tcp_mode === 'client' ? 'tcp_client' : 'tcp_server'));
             set(`serial_baud_${port}`, c.baud_rate); set(`serial_data_${port}`, c.data_bit); set(`serial_check_${port}`, convertParityToBackend(c.check_bit)); set(`serial_stop_${port}`, c.stop_bit); set(`serial_frame_time_${port}`, c.frame_time); set(`serial_frame_len_${port}`, c.frame_len); set(`serial_timeout_${port}`, c.reply_timeout); set(`serial_local_port_${port}`, c.local_port); set(`serial_remote_ip_${port}`, c.remote_ip); set(`serial_remote_port_${port}`, c.remote_port);
-            set(`serial_mqtt_uri_${port}`, c.mqtt_uri); set(`serial_mqtt_client_id_${port}`, c.mqtt_client_id); set(`serial_mqtt_username_${port}`, c.mqtt_username); set(`serial_mqtt_pub_${port}`, c.mqtt_publish_topic); set(`serial_mqtt_sub_${port}`, c.mqtt_subscribe_topic); set(`serial_mqtt_qos_${port}`, c.mqtt_qos); set(`serial_mqtt_retain_${port}`, c.mqtt_retain ? '1' : '0');
+            set(`serial_mqtt_uri_${port}`, c.mqtt_uri); set(`serial_mqtt_client_id_${port}`, c.mqtt_client_id); set(`serial_mqtt_username_${port}`, c.mqtt_username); set(`serial_mqtt_password_${port}`, c.mqtt_password); set(`serial_mqtt_pub_${port}`, c.mqtt_publish_topic); set(`serial_mqtt_sub_${port}`, c.mqtt_subscribe_topic); set(`serial_mqtt_qos_${port}`, c.mqtt_qos); set(`serial_mqtt_retain_${port}`, c.mqtt_retain ? '1' : '0');
             updateSerialProtocolFields(card);
             card.dataset.dirty = 'false';
         } catch (e) { console.warn('串口配置读取失败', port, e); }
@@ -5560,18 +5605,22 @@ fetchSystemLogs();
 // Module set API
 
 document.getElementById("module_set").addEventListener("submit", event => event.preventDefault());
+let loadedLoginPassword = '';
 
 async function modulesetSubmit() {
     const formData = new FormData(document.getElementById('module_set'));
     const data = Object.fromEntries(formData);
-    const confirmation = document.getElementById('confirmPwd')?.value || '';
-    if (data.lgpwd && data.lgpwd !== confirmation) {
+    const confirmationInput = document.getElementById('confirmPwd');
+    const confirmation = confirmationInput?.value || '';
+    if (confirmationInput && data.lgpwd && data.lgpwd !== loadedLoginPassword &&
+        data.lgpwd !== confirmation) {
         showCustomAlert('两次输入的密码不一致', true);
         return;
     }
     if (!data.lgpwd) delete data.lgpwd;
     try {
         await postData('/module_set', data);
+        if (data.lgpwd) loadedLoginPassword = data.lgpwd;
         document.getElementById('moduleSetButton').textContent = "配置成功";
     } catch (error) {
         console.error('Error fetching data. Status:', error);
@@ -5585,9 +5634,11 @@ document.getElementById('moduleSetButton').addEventListener('click', modulesetSu
 async function modulesetfetportData() {
     try {
         const responseData = await fetportData('/module_set_info');
-        ['host_names', 'lgname'].forEach(id => document.getElementById(id).value = responseData[id] || '');
-        document.getElementById('lgpwd').value = '';
-        document.getElementById('confirmPwd').value = '';
+        ['host_names', 'lgname', 'lgpwd'].forEach(id => document.getElementById(id).value = responseData[id] || '');
+        loadedLoginPassword = responseData.lgpwd || '';
+        document.getElementById('lgpwd').type = 'password';
+        const confirmInput = document.getElementById('confirmPwd');
+        if (confirmInput) confirmInput.value = '';
         document.getElementById('moduleSetButton').textContent = responseData.host_names != "SP603-多串口物联网网关" ? '修改' : '保存';
     } catch (error) {
         console.error('Failed to fetch data. Status:', error);
@@ -5805,9 +5856,12 @@ window.onload = function () {
         const input = document.getElementById(field.input);
         const openEye = document.getElementById(field.openEye);
         const closedEye = document.getElementById(field.closedEye);
+        if (!input || !openEye || !closedEye) return;
         openEye.addEventListener('click', () => togglePasswordVisibility(input, openEye, closedEye));
         closedEye.addEventListener('click', () => togglePasswordVisibility(input, openEye, closedEye));
     });
+
+    initializeSp603PasswordToggles(document);
 
     // Form validation
     var otaUrlInput = document.getElementById('ota_url');
@@ -6659,7 +6713,9 @@ function renderSp603NetworkInterface(id, info) {
         setSp603Text(`nm_link_${id}`, !info.enabled ? '未启用' :
             (info.link_up ? '已连接' : '等待连接'));
     }
-    setSp603Text(`nm_ip_${id}`, info.ip || (info.got_ip ? '已获取' : '未获取'));
+    if (id !== '4g') {
+        setSp603Text(`nm_ip_${id}`, info.ip || (info.got_ip ? '已获取' : '未获取'));
+    }
 
     const panel = document.querySelector(`[data-network-id="${id}"]`);
     if (panel) panel.classList.toggle('is-unavailable', !info.enabled);

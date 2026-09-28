@@ -2668,6 +2668,49 @@ body[data-theme=dark] {
     cursor: pointer;
 }
 
+.sp603-password-field {
+    position: relative;
+    width: 308px;
+    max-width: 100%;
+    min-width: 220px;
+}
+
+.sp603-password-field .base-input {
+    width: 100%;
+    max-width: 100%;
+    padding-right: 42px;
+    box-sizing: border-box;
+}
+
+.sp603-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 3px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transform: translateY(-50%);
+}
+
+.sp603-password-toggle:focus-visible {
+    border-radius: var(--RADIUS-1);
+    outline: 2px solid var(--BRAND);
+    outline-offset: -2px;
+}
+
+.sp603-password-toggle .iconeye {
+    position: static;
+    width: 20px;
+    height: 20px;
+    transform: none;
+}
+
 .cus-uart > #devcie_report {
     max-width: 100%;
     max-height: 100%;
@@ -3089,7 +3132,6 @@ canvas {
         padding: 0 10px;
     }
 }
-
 
 .title-text {
     display: flex;
@@ -6936,6 +6978,11 @@ canvas {
     box-sizing: border-box;
 }
 
+#serialConfigContent .serial-field-control .sp603-password-field {
+    width: 100%;
+    min-width: 0;
+}
+
 @media screen and (max-width: 750px) {
     #serialConfigContent .serial-port-body .serial-field-control,
     #serialConfigContent .serial-config-panel .view-container .custom-input,
@@ -6951,3 +6998,51 @@ canvas {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
+    }
+}
+
+@media screen and (min-width: 751px) {
+    #serialConfigContent .serial-port-body {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 24px;
+    }
+
+    #serialConfigContent .serial-settings-section {
+        min-width: 0;
+        padding-top: 16px;
+    }
+
+    #serialConfigContent .serial-settings-section + .serial-settings-section {
+        margin-top: 0;
+        padding-left: 24px;
+        border-top: 0;
+        border-left: 1px solid var(--BG-2);
+    }
+
+    #serialConfigContent .serial-port-body .label .title {
+        width: 96px;
+    }
+
+    #serialConfigContent .serial-port-body .label .title.tip {
+        margin-right: 12px;
+    }
+
+    #serialConfigContent .serial-port-body .serial-field-control {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 1 1 auto !important;
+    }
+}
+
+@media screen and (max-width: 750px) {
+    .sp603-password-field {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .sp603-password-field .base-input {
+        padding-right: 38px !important;
+    }
+}

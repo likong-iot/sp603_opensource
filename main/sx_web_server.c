@@ -1363,12 +1363,16 @@ static esp_err_t get_module_set_info_get_handler(httpd_req_t *req)
     if (nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs) == ESP_OK) {
         char host_names[64];
         char lgname[32];
+        char lgpwd[64];
         cJSON_AddStringToObject(root, "host_names",
                                 nvs_get_string_or_default(nvs, "host_names", "SP603-多串口物联网网关", host_names,
                                                           sizeof(host_names)));
         cJSON_AddStringToObject(root, "lgname",
                                 nvs_get_string_or_default(nvs, "lgname", "admin", lgname,
                                                           sizeof(lgname)));
+        cJSON_AddStringToObject(root, "lgpwd",
+                                nvs_get_string_or_default(nvs, "lgpwd", "12345678", lgpwd,
+                                                          sizeof(lgpwd)));
         cJSON_AddBoolToObject(root, "password_configured", true);
         nvs_close(nvs);
     }
@@ -1694,7 +1698,7 @@ static esp_err_t get_serial_set_info_get_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "remote_port", tcp_cfg.remote_port);
     cJSON_AddStringToObject(root, "mqtt_uri", tcp_cfg.mqtt_uri);
     cJSON_AddStringToObject(root, "mqtt_username", tcp_cfg.mqtt_username);
-    cJSON_AddStringToObject(root, "mqtt_password", "");
+    cJSON_AddStringToObject(root, "mqtt_password", tcp_cfg.mqtt_password);
     cJSON_AddBoolToObject(root, "mqtt_password_configured", tcp_cfg.mqtt_password[0] != '\0');
     cJSON_AddStringToObject(root, "mqtt_client_id", tcp_cfg.mqtt_client_id);
     cJSON_AddStringToObject(root, "mqtt_publish_topic", tcp_cfg.mqtt_publish_topic);
@@ -2414,7 +2418,7 @@ static void add_network_config_json(cJSON *root, const sx_network_config_t *cfg)
     cJSON_AddBoolToObject(root, "wifi_sta_enabled", cfg->wifi_sta_enabled);
     cJSON_AddStringToObject(root, "wifi_sta_role", sx_network_role_name(cfg->wifi_sta_role));
     cJSON_AddStringToObject(root, "wifi_ssid", cfg->wifi_ssid);
-    cJSON_AddStringToObject(root, "wifi_password", "");
+    cJSON_AddStringToObject(root, "wifi_password", cfg->wifi_password);
     cJSON_AddBoolToObject(root, "wifi_password_configured", cfg->wifi_password[0] != '\0');
     cJSON_AddBoolToObject(root, "wifi_sta_static", cfg->wifi_sta_static);
     cJSON_AddStringToObject(root, "wifi_sta_ip", cfg->wifi_sta_ip);
@@ -2424,7 +2428,7 @@ static void add_network_config_json(cJSON *root, const sx_network_config_t *cfg)
     cJSON_AddBoolToObject(root, "wifi_ap_enabled", cfg->wifi_ap_enabled);
     cJSON_AddStringToObject(root, "wifi_ap_role", sx_network_role_name(cfg->wifi_ap_role));
     cJSON_AddStringToObject(root, "ap_ssid", cfg->ap_ssid);
-    cJSON_AddStringToObject(root, "ap_password", "");
+    cJSON_AddStringToObject(root, "ap_password", cfg->ap_password);
     cJSON_AddBoolToObject(root, "ap_password_configured", cfg->ap_password[0] != '\0');
     cJSON_AddStringToObject(root, "ap_ip", cfg->ap_ip);
     cJSON_AddStringToObject(root, "ap_netmask", cfg->ap_netmask);

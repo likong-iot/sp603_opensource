@@ -110,6 +110,7 @@ void sx_network_config_set_defaults(sx_network_config_t *config)
     config->wifi_ap_role = SX_NETWORK_ROLE_DOWNLINK;
     config->ap_timeout_minutes = 30;
     config->wifi_ap_dhcp_enabled = true;
+    copy_text(config->ap_password, sizeof(config->ap_password), "12345678");
     copy_text(config->ap_ip, sizeof(config->ap_ip), "192.168.4.1");
     copy_text(config->ap_netmask, sizeof(config->ap_netmask), "255.255.255.0");
 
