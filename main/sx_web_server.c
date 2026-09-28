@@ -15,6 +15,7 @@
 #include "esp_heap_caps.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_log_write.h"
 #include "esp_mac.h"
 #include "esp_memory_utils.h"
 #include "esp_netif.h"
@@ -57,7 +58,9 @@
 #define AUTH_SESSION_TOKEN_BYTES 16
 #define AUTH_SESSION_TIMEOUT_US (30LL * 60LL * 1000000LL)
 #define MAX_PROTECTED_ROUTES 64
-#define SYSTEM_LOG_CAPACITY 64
+#define SYSTEM_LOG_CAPACITY 256
+#define SYSTEM_LOG_FALLBACK_CAPACITY 16
+#define SYSTEM_LOG_TEXT_LEN 512
 
 _Static_assert(AC_MAX_ITEMS_PER_PORT <= 100,
                "auto-collect NVS item keys exceed the 15-character limit");
@@ -109,13 +112,103 @@ typedef struct {
     int64_t timestamp_us;
     char level[8];
     char source[24];
-    char text[192];
+    char text[SYSTEM_LOG_TEXT_LEN];
 } system_log_entry_t;
 
-static system_log_entry_t s_system_logs[SYSTEM_LOG_CAPACITY];
+static system_log_entry_t s_system_log_fallback[SYSTEM_LOG_FALLBACK_CAPACITY];
+static system_log_entry_t *s_system_logs = s_system_log_fallback;
+static size_t s_system_log_capacity = SYSTEM_LOG_FALLBACK_CAPACITY;
 static size_t s_system_log_count;
 static size_t s_system_log_next;
 static portMUX_TYPE s_system_log_spinlock = portMUX_INITIALIZER_UNLOCKED;
+static vprintf_like_t s_original_log_vprintf;
+static bool s_log_capture_installed;
+
+static int64_t system_log_store(const char *level, const char *source, const char *text)
+{
+    int64_t timestamp_us = (int64_t)time_manager_get_current_us();
+    portENTER_CRITICAL(&s_system_log_spinlock);
+    system_log_entry_t *entry = &s_system_logs[s_system_log_next];
+    entry->timestamp_us = timestamp_us;
+    strlcpy(entry->level, level ? level : "INFO", sizeof(entry->level));
+    strlcpy(entry->source, source ? source : "system", sizeof(entry->source));
+    strlcpy(entry->text, text ? text : "", sizeof(entry->text));
+    s_system_log_next = (s_system_log_next + 1U) % s_system_log_capacity;
+    if (s_system_log_count < s_system_log_capacity) ++s_system_log_count;
+    portEXIT_CRITICAL(&s_system_log_spinlock);
+    return timestamp_us;
+}
+
+static const char *esp_log_level_name(char letter)
+{
+    switch (letter) {
+    case 'E': return "ERROR";
+    case 'W': return "WARN";
+    case 'D': return "DEBUG";
+    case 'V': return "VERBOSE";
+    default: return "INFO";
+    }
+}
+
+static void capture_esp_log_line(char *line)
+{
+    if (line == NULL || line[0] == '\0') return;
+    size_t length = strlen(line);
+    while (length > 0 && (line[length - 1] == '\n' || line[length - 1] == '\r')) {
+        line[--length] = '\0';
+    }
+    if (length == 0) return;
+
+    const char *level = "INFO";
+    const char *source = "esp_log";
+    char *text = line;
+    if (length >= 3 && line[1] == ' ' && line[2] == '(') {
+        level = esp_log_level_name(line[0]);
+        char *prefix_end = strstr(line + 3, ") ");
+        if (prefix_end != NULL) {
+            char *tag = prefix_end + 2;
+            char *separator = strstr(tag, ": ");
+            if (separator != NULL) {
+                *separator = '\0';
+                source = tag;
+                text = separator + 2;
+            }
+        }
+    }
+    system_log_store(level, source, text);
+}
+
+static int web_log_vprintf(const char *format, va_list args)
+{
+    va_list uart_args;
+    va_list capture_args;
+    va_copy(uart_args, args);
+    va_copy(capture_args, args);
+    int result = s_original_log_vprintf ? s_original_log_vprintf(format, uart_args) : 0;
+    va_end(uart_args);
+
+    char line[SYSTEM_LOG_TEXT_LEN];
+    vsnprintf(line, sizeof(line), format, capture_args);
+    va_end(capture_args);
+    capture_esp_log_line(line);
+    return result;
+}
+
+void sx_web_log_capture_init(void)
+{
+    if (s_log_capture_installed) return;
+    system_log_entry_t *psram_logs = heap_caps_calloc(
+        SYSTEM_LOG_CAPACITY, sizeof(system_log_entry_t),
+        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (psram_logs != NULL) {
+        s_system_logs = psram_logs;
+        s_system_log_capacity = SYSTEM_LOG_CAPACITY;
+    }
+    s_original_log_vprintf = esp_log_set_vprintf(web_log_vprintf);
+    s_log_capture_installed = true;
+    ESP_LOGI(TAG, "ESP_LOG Web capture enabled, capacity=%u, line=%u bytes",
+             (unsigned)s_system_log_capacity, (unsigned)SYSTEM_LOG_TEXT_LEN);
+}
 
 static bool port_supported_for_hw(int port)
 {
@@ -540,31 +633,7 @@ static void ws_broadcast_text(const char *text)
 
 void send_system_log(const char *level, const char *source, const char *text)
 {
-    system_log_entry_t entry = {0};
-    entry.timestamp_us = time_manager_get_current_us();
-    snprintf(entry.level, sizeof(entry.level), "%s", level ? level : "INFO");
-    snprintf(entry.source, sizeof(entry.source), "%s", source ? source : "system");
-    snprintf(entry.text, sizeof(entry.text), "%s", text ? text : "");
-
-    portENTER_CRITICAL(&s_system_log_spinlock);
-    s_system_logs[s_system_log_next] = entry;
-    s_system_log_next = (s_system_log_next + 1U) % SYSTEM_LOG_CAPACITY;
-    if (s_system_log_count < SYSTEM_LOG_CAPACITY) ++s_system_log_count;
-    portEXIT_CRITICAL(&s_system_log_spinlock);
-
-    cJSON *root = cJSON_CreateObject();
-    if (root == NULL) return;
-    cJSON_AddStringToObject(root, "type", "system_log");
-    cJSON_AddNumberToObject(root, "timestamp", (double)entry.timestamp_us);
-    cJSON_AddStringToObject(root, "level", entry.level);
-    cJSON_AddStringToObject(root, "source", entry.source);
-    cJSON_AddStringToObject(root, "text", entry.text);
-    char *payload = cJSON_PrintUnformatted(root);
-    if (payload != NULL) {
-        ws_broadcast_text(payload);
-        free(payload);
-    }
-    cJSON_Delete(root);
+    system_log_store(level, source, text);
 }
 
 static int runtime_port_from_port(int port)
@@ -1755,14 +1824,16 @@ static esp_err_t get_system_logs_get_handler(httpd_req_t *req)
 
     size_t count;
     size_t next;
+    size_t capacity;
     portENTER_CRITICAL(&s_system_log_spinlock);
     count = s_system_log_count;
     next = s_system_log_next;
+    capacity = s_system_log_capacity;
     portEXIT_CRITICAL(&s_system_log_spinlock);
 
     for (size_t i = 0; i < count; ++i) {
         system_log_entry_t entry;
-        size_t index = (next + SYSTEM_LOG_CAPACITY - count + i) % SYSTEM_LOG_CAPACITY;
+        size_t index = (next + capacity - count + i) % capacity;
         portENTER_CRITICAL(&s_system_log_spinlock);
         entry = s_system_logs[index];
         portEXIT_CRITICAL(&s_system_log_spinlock);
@@ -2293,9 +2364,7 @@ static esp_err_t get_network_status_handler(httpd_req_t *req)
                           status.w5500_started, config.ethernet_role,
                           status.w5500_link_up,
                           ethernet_got_ip,
-                          config.ethernet_role == SX_NETWORK_ROLE_UPLINK ||
-                              config.ethernet_role == SX_NETWORK_ROLE_BACKUP ||
-                              config.ethernet_role == SX_NETWORK_ROLE_LAST,
+                          config.ethernet_role == SX_NETWORK_ROLE_UPLINK,
                           ethernet_ip);
     cJSON_AddBoolToObject(ethernet, "dhcp_server",
                           config.ethernet_enabled &&
@@ -2313,9 +2382,15 @@ static esp_err_t get_network_status_handler(httpd_req_t *req)
     cJSON_AddNumberToObject(wifi_ap, "client_count", status.wifi_ap_client_count);
     cJSON_AddBoolToObject(wifi_ap, "dhcp_server",
                           config.wifi_ap_enabled &&
-                              (config.wifi_ap_role == SX_NETWORK_ROLE_LOCAL ||
-                               (config.wifi_ap_role == SX_NETWORK_ROLE_DOWNLINK &&
-                                config.wifi_ap_dhcp_enabled)));
+                              (config.wifi_ap_role == SX_NETWORK_ROLE_DOWNLINK ||
+                               config.wifi_ap_role == SX_NETWORK_ROLE_LOCAL) &&
+                              config.wifi_ap_dhcp_enabled);
+    cJSON_AddBoolToObject(wifi_ap, "timeout_active",
+                          status.wifi_ap_timeout_active);
+    cJSON_AddNumberToObject(wifi_ap, "timeout_remaining_seconds",
+                            status.wifi_ap_timeout_remaining_seconds);
+    cJSON_AddBoolToObject(wifi_ap, "timed_out",
+                          status.wifi_ap_timed_out);
     add_network_interface(interfaces, "4g", config.modem_enabled,
                           status.modem_started, config.modem_role,
                           status.modem_usb_connected,
@@ -2464,9 +2539,9 @@ static esp_err_t set_network_config_handler(httpd_req_t *req)
     update_json_bool(json, "modem_enabled", &cfg.modem_enabled);
 
     bool valid = update_json_role(json, "ethernet_role", &cfg.ethernet_role) &&
-                 update_json_role(json, "wifi_sta_role", &cfg.wifi_sta_role) &&
-                 update_json_role(json, "wifi_ap_role", &cfg.wifi_ap_role) &&
-                 update_json_role(json, "modem_role", &cfg.modem_role);
+                 update_json_role(json, "wifi_ap_role", &cfg.wifi_ap_role);
+    cfg.wifi_sta_role = SX_NETWORK_ROLE_UPLINK;
+    cfg.modem_role = SX_NETWORK_ROLE_UPLINK;
     cJSON_Delete(json);
     if (!valid) {
         ESP_LOGW(TAG, "[NETSAVE] %s invalid role", trace);

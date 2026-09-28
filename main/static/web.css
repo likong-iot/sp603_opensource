@@ -3354,6 +3354,32 @@ canvas {
     word-break: break-word;
 }
 
+.security .system-log-page .system-log-card[data-v-4818d386] {
+    box-sizing: border-box;
+    width: calc(100% - 40px);
+    margin: 20px;
+    padding-bottom: 20px;
+}
+
+.system-log-page .system-log-content {
+    min-height: calc(100vh - 240px);
+    max-height: calc(100vh - 240px);
+}
+
+@media screen and (max-width: 750px) {
+    .security .system-log-page .system-log-card[data-v-4818d386] {
+        width: calc(100% - 16px);
+        margin: 8px;
+        padding-bottom: 10px;
+    }
+
+    .system-log-page .system-log-content {
+        min-height: calc(100vh - 220px);
+        max-height: calc(100vh - 220px);
+        margin: 0 12px 12px;
+    }
+}
+
 
 /* 串口数据行样式 */
 .uart-data-line {

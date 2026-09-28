@@ -590,3 +590,23 @@ esp_err_t sx_wifi_start_configured(bool ap_enabled,
   ESP_LOGI(TAG, "SP603 Wi-Fi configured: AP=%d STA=%d", ap_enabled, sta_enabled);
   return ESP_OK;
 }
+
+esp_err_t sx_wifi_stop_ap(bool keep_sta_running)
+{
+  if (!s_wifi_started) return ESP_OK;
+
+  if (keep_sta_running) {
+    ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG,
+                        "disable AP while keeping STA failed");
+    ESP_LOGI(TAG, "Wi-Fi AP stopped; STA remains active");
+    return ESP_OK;
+  }
+
+  esp_err_t err = esp_wifi_stop();
+  if (err == ESP_OK || err == ESP_ERR_WIFI_NOT_STARTED) {
+    s_wifi_started = false;
+    ESP_LOGI(TAG, "Wi-Fi AP stopped");
+    return ESP_OK;
+  }
+  return err;
+}

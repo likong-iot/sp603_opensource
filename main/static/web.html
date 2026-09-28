@@ -14,7 +14,7 @@
     <!-- <link rel="icon" href="favicon.ico"> -->
     <title>SP603-多串口物联网网关</title>
 
-    <link rel="stylesheet" type="text/css" href="web.css?v=20260910-3">
+    <link rel="stylesheet" type="text/css" href="web.css?v=20260928-2">
 </head>
 
 <body data-theme="light">
@@ -47,6 +47,10 @@
                     <a id="netConfig" name="netConfig" href="#/WiFiConfig" class="nav-link"><span
                             class="icon iconfont iconWi-Fi"></span>
                         <div class="name">网络管理</div>
+                    </a>
+                    <a id="systemLogs" name="systemLogs" href="#/systemLogs" class="nav-link"><span
+                            class="icon iconfont iconwenben"></span>
+                        <div class="name">系统日志</div>
                     </a>
                     <!-- <a id="protocolConfig" name="protocolConfig" href="#/protocolConfig" class="nav-link"><span
                             class="icon iconfont iconxieyi"></span>
@@ -98,6 +102,12 @@
                         <a id="netConfig_m" name="netConfig" href="#/WiFiConfig" class="nav-link"><span
                                 class="icon iconfont iconWi-Fi"></span>
                             <div class="name">网络管理</div>
+                        </a>
+                    </div>
+                    <div class="nav-container">
+                        <a id="systemLogs_m" name="systemLogs" href="#/systemLogs" class="nav-link"><span
+                                class="icon iconfont iconwenben"></span>
+                            <div class="name">系统日志</div>
                         </a>
                     </div>
                     <!-- <div class="nav-container">
@@ -1432,7 +1442,7 @@
                                 <section id="sp603-network-panel-ethernet" class="sp603-config-section" data-network-id="ethernet" data-network-tab-panel="ethernet" role="tabpanel" aria-labelledby="sp603-network-tab-ethernet">
                                     <div class="container theme"><div class="title-text">Ethernet / W5500 有线网口 <span id="nm_status_ethernet" class="sp603-status is-muted">读取中</span></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">接口开关</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_eth_enabled" type="checkbox"><span>启用 Ethernet</span></label></div></div>
-                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><select id="nm_eth_role" class="base-input" onchange="updateNetworkRoleDependentFields()"><option value="uplink">主上联</option><option value="backup">备用上联</option><option value="last">最后备用上联</option><option value="downlink">提供网络</option></select></div></div>
+                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><select id="nm_eth_role" class="base-input" onchange="updateNetworkRoleDependentFields()"><option value="uplink">上网</option><option value="downlink">提供网络</option></select></div></div>
                                     <div id="nm_eth_uplink_config">
                                         <div class="label-view mt-15"><div class="label"><div class="title tip">地址获取方式</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_eth_static" type="checkbox" onchange="updateNetworkRoleDependentFields()"><span id="nm_eth_static_text">使用静态 IP</span></label><span class="sp603-help-text">关闭后通过 DHCP 自动获取</span></div></div>
                                         <div id="nm_eth_ip_row" class="label-view mt-15"><div class="label"><div class="title tip">本机 IP 地址</div></div><div class="view-container"><input id="nm_eth_ip" class="base-input" value="192.168.5.1" placeholder="IPv4 地址"></div></div>
@@ -1450,7 +1460,7 @@
                                 <section id="sp603-network-panel-wifi_sta" class="sp603-config-section" data-network-id="wifi_sta" data-network-tab-panel="wifi_sta" role="tabpanel" aria-labelledby="sp603-network-tab-wifi_sta" hidden>
                                     <div class="container theme"><div class="title-text">Wi-Fi 客户端 / STA 无线联网 <span id="nm_status_wifi_sta" class="sp603-status is-muted">读取中</span></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">接口开关</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_sta_enabled" type="checkbox"><span>启用 Wi-Fi 客户端</span></label></div></div>
-                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><select id="nm_sta_role" class="base-input"><option value="uplink">主上联</option><option value="backup">备用上联</option><option value="last">最后备用上联</option></select></div></div>
+                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><div class="base-text">上网</div><input id="nm_sta_role" type="hidden" value="uplink"></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">Wi-Fi 名称</div></div><div class="view-container"><input id="nm_sta_ssid" class="base-input" placeholder="请输入 Wi-Fi 名称"><button id="nm_sta_scan" type="button" class="main-btn sp603-inline-btn">搜索</button></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">接入点密码</div></div><div class="view-container"><input id="nm_sta_password" class="base-input" type="password" placeholder="留空保持原密码"></div></div>
                                     <div id="scanList" class="label-view mt-15" style="display:none"><div class="label"><div class="title tip">扫描列表</div></div><div class="view-container"><div class="base-text" style="width:210px"><table id="wifitable" style="color:var(--FG-3);width:100%"><tr style="color:var(--FG-3)"><th style="text-align:left">Wi-Fi 名称</th><th style="text-align:left">信号强度</th></tr><tr id="clusss"></tr></table></div></div></div>
@@ -1465,19 +1475,20 @@
                                 <section id="sp603-network-panel-wifi_ap" class="sp603-config-section" data-network-id="wifi_ap" data-network-tab-panel="wifi_ap" role="tabpanel" aria-labelledby="sp603-network-tab-wifi_ap" hidden>
                                     <div class="container theme"><div class="title-text">Wi-Fi 热点 / AP 本地网络 <span id="nm_status_wifi_ap" class="sp603-status is-muted">读取中</span></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">接口开关</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_ap_enabled" type="checkbox"><span>启用 Wi-Fi 热点</span></label></div></div>
-                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><select id="nm_ap_role" class="base-input"><option value="local">仅管理界面</option><option value="downlink" selected>提供网络</option></select></div></div>
+                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><select id="nm_ap_role" class="base-input"><option value="downlink">提供网络</option><option value="local">仅提供控制界面</option></select></div></div>
                                     <div id="nm_ap_dhcp_row" class="label-view mt-15"><div class="label"><div class="title tip">DHCP 服务</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_ap_dhcp_enabled" type="checkbox"><span>为连接热点的设备自动分配 IP</span></label><span class="sp603-help-text">仅“提供网络”时可修改</span></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">热点名称</div></div><div class="view-container"><input id="nm_ap_ssid" class="base-input" placeholder="留空使用 SP603 默认名称"></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">热点密码</div></div><div class="view-container"><input id="nm_ap_password" class="base-input" type="password" placeholder="留空保持原密码，至少 8 位"></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">热点 IP 地址</div></div><div class="view-container"><input id="nm_ap_ip" class="base-input" value="192.168.4.1" placeholder="IPv4 地址"></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">子网掩码</div></div><div class="view-container"><input id="nm_ap_mask" class="base-input" value="255.255.255.0" placeholder="子网掩码"></div></div>
-                                    <div id="nm_ap_timeout_row" class="label-view mt-15"><div class="label"><div class="title tip">管理界面开启时间</div></div><div class="view-container"><select id="nm_ap_timeout_minutes" class="base-input"><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option><option value="60">1 小时</option><option value="120">2 小时</option><option value="360">6 小时</option><option value="720">12 小时</option><option value="1440">24 小时</option><option value="0">始终开启</option></select><span class="sp603-help-text">仅“仅管理界面”时可配置</span></div></div>
+                                    <div id="nm_ap_timeout_row" class="label-view mt-15" style="display:none"><div class="label"><div class="title tip">自动关闭时间</div></div><div class="view-container"><select id="nm_ap_timeout_minutes" class="base-input"><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option><option value="60">1 小时</option><option value="120">2 小时</option><option value="360">6 小时</option><option value="720">12 小时</option><option value="1440">24 小时</option><option value="0">始终开启</option></select></div></div>
+                                    <div id="nm_ap_countdown_row" class="label-view mt-15" style="display:none"><div class="label"><div class="title tip">关闭倒计时</div></div><div class="view-container"><strong id="nm_ap_countdown">--</strong></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">运行状态</div></div><div class="view-container"><span>终端：<strong id="nm_link_wifi_ap">--</strong>　IP：<strong id="nm_ip_wifi_ap">--</strong></span></div></div>
                                 </section>
                                 <section id="sp603-network-panel-4g" class="sp603-config-section" data-network-id="4g" data-network-tab-panel="4g" role="tabpanel" aria-labelledby="sp603-network-tab-4g" hidden>
                                     <div class="container theme"><div class="title-text">4G 蜂窝网络 <span id="nm_status_4g" class="sp603-status is-muted">读取中</span></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">接口开关</div></div><div class="view-container"><label class="sp603-enable"><input id="nm_4g_enabled" type="checkbox"><span>启用 4G</span></label></div></div>
-                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><select id="nm_4g_role" class="base-input"><option value="uplink">主上联</option><option value="backup">备用上联</option><option value="last">最后备用上联</option></select></div></div>
+                                    <div class="label-view mt-15"><div class="label"><div class="title tip">网络用途</div></div><div class="view-container"><div class="base-text">上网</div><input id="nm_4g_role" type="hidden" value="uplink"></div></div>
                                     <div class="label-view mt-15"><div class="label"><div class="title tip">运行状态</div></div><div class="view-container"><span>Modem：<strong id="nm_link_4g">--</strong>　IP：<strong id="nm_ip_4g">--</strong></span></div></div>
                                 </section>
                             </div>
@@ -1748,7 +1759,7 @@
                             <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
                                 data-v-6f9f3e2e="">
                                 <div class="label">
-                                    <div class="title tip"> 系统可用堆内存(内部RAM)</div>
+                                    <div class="title tip"> 系统可用堆内存<br>(内部RAM)</div>
                                 </div>
                                 <div class="view-container">
                                     <div data-v-4818d386="" class="base-text" id="free_heap_internal"></div>
@@ -1757,7 +1768,7 @@
                             <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
                                 data-v-6f9f3e2e="">
                                 <div class="label">
-                                    <div class="title tip"> 最小可用堆大小(内部RAM)</div>
+                                    <div class="title tip"> 最小可用堆大小<br>(内部RAM)</div>
                                 </div>
                                 <div class="view-container">
                                     <div data-v-4818d386="" class="base-text" id="min_heap_internal"></div>
@@ -1766,7 +1777,7 @@
                             <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
                                 data-v-6f9f3e2e="">
                                 <div class="label">
-                                    <div class="title tip"> 可用堆内存(PSRAM)</div>
+                                    <div class="title tip"> 可用堆内存<br>(PSRAM)</div>
                                 </div>
                                 <div class="view-container">
                                     <div data-v-4818d386="" class="base-text" id="free_heap_psram"></div>
@@ -1775,7 +1786,7 @@
                             <div data-v-4818d386="" class="label-view label-view mt-20" style="margin-left: 60px;"
                                 data-v-6f9f3e2e="">
                                 <div class="label">
-                                    <div class="title tip"> 最小可用堆大小(PSRAM)</div>
+                                    <div class="title tip"> 最小可用堆大小<br>(PSRAM)</div>
                                 </div>
                                 <div class="view-container">
                                     <div data-v-4818d386="" class="base-text" id="min_heap_psram"></div>
@@ -1809,22 +1820,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view pw system-log-card">
-                            <div data-v-4818d386="" data-v-6f9f3e2e="" class="container">
-                                <div class="title-text">系统日志</div>
-                                <div class="button-group">
-                                    <button type="button" id="toggleSystemLogs" class="main-btn small">
-                                        <div class="btn-container">暂停</div>
-                                    </button>
-                                    <button type="button" id="clearSystemLogs" class="main-btn small">
-                                        <div class="btn-container">清空显示</div>
-                                    </button>
-                                </div>
-                            </div>
-                            <pre id="systemLogContent" class="system-log-content">正在读取日志...</pre>
-                        </div>
-
 
                         <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view pw">
                             <form method='post' id="module_set" action='/module_set'>
@@ -1976,6 +1971,25 @@
                                     </div>
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="logsView" name="logsView" class="system-log-page" style="display: none;">
+                    <div data-v-6f9f3e2e="" id="content">
+                        <div data-v-4818d386="" data-v-6f9f3e2e="" class="card-view system-log-card">
+                            <div data-v-4818d386="" data-v-6f9f3e2e="" class="container">
+                                <div class="title-text">系统日志</div>
+                                <div class="button-group">
+                                    <button type="button" id="toggleSystemLogs" class="main-btn small">
+                                        <div class="btn-container">暂停</div>
+                                    </button>
+                                    <button type="button" id="clearSystemLogs" class="main-btn small">
+                                        <div class="btn-container">清空显示</div>
+                                    </button>
+                                </div>
+                            </div>
+                            <pre id="systemLogContent" class="system-log-content">正在读取日志...</pre>
                         </div>
                     </div>
                 </div>
@@ -2439,7 +2453,7 @@
         });
     </script>
 
-    <script src="web.js?v=20260910-3"></script>
+    <script src="web.js?v=20260928-2"></script>
 </body>
 
 </html>

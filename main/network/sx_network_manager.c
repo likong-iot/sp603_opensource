@@ -5,6 +5,7 @@
 
 #include "esp_check.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "lwip/inet.h"
@@ -28,6 +29,62 @@ static bool s_application_ready;
 static bool s_wifi_start_error;
 static bool s_w5500_start_error;
 static bool s_modem_start_error;
+static esp_timer_handle_t s_wifi_ap_timeout_timer;
+static int64_t s_wifi_ap_timeout_deadline_us;
+
+static void update_network_leds_locked(void);
+
+static void wifi_ap_timeout_cb(void *arg)
+{
+    (void)arg;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    const bool should_stop =
+        s_wifi_ap_timeout_deadline_us > 0 && s_status.wifi_ap_started;
+    const bool keep_sta_running = s_status.wifi_sta_started;
+    xSemaphoreGive(s_mutex);
+    if (!should_stop) return;
+
+    esp_err_t err = sx_wifi_stop_ap(keep_sta_running);
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
+    s_wifi_ap_timeout_deadline_us = 0;
+    if (err == ESP_OK) {
+        s_status.wifi_ap_started = false;
+        s_status.wifi_ap_client_count = 0;
+        s_status.wifi_ap_timed_out = true;
+        update_network_leds_locked();
+        ESP_LOGI(TAG, "Wi-Fi local-management AP closed after timeout; other interfaces remain active");
+        send_system_log("INFO", "network", "Wi-Fi control AP countdown ended; AP closed");
+    } else {
+        s_wifi_start_error = true;
+        update_network_leds_locked();
+        ESP_LOGE(TAG, "close Wi-Fi local-management AP failed: %s",
+                 esp_err_to_name(err));
+    }
+    xSemaphoreGive(s_mutex);
+}
+
+static esp_err_t schedule_wifi_ap_timeout_locked(void)
+{
+    if (s_wifi_ap_timeout_timer == NULL) return ESP_ERR_INVALID_STATE;
+    (void)esp_timer_stop(s_wifi_ap_timeout_timer);
+    s_wifi_ap_timeout_deadline_us = 0;
+    if (!s_status.wifi_ap_started ||
+        s_config.wifi_ap_role != SX_NETWORK_ROLE_LOCAL ||
+        s_config.ap_timeout_minutes == 0) {
+        return ESP_OK;
+    }
+
+    const uint64_t duration_us =
+        (uint64_t)s_config.ap_timeout_minutes * 60ULL * 1000000ULL;
+    esp_err_t err = esp_timer_start_once(s_wifi_ap_timeout_timer, duration_us);
+    if (err == ESP_OK) {
+        s_wifi_ap_timeout_deadline_us =
+            esp_timer_get_time() + (int64_t)duration_us;
+        ESP_LOGI(TAG, "Wi-Fi control AP will close in %u minutes",
+                 (unsigned)s_config.ap_timeout_minutes);
+    }
+    return err;
+}
 
 static void ip_to_text(const esp_netif_ip_info_t *info, char out[16])
 {
@@ -48,26 +105,16 @@ static void set_status_ip_locked(const esp_netif_ip_info_t *info)
 
 static bool is_uplink(sx_network_role_t role)
 {
-    return role == SX_NETWORK_ROLE_UPLINK || role == SX_NETWORK_ROLE_BACKUP || role == SX_NETWORK_ROLE_LAST;
+    return role == SX_NETWORK_ROLE_UPLINK;
 }
 
 
-static int interface_tiebreak_score(sx_network_interface_t id)
+static int interface_priority_score(sx_network_interface_t id)
 {
-    return id == SX_NETWORK_IF_4G ? 0 : (id == SX_NETWORK_IF_W5500 ? 1 : 2);
-}
-
-static int role_score(sx_network_role_t role)
-{
-    if (role == SX_NETWORK_ROLE_UPLINK) return 0;
-    if (role == SX_NETWORK_ROLE_BACKUP) return 100;
-    if (role == SX_NETWORK_ROLE_LAST) return 200;
+    if (id == SX_NETWORK_IF_W5500) return 0;
+    if (id == SX_NETWORK_IF_4G) return 1;
+    if (id == SX_NETWORK_IF_WIFI) return 2;
     return 1000;
-}
-
-static int uplink_score(sx_network_interface_t id, sx_network_role_t role)
-{
-    return role_score(role) + interface_tiebreak_score(id);
 }
 
 static esp_netif_t *get_netif(sx_network_interface_t id)
@@ -129,7 +176,10 @@ static void refresh_active_dns_locked(sx_network_interface_t id, esp_netif_t *ne
 
 static bool interface_enabled_locked(sx_network_interface_t id)
 {
-    if (id == SX_NETWORK_IF_WIFI) return s_config.wifi_ap_enabled || s_config.wifi_sta_enabled;
+    if (id == SX_NETWORK_IF_WIFI) {
+        return s_config.wifi_sta_enabled ||
+               (s_config.wifi_ap_enabled && !s_status.wifi_ap_timed_out);
+    }
     if (id == SX_NETWORK_IF_W5500) return s_config.ethernet_enabled;
     if (id == SX_NETWORK_IF_4G) return s_config.modem_enabled;
     return false;
@@ -227,12 +277,12 @@ static void select_uplink_locked(void)
     const esp_netif_ip_info_t *selected_ip = NULL;
     int best = 100000;
     if (s_config.ethernet_enabled && s_status.w5500_got_ip && is_uplink(s_config.ethernet_role)) {
-        best = uplink_score(SX_NETWORK_IF_W5500, s_config.ethernet_role);
+        best = interface_priority_score(SX_NETWORK_IF_W5500);
         selected = SX_NETWORK_IF_W5500;
         selected_ip = &s_w5500_ip;
     }
     if (s_config.wifi_sta_enabled && s_status.wifi_got_ip && is_uplink(s_config.wifi_sta_role)) {
-        int value = uplink_score(SX_NETWORK_IF_WIFI, s_config.wifi_sta_role);
+        int value = interface_priority_score(SX_NETWORK_IF_WIFI);
         if (value < best) {
             best = value;
             selected = SX_NETWORK_IF_WIFI;
@@ -240,7 +290,7 @@ static void select_uplink_locked(void)
         }
     }
     if (s_config.modem_enabled && s_status.modem_got_ip && is_uplink(s_config.modem_role)) {
-        int value = uplink_score(SX_NETWORK_IF_4G, s_config.modem_role);
+        int value = interface_priority_score(SX_NETWORK_IF_4G);
         if (value < best) {
             best = value;
             selected = SX_NETWORK_IF_4G;
@@ -310,6 +360,17 @@ esp_err_t sx_network_manager_init(void)
     if (s_mutex != NULL) return ESP_OK;
     s_mutex = xSemaphoreCreateMutex();
     if (s_mutex == NULL) return ESP_ERR_NO_MEM;
+    const esp_timer_create_args_t ap_timer_args = {
+        .callback = wifi_ap_timeout_cb,
+        .name = "wifi_ap_timeout",
+    };
+    esp_err_t timer_err = esp_timer_create(&ap_timer_args,
+                                           &s_wifi_ap_timeout_timer);
+    if (timer_err != ESP_OK) {
+        vSemaphoreDelete(s_mutex);
+        s_mutex = NULL;
+        return timer_err;
+    }
     memset(&s_status, 0, sizeof(s_status));
     ESP_RETURN_ON_ERROR(sx_network_config_load(&s_config), TAG, "load config failed");
     sx_network_config_normalize(&s_config);
@@ -343,8 +404,7 @@ esp_err_t sx_network_manager_start_management_network(void)
                                                  s_config.wifi_sta_gateway, s_config.wifi_sta_dns,
                                                  s_config.ap_ip,
                                                  s_config.ap_netmask,
-                                                 s_config.wifi_ap_role == SX_NETWORK_ROLE_LOCAL ||
-                                                     s_config.wifi_ap_dhcp_enabled);
+                                                 s_config.wifi_ap_dhcp_enabled);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "start Wi-Fi failed: %s", esp_err_to_name(err));
             first_error = err;
@@ -353,6 +413,13 @@ esp_err_t sx_network_manager_start_management_network(void)
             xSemaphoreTake(s_mutex, portMAX_DELAY);
             s_status.wifi_ap_started = s_config.wifi_ap_enabled;
             s_status.wifi_sta_started = s_config.wifi_sta_enabled;
+            s_status.wifi_ap_timed_out = false;
+            esp_err_t timer_err = schedule_wifi_ap_timeout_locked();
+            if (timer_err != ESP_OK) {
+                ESP_LOGE(TAG, "start Wi-Fi AP timeout failed: %s",
+                         esp_err_to_name(timer_err));
+                if (first_error == ESP_OK) first_error = timer_err;
+            }
             update_network_leds_locked();
             xSemaphoreGive(s_mutex);
         } else {
@@ -423,6 +490,15 @@ void sx_network_manager_get_status(sx_network_status_t *status)
     if (status == NULL || s_mutex == NULL) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     *status = s_status;
+    if (s_wifi_ap_timeout_deadline_us > 0 && s_status.wifi_ap_started) {
+        const int64_t remaining_us =
+            s_wifi_ap_timeout_deadline_us - esp_timer_get_time();
+        if (remaining_us > 0) {
+            status->wifi_ap_timeout_active = true;
+            status->wifi_ap_timeout_remaining_seconds =
+                (uint32_t)((remaining_us + 999999) / 1000000);
+        }
+    }
     xSemaphoreGive(s_mutex);
 }
 

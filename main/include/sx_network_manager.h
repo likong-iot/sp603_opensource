@@ -25,6 +25,9 @@ typedef struct {
     bool wifi_got_ip;
     bool wifi_ap_started;
     uint8_t wifi_ap_client_count;
+    bool wifi_ap_timeout_active;
+    uint32_t wifi_ap_timeout_remaining_seconds;
+    bool wifi_ap_timed_out;
     bool w5500_started;
     bool w5500_link_up;
     bool w5500_got_ip;

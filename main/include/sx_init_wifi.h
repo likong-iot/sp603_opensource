@@ -25,6 +25,7 @@ esp_err_t sx_wifi_start_configured(bool ap_enabled,
                                    const char *ap_ip,
                                    const char *ap_netmask,
                                    bool ap_dhcp_enabled);
+esp_err_t sx_wifi_stop_ap(bool keep_sta_running);
 esp_netif_t *sx_wifi_get_ap_netif(void);
 esp_netif_t *sx_wifi_get_sta_netif(void);
 esp_err_t sx_wifi_scan_access_points(wifi_ap_record_t *records,

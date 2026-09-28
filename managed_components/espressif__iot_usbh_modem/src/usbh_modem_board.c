@@ -495,12 +495,20 @@ static void _modem_daemon_task(void *param)
     const int RETRY_TIMEOUT = CONFIG_MODEM_DIAL_RETRY_TIMES;
     _modem_stage_t modem_stage = STAGE_SYNC;
     int dte_wait_seconds = 0;
+    const EventBits_t daemon_event_bits =
+        PPP_NET_MODE_ON_BIT | PPP_NET_MODE_OFF_BIT |
+        DTE_USB_RECONNECT_BIT | DTE_USB_DISCONNECT_BIT |
+        PPP_NET_RECONNECTING_BIT | PPP_NET_DISCONNECT_BIT |
+        MODEM_DESTROY_BIT;
     while (true) {
         /********************************** handle external event *********************************************************/
-        EventBits_t bits = xEventGroupWaitBits(s_modem_evt_hdl, (PPP_NET_MODE_ON_BIT | PPP_NET_MODE_OFF_BIT | DTE_USB_RECONNECT_BIT | DTE_USB_DISCONNECT_BIT | PPP_NET_RECONNECTING_BIT |
-                                                                 PPP_NET_DISCONNECT_BIT | MODEM_DESTROY_BIT), pdFALSE, pdFALSE, pdMS_TO_TICKS(1000));
-        if (bits == 0) {
-            if (++dte_wait_seconds % 5 == 0) {
+        EventBits_t bits = xEventGroupWaitBits(s_modem_evt_hdl, daemon_event_bits,
+                                               pdFALSE, pdFALSE, pdMS_TO_TICKS(1000));
+        /* xEventGroupWaitBits returns the complete event-group snapshot, which
+         * still contains PPP_NET_CONNECT_BIT while PPP is online. Only the
+         * bits requested above should drive another state-machine iteration. */
+        if ((bits & daemon_event_bits) == 0) {
+            if (modem_stage == STAGE_SYNC && ++dte_wait_seconds % 5 == 0) {
                 ESP_LOGW(TAG, "Waiting for 4G USB CDC device to connect...");
             }
             continue;
@@ -599,7 +607,7 @@ static void _modem_daemon_task(void *param)
         }
 
         /************************************ Processing stage **********************************/
-        if (modem_stage != STAGE_WAITING) {
+        if (modem_stage != STAGE_WAITING && modem_stage != STAGE_RUNNING) {
             ESP_LOGI(TAG, "Modem state %s, Start", stare_str);
         }
         switch (modem_stage) {

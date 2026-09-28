@@ -4946,7 +4946,7 @@ function initUartWebSocket() {
                 } else if (data.type === 'system_log') {
                     if (systemLogsPaused) return;
                     systemLogEntries.push(data);
-                    if (systemLogEntries.length > 64) systemLogEntries.shift();
+                    if (systemLogEntries.length > 256) systemLogEntries.shift();
                     renderSystemLogs();
                 }
             } catch (error) {
@@ -5531,7 +5531,8 @@ function renderSystemLogs() {
 }
 
 async function fetchSystemLogs() {
-    if (systemLogsPaused) return;
+    const logsView = document.getElementById('logsView');
+    if (systemLogsPaused || !logsView || logsView.style.display === 'none') return;
     try {
         const response = await fetportData('/system_logs');
         systemLogEntries = Array.isArray(response.logs) ? response.logs : [];
@@ -5990,6 +5991,11 @@ addEventListenerToElement("sysConfig", 'sysView', 'sysConfig', 'security', '系�
 addEventListenerToElement("sysConfig_m", 'sysView', 'sysConfig', 'security', '系统管理', true);
 addEventListenerToElement("netConfig", 'netView', 'netConfig', 'base-info', '网络管理', false);
 addEventListenerToElement("netConfig_m", 'netView', 'netConfig', 'base-info', '网络管理', true);
+addEventListenerToElement("systemLogs", 'logsView', 'systemLogs', 'security', '系统日志', false);
+addEventListenerToElement("systemLogs_m", 'logsView', 'systemLogs', 'security', '系统日志', true);
+
+document.getElementById("systemLogs").addEventListener("click", fetchSystemLogs);
+document.getElementById("systemLogs_m").addEventListener("click", fetchSystemLogs);
 
 
 
@@ -6336,13 +6342,13 @@ async function loadSp603NetworkConfig() {
         setSp603Field('nm_eth_gateway', cfg.ethernet_gateway); setSp603Field('nm_eth_dns', cfg.ethernet_dns);
         setSp603Field('nm_eth_gateway_info', cfg.ethernet_lan_ip); setSp603Field('nm_eth_gateway_mask_info', cfg.ethernet_lan_netmask);
         setSp603Field('nm_sta_enabled', cfg.wifi_sta_enabled, true);
-        setSp603Field('nm_sta_role', cfg.wifi_sta_role);
+        setSp603Field('nm_sta_role', 'uplink');
         setSp603Field('nm_sta_ssid', cfg.wifi_ssid);
         setSp603Field('nm_sta_password', cfg.wifi_password);
         setSp603Field('nm_sta_static', cfg.wifi_sta_static, true);
         setSp603Field('nm_sta_ip', cfg.wifi_sta_ip); setSp603Field('nm_sta_mask', cfg.wifi_sta_netmask); setSp603Field('nm_sta_gateway', cfg.wifi_sta_gateway); setSp603Field('nm_sta_dns', cfg.wifi_sta_dns);
         setSp603Field('nm_ap_enabled', cfg.wifi_ap_enabled, true);
-        setSp603Field('nm_ap_role', cfg.wifi_ap_role);
+        setSp603Field('nm_ap_role', cfg.wifi_ap_role || 'downlink');
         setSp603Field('nm_ap_ssid', cfg.ap_ssid);
         setSp603Field('nm_ap_password', cfg.ap_password);
         setSp603Field('nm_ap_ip', cfg.ap_ip);
@@ -6350,7 +6356,7 @@ async function loadSp603NetworkConfig() {
         setSp603Field('nm_ap_timeout_minutes', cfg.ap_timeout_minutes == null ? 30 : cfg.ap_timeout_minutes);
         setSp603Field('nm_ap_dhcp_enabled', cfg.wifi_ap_dhcp_enabled !== false, true);
         setSp603Field('nm_4g_enabled', cfg.modem_enabled, true);
-        setSp603Field('nm_4g_role', cfg.modem_role);
+        setSp603Field('nm_4g_role', 'uplink');
         updateNetworkRoleDependentFields();
     } catch (error) {
         console.error('加载 SP603 网络配置失败:', error);
@@ -6364,11 +6370,19 @@ function updateNetworkRoleDependentFields() {
 
     const apRole = document.getElementById('nm_ap_role');
     if (apRole) {
-        const managementOnly = apRole.value === 'local';
-        setEditable('nm_ap_timeout_minutes', managementOnly); const timeoutRow = document.getElementById('nm_ap_timeout_row'); if (timeoutRow) timeoutRow.classList.toggle('is-disabled', !managementOnly);
-        const apDhcp = document.getElementById('nm_ap_dhcp_enabled'); const apDhcpRow = document.getElementById('nm_ap_dhcp_row'); const apDownlink = apRole.value === 'downlink';
-        if (apDhcp) apDhcp.disabled = !apDownlink; if (apDhcpRow) { apDhcpRow.classList.toggle('is-disabled', !apDownlink); apDhcpRow.style.display = apDownlink || managementOnly ? '' : 'none'; }
-        if (managementOnly && apDhcp) apDhcp.checked = true;
+        const localManagement = apRole.value === 'local';
+        const timeoutRow = document.getElementById('nm_ap_timeout_row');
+        if (timeoutRow) timeoutRow.style.display = localManagement ? '' : 'none';
+        const apDhcp = document.getElementById('nm_ap_dhcp_enabled');
+        const apDhcpRow = document.getElementById('nm_ap_dhcp_row');
+        if (apDhcp) {
+            if (localManagement) apDhcp.checked = true;
+            apDhcp.disabled = localManagement;
+        }
+        if (apDhcpRow) {
+            apDhcpRow.classList.toggle('is-disabled', localManagement);
+            apDhcpRow.style.display = '';
+        }
     }
 
     const ethRole = document.getElementById('nm_eth_role'); const ethStatic = document.getElementById('nm_eth_static');
@@ -6408,11 +6422,14 @@ function updateNetworkRoleDependentFields() {
 
 function enforceSingleDownlink(changedId) {
     const ethernetRole = document.getElementById('nm_eth_role');
+    const apEnabled = document.getElementById('nm_ap_enabled');
     const apRole = document.getElementById('nm_ap_role');
-    if (!ethernetRole || !apRole) return;
-    if (changedId === 'nm_eth_role' && ethernetRole.value === 'downlink') {
+    if (!ethernetRole || !apEnabled || !apRole) return;
+    const apProvidesNetwork = apEnabled.checked && apRole.value === 'downlink';
+    if (changedId === 'nm_eth_role' && ethernetRole.value === 'downlink' && apProvidesNetwork) {
         apRole.value = 'local';
-    } else if (changedId === 'nm_ap_role' && apRole.value === 'downlink') {
+    } else if ((changedId === 'nm_ap_enabled' || changedId === 'nm_ap_role') &&
+               apProvidesNetwork && ethernetRole.value === 'downlink') {
         ethernetRole.value = 'uplink';
     }
 }
@@ -6598,6 +6615,16 @@ function setSp603Status(id, text, style = 'waiting') {
     element.className = `sp603-status is-${style}`;
 }
 
+function formatSp603Countdown(totalSeconds) {
+    const seconds = Math.max(0, Number(totalSeconds) || 0);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainder = Math.floor(seconds % 60);
+    if (hours > 0) return `${hours} 小时 ${minutes} 分 ${remainder} 秒`;
+    if (minutes > 0) return `${minutes} 分 ${remainder} 秒`;
+    return `${remainder} 秒`;
+}
+
 function renderSp603NetworkInterface(id, info) {
     if (!info) {
         setSp603Status(`nm_status_${id}`, '状态未知', 'muted');
@@ -6605,14 +6632,26 @@ function renderSp603NetworkInterface(id, info) {
     }
     const configured = Sp603NetworkState[info.state] || ['状态未知', 'muted'];
     let statusText = configured[0];
-    if (id === 'wifi_ap' && info.enabled && info.started) {
+    let statusStyle = configured[1];
+    if (id === 'wifi_ap' && info.timed_out) {
+        statusText = '倒计时已关闭';
+        statusStyle = 'muted';
+    } else if (id === 'wifi_ap' && info.enabled && info.started) {
         statusText = info.client_count > 0 ? `已连接 ${info.client_count} 台` : '等待终端连接';
     }
-    setSp603Status(`nm_status_${id}`, statusText, configured[1]);
+    setSp603Status(`nm_status_${id}`, statusText, statusStyle);
 
     if (id === 'wifi_ap') {
-        setSp603Text('nm_link_wifi_ap', info.enabled ?
+        setSp603Text('nm_link_wifi_ap', info.timed_out ? '已自动关闭' : info.enabled ?
             (info.client_count > 0 ? `${info.client_count} 台终端` : '等待终端连接') : '未启用');
+        const countdownRow = document.getElementById('nm_ap_countdown_row');
+        if (countdownRow) countdownRow.style.display = info.role === 'local' ? '' : 'none';
+        if (info.role === 'local') {
+            const countdownText = info.timed_out ? '已关闭' :
+                info.timeout_active ? formatSp603Countdown(info.timeout_remaining_seconds) :
+                info.started ? '始终开启' : '--';
+            setSp603Text('nm_ap_countdown', countdownText);
+        }
     } else if (id === '4g') {
         setSp603Text('nm_link_4g', !info.enabled ? '未启用' :
             (info.link_up ? 'Modem 已识别' : '等待 Modem'));
@@ -6814,6 +6853,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             selectSp603NetworkTab('ethernet');
         }
+        const apEnabled = document.getElementById('nm_ap_enabled');
+        if (apEnabled) apEnabled.addEventListener('change', event => {
+            enforceSingleDownlink(event.target.id);
+            updateNetworkRoleDependentFields();
+        });
         const apRole = document.getElementById('nm_ap_role');
         if (apRole) apRole.addEventListener('change', event => {
             enforceSingleDownlink(event.target.id);
@@ -6863,7 +6907,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ethernet_gateway: field('nm_eth_gateway').value.trim(),
                 ethernet_dns: field('nm_eth_dns').value.trim(),
                 wifi_sta_enabled: field('nm_sta_enabled').checked,
-                wifi_sta_role: field('nm_sta_role').value,
+                wifi_sta_role: 'uplink',
                 wifi_ssid: field('nm_sta_ssid').value.trim(),
                 wifi_password: field('nm_sta_password').value,
                 wifi_sta_static: field('nm_sta_static').checked,
@@ -6878,7 +6922,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ap_netmask: field('nm_ap_mask').value.trim(),
                 ap_timeout_minutes: Number(field('nm_ap_timeout_minutes').value),
                 modem_enabled: field('nm_4g_enabled').checked,
-                modem_role: field('nm_4g_role').value,
+                modem_role: 'uplink',
             };
                 console.info('[NETSAVE]', trace, 'POST', {
                     ethernet: [payload.ethernet_enabled, payload.ethernet_role],

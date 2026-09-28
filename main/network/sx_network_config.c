@@ -47,20 +47,35 @@ static void get_ap_timeout(nvs_handle_t nvs, uint16_t *value)
 void sx_network_config_normalize(sx_network_config_t *config)
 {
     if (config == NULL) return;
+    /* Uplink selection is automatic. Migrate legacy user-selected priority
+     * roles to the single uplink role. */
+    if (config->ethernet_role == SX_NETWORK_ROLE_BACKUP ||
+        config->ethernet_role == SX_NETWORK_ROLE_LAST) {
+        config->ethernet_role = SX_NETWORK_ROLE_UPLINK;
+    }
+    if (config->wifi_sta_role == SX_NETWORK_ROLE_BACKUP ||
+        config->wifi_sta_role == SX_NETWORK_ROLE_LAST) {
+        config->wifi_sta_role = SX_NETWORK_ROLE_UPLINK;
+    }
+    if (config->modem_role == SX_NETWORK_ROLE_BACKUP ||
+        config->modem_role == SX_NETWORK_ROLE_LAST) {
+        config->modem_role = SX_NETWORK_ROLE_UPLINK;
+    }
     /* The current NAPT design supports one downstream interface. */
     if (config->wifi_ap_enabled && config->wifi_ap_role == SX_NETWORK_ROLE_DOWNLINK &&
         config->ethernet_enabled && config->ethernet_role == SX_NETWORK_ROLE_DOWNLINK) {
         config->ethernet_role = SX_NETWORK_ROLE_UPLINK;
     }
-    /* DHCP servers only make sense on a downstream network. */
+    /* DHCP is also required by the isolated management AP. */
     if (config->ethernet_role != SX_NETWORK_ROLE_DOWNLINK) {
         config->ethernet_dhcp_enabled = false;
     }
-    if (config->wifi_ap_role == SX_NETWORK_ROLE_LOCAL) {
-        /* Management AP must be able to assign an address to the operator. */
-        config->wifi_ap_dhcp_enabled = true;
-    } else if (config->wifi_ap_role != SX_NETWORK_ROLE_DOWNLINK) {
+    if (config->wifi_ap_role != SX_NETWORK_ROLE_DOWNLINK &&
+        config->wifi_ap_role != SX_NETWORK_ROLE_LOCAL) {
         config->wifi_ap_dhcp_enabled = false;
+    }
+    if (config->wifi_ap_enabled && config->wifi_ap_role == SX_NETWORK_ROLE_LOCAL) {
+        config->wifi_ap_dhcp_enabled = true;
     }
     if (!config->wifi_ap_enabled) config->wifi_ap_dhcp_enabled = false;
     if (!config->ethernet_enabled) config->ethernet_dhcp_enabled = false;
@@ -261,18 +276,18 @@ esp_err_t sx_network_config_validate(const sx_network_config_t *config,
     if (config->ethernet_enabled && config->ethernet_role == SX_NETWORK_ROLE_OFF)
         return fail(reason, reason_size, "Ethernet is enabled but has no network purpose");
     if (config->ethernet_enabled && config->ethernet_role != SX_NETWORK_ROLE_UPLINK &&
-        config->ethernet_role != SX_NETWORK_ROLE_BACKUP && config->ethernet_role != SX_NETWORK_ROLE_LAST &&
         config->ethernet_role != SX_NETWORK_ROLE_DOWNLINK)
-        return fail(reason, reason_size, "Ethernet only supports uplink, backup, last or downlink");
+        return fail(reason, reason_size, "Ethernet only supports uplink or downlink");
     if (config->wifi_sta_enabled && config->wifi_sta_role == SX_NETWORK_ROLE_OFF)
         return fail(reason, reason_size, "Wi-Fi STA is enabled but has no network purpose");
     if (config->wifi_ap_enabled && config->wifi_ap_role == SX_NETWORK_ROLE_OFF)
         return fail(reason, reason_size, "Wi-Fi AP is enabled but has no network purpose");
     if (config->ethernet_dhcp_enabled && config->ethernet_role != SX_NETWORK_ROLE_DOWNLINK)
         return fail(reason, reason_size, "Ethernet DHCP server requires a downstream purpose");
-    if (config->wifi_ap_dhcp_enabled && config->wifi_ap_role != SX_NETWORK_ROLE_DOWNLINK &&
+    if (config->wifi_ap_dhcp_enabled &&
+        config->wifi_ap_role != SX_NETWORK_ROLE_DOWNLINK &&
         config->wifi_ap_role != SX_NETWORK_ROLE_LOCAL)
-        return fail(reason, reason_size, "Wi-Fi AP DHCP server requires a local or downstream purpose");
+        return fail(reason, reason_size, "Wi-Fi AP DHCP server requires a network or local-management purpose");
     if (config->wifi_ap_enabled && config->ap_password[0] != '\0' && strlen(config->ap_password) < 8)
         return fail(reason, reason_size, "Wi-Fi AP password must have at least 8 characters");
     if (config->wifi_ap_enabled && (!valid_ip(config->ap_ip) || !valid_ip(config->ap_netmask)))
@@ -288,15 +303,14 @@ esp_err_t sx_network_config_validate(const sx_network_config_t *config,
         (!valid_ip(config->wifi_sta_ip) || !valid_ip(config->wifi_sta_netmask) ||
          !valid_ip(config->wifi_sta_gateway) || !valid_ip(config->wifi_sta_dns)))
         return fail(reason, reason_size, "invalid Wi-Fi STA static IPv4 settings");
-    if (config->modem_enabled && config->modem_role != SX_NETWORK_ROLE_UPLINK &&
-        config->modem_role != SX_NETWORK_ROLE_BACKUP && config->modem_role != SX_NETWORK_ROLE_LAST)
-        return fail(reason, reason_size, "4G role must be uplink, backup or last");
-    if (config->wifi_sta_enabled && config->wifi_sta_role != SX_NETWORK_ROLE_UPLINK &&
-        config->wifi_sta_role != SX_NETWORK_ROLE_BACKUP && config->wifi_sta_role != SX_NETWORK_ROLE_LAST)
-        return fail(reason, reason_size, "Wi-Fi STA role must be uplink, backup or last");
-    if (config->wifi_ap_enabled && config->wifi_ap_role != SX_NETWORK_ROLE_DOWNLINK &&
+    if (config->modem_enabled && config->modem_role != SX_NETWORK_ROLE_UPLINK)
+        return fail(reason, reason_size, "4G role must be uplink");
+    if (config->wifi_sta_enabled && config->wifi_sta_role != SX_NETWORK_ROLE_UPLINK)
+        return fail(reason, reason_size, "Wi-Fi STA role must be uplink");
+    if (config->wifi_ap_enabled &&
+        config->wifi_ap_role != SX_NETWORK_ROLE_DOWNLINK &&
         config->wifi_ap_role != SX_NETWORK_ROLE_LOCAL)
-        return fail(reason, reason_size, "Wi-Fi AP role must be downlink or local");
+        return fail(reason, reason_size, "Wi-Fi AP role must provide network or local management");
     if (config->routing_enabled) {
         if (config->nat_downlink == SX_NAT_DOWNLINK_WIFI_AP &&
             (!config->wifi_ap_enabled || config->wifi_ap_role != SX_NETWORK_ROLE_DOWNLINK))

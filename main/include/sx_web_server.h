@@ -16,6 +16,7 @@ extern "C" {
 #define CLIENT_HEAD "SP603"
 
 esp_err_t sx_web_server_init_storage_defaults(void);
+void sx_web_log_capture_init(void);
 void http_server_init(void);
 
 void send_uart_to_websocket(const uint8_t *data, size_t len, bool is_tx, int port);
