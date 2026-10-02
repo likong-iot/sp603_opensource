@@ -50,6 +50,7 @@ static const default_parameter_t s_default_parameters[] = {
     STRING_DEFAULT("ntp_server", ""),
     STRING_DEFAULT("lgname", "admin"),
     STRING_DEFAULT("lgpwd", "12345678"),
+    U8_DEFAULT("syslog_en", 0),
     STRING_DEFAULT("device_sn", "0000000000000"),
     STRING_DEFAULT("w_mode", "serial_server"),
     STRING_DEFAULT("ap_timeout", "30"),
@@ -87,10 +88,10 @@ static const default_parameter_t s_default_parameters[] = {
 
     U8_DEFAULT("nm_eth_en", 1),
     U8_DEFAULT("nm_eth_role", SX_NETWORK_ROLE_UPLINK),
-    STRING_DEFAULT("nm_eth_ip", "192.168.5.1"),
+    STRING_DEFAULT("nm_eth_ip", "192.168.1.84"),
     STRING_DEFAULT("nm_eth_mask", "255.255.255.0"),
-    U8_DEFAULT("nm_eth_static", 0),
-    STRING_DEFAULT("nm_eth_gw", "192.168.5.254"),
+    U8_DEFAULT("nm_eth_static", 1),
+    STRING_DEFAULT("nm_eth_gw", "192.168.1.1"),
     STRING_DEFAULT("nm_eth_dns", "8.8.8.8"),
     U8_DEFAULT("nm_eth_dhcp", 0),
 
@@ -103,7 +104,7 @@ static const default_parameter_t s_default_parameters[] = {
     STRING_DEFAULT("nm_sta_dns", "8.8.8.8"),
 
     U8_DEFAULT("nm_ap_en", 1),
-    U8_DEFAULT("nm_ap_role", SX_NETWORK_ROLE_DOWNLINK),
+    U8_DEFAULT("nm_ap_role", SX_NETWORK_ROLE_LOCAL),
     STRING_DEFAULT("nm_ap_ip", "192.168.4.1"),
     STRING_DEFAULT("nm_ap_mask", "255.255.255.0"),
     U8_DEFAULT("nm_ap_dhcp", 1),

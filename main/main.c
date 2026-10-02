@@ -48,9 +48,9 @@ static esp_err_t platform_init(void)
 
 void app_main(void)
 {
-    sx_web_log_capture_init();
     ESP_ERROR_CHECK(platform_init());
     ESP_ERROR_CHECK(sx_storage_defaults_init());
+    sx_web_log_capture_init();
     set_all_gpio_drive_max();
     ESP_ERROR_CHECK(sx_led_manager_init());
     ESP_ERROR_CHECK(sx_button_manager_init());

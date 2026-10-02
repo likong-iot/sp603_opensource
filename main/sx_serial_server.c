@@ -35,7 +35,7 @@ static TaskHandle_t s_port_tasks[SERIAL_PORT_COUNT + 1];
 static volatile bool s_serial_server_running;
 static volatile int s_listen_fds[SERIAL_PORT_COUNT + 1] = {-1, -1, -1, -1};
 static volatile int s_client_fds[SERIAL_PORT_COUNT + 1] = {-1, -1, -1, -1};
-static uint16_t s_tcp_ports[SERIAL_PORT_COUNT + 1] = {0, 8888, 8889, 8890};
+static uint16_t s_tcp_ports[SERIAL_PORT_COUNT + 1];
 static esp_mqtt_client_handle_t s_mqtt_clients[SERIAL_PORT_COUNT + 1];
 static bool s_mqtt_connected[SERIAL_PORT_COUNT + 1];
 static bool s_mqtt_error[SERIAL_PORT_COUNT + 1];
@@ -47,6 +47,16 @@ static void serial_config_key(char *key, size_t key_size, int port,
                               const char *field)
 {
     snprintf(key, key_size, "%s_%s", sx_serial_port_manager_port_key(port), field);
+}
+
+static uint16_t default_server_port(int port)
+{
+    if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422) {
+        return (uint16_t)(SERIAL_SERVER_DEFAULT_PORT + port - 1);
+    }
+    if (port == 3) return SERIAL_SERVER_DEFAULT_PORT;
+    if (port == 1) return SERIAL_SERVER_DEFAULT_PORT + 1;
+    return SERIAL_SERVER_DEFAULT_PORT + 2;
 }
 
 typedef struct {
@@ -373,14 +383,15 @@ static bool load_port_value(nvs_handle_t nvs, const char *key, uint16_t *port)
 static void load_serial_server_ports(void)
 {
     for (int port = 1; port <= SERIAL_PORT_COUNT; ++port)
-        s_tcp_ports[port] = SERIAL_SERVER_DEFAULT_PORT + port - 1;
+        s_tcp_ports[port] = default_server_port(port);
 
     nvs_handle_t nvs = 0;
     if (nvs_open("storage", NVS_READONLY, &nvs) != ESP_OK) return;
     for (int port = 1; port <= SERIAL_PORT_COUNT; ++port) {
         char key[16];
         serial_config_key(key, sizeof(key), port, "port");
-        if (!load_port_value(nvs, key, &s_tcp_ports[port]) && port == 1)
+        const int primary_port = sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 ? 1 : 3;
+        if (!load_port_value(nvs, key, &s_tcp_ports[port]) && port == primary_port)
             load_port_value(nvs, "tcp_port", &s_tcp_ports[port]);
     }
     nvs_close(nvs);
@@ -838,14 +849,14 @@ esp_err_t sx_serial_server_get_config(int port, sx_serial_port_config_t *config)
     memset(config, 0, sizeof(*config));
     config->port = port;
     config->tcp_mode = SX_SERIAL_TCP_SERVER;
-    config->local_port = SERIAL_SERVER_DEFAULT_PORT + port - 1;
+    config->local_port = default_server_port(port);
     config->remote_port = config->local_port;
     set_serial_mqtt_defaults(port, config);
     config->baud_rate = 9600;
     config->data_bit = 8;
     config->check_bit = 0;
     config->stop_bit = 1;
-    config->frame_time = 50;
+    config->frame_time = 100;
     config->frame_len = 512;
     config->timeout = 500;
     nvs_handle_t nvs;

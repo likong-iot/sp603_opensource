@@ -92,10 +92,10 @@ void sx_network_config_set_defaults(sx_network_config_t *config)
     config->ethernet_enabled = true;
     config->ethernet_role = SX_NETWORK_ROLE_UPLINK;
     config->ethernet_dhcp_enabled = false;
-    config->ethernet_static = false;
-    copy_text(config->ethernet_lan_ip, sizeof(config->ethernet_lan_ip), "192.168.5.1");
+    config->ethernet_static = true;
+    copy_text(config->ethernet_lan_ip, sizeof(config->ethernet_lan_ip), "192.168.1.84");
     copy_text(config->ethernet_lan_netmask, sizeof(config->ethernet_lan_netmask), "255.255.255.0");
-    copy_text(config->ethernet_gateway, sizeof(config->ethernet_gateway), "192.168.5.254");
+    copy_text(config->ethernet_gateway, sizeof(config->ethernet_gateway), "192.168.1.1");
     copy_text(config->ethernet_dns, sizeof(config->ethernet_dns), "8.8.8.8");
 
     config->wifi_sta_enabled = false;
@@ -107,7 +107,7 @@ void sx_network_config_set_defaults(sx_network_config_t *config)
     copy_text(config->wifi_sta_dns, sizeof(config->wifi_sta_dns), "8.8.8.8");
 
     config->wifi_ap_enabled = true;
-    config->wifi_ap_role = SX_NETWORK_ROLE_DOWNLINK;
+    config->wifi_ap_role = SX_NETWORK_ROLE_LOCAL;
     config->ap_timeout_minutes = 30;
     config->wifi_ap_dhcp_enabled = true;
     copy_text(config->ap_password, sizeof(config->ap_password), "12345678");
@@ -117,7 +117,7 @@ void sx_network_config_set_defaults(sx_network_config_t *config)
     config->modem_enabled = true;
     config->modem_role = SX_NETWORK_ROLE_UPLINK;
 
-    config->routing_enabled = true;
+    config->routing_enabled = false;
     config->nat_downlink = SX_NAT_DOWNLINK_WIFI_AP;
 }
 

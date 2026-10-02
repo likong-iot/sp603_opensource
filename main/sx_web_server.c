@@ -128,9 +128,11 @@ static size_t s_system_log_next;
 static portMUX_TYPE s_system_log_spinlock = portMUX_INITIALIZER_UNLOCKED;
 static vprintf_like_t s_original_log_vprintf;
 static bool s_log_capture_installed;
+static volatile bool s_system_log_enabled;
 
 static int64_t system_log_store(const char *level, const char *source, const char *text)
 {
+    if (!s_system_log_enabled) return 0;
     int64_t timestamp_us = (int64_t)time_manager_get_current_us();
     portENTER_CRITICAL(&s_system_log_spinlock);
     system_log_entry_t *entry = &s_system_logs[s_system_log_next];
@@ -186,22 +188,31 @@ static void capture_esp_log_line(char *line)
 static int web_log_vprintf(const char *format, va_list args)
 {
     va_list uart_args;
-    va_list capture_args;
     va_copy(uart_args, args);
-    va_copy(capture_args, args);
     int result = s_original_log_vprintf ? s_original_log_vprintf(format, uart_args) : 0;
     va_end(uart_args);
 
-    char line[SYSTEM_LOG_TEXT_LEN];
-    vsnprintf(line, sizeof(line), format, capture_args);
-    va_end(capture_args);
-    capture_esp_log_line(line);
+    if (s_system_log_enabled) {
+        va_list capture_args;
+        va_copy(capture_args, args);
+        char line[SYSTEM_LOG_TEXT_LEN];
+        vsnprintf(line, sizeof(line), format, capture_args);
+        va_end(capture_args);
+        capture_esp_log_line(line);
+    }
     return result;
 }
 
 void sx_web_log_capture_init(void)
 {
     if (s_log_capture_installed) return;
+    nvs_handle_t nvs = 0;
+    uint8_t enabled = 0;
+    if (nvs_open(NVS_NAMESPACE, NVS_READONLY, &nvs) == ESP_OK) {
+        (void)nvs_get_u8(nvs, "syslog_en", &enabled);
+        nvs_close(nvs);
+    }
+    s_system_log_enabled = enabled != 0;
     system_log_entry_t *psram_logs = heap_caps_calloc(
         SYSTEM_LOG_CAPACITY, sizeof(system_log_entry_t),
         MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -211,7 +222,8 @@ void sx_web_log_capture_init(void)
     }
     s_original_log_vprintf = esp_log_set_vprintf(web_log_vprintf);
     s_log_capture_installed = true;
-    ESP_LOGI(TAG, "ESP_LOG Web capture enabled, capacity=%u, line=%u bytes",
+    ESP_LOGI(TAG, "ESP_LOG Web capture %s, capacity=%u, line=%u bytes",
+             s_system_log_enabled ? "enabled" : "disabled",
              (unsigned)s_system_log_capacity, (unsigned)SYSTEM_LOG_TEXT_LEN);
 }
 
@@ -759,7 +771,7 @@ static esp_err_t ensure_serial_port_defaults(nvs_handle_t nvs, int port)
 
     serial_port_nvs_key(key, sizeof(key), port, "ftime");
     if (nvs_get_str(nvs, key, NULL, &len) == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_RETURN_ON_ERROR(nvs_set_str(nvs, key, "50"), TAG, "set %s failed", key);
+        ESP_RETURN_ON_ERROR(nvs_set_str(nvs, key, "100"), TAG, "set %s failed", key);
     }
 
     serial_port_nvs_key(key, sizeof(key), port, "flen");
@@ -1633,14 +1645,14 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
     char data_bit_str[8] = "8";
     char check_bit_str[8] = "0";
     char stop_bit_str[8] = "1";
-    char frame_time_str[16] = "50";
+    char frame_time_str[16] = "100";
     char frame_len_str[16] = "512";
 
     json_string_or_number_to_buf(json, "baud_rate", baud_str, sizeof(baud_str), "9600");
     json_string_or_number_to_buf(json, "data_bit", data_bit_str, sizeof(data_bit_str), "8");
     json_string_or_number_to_buf(json, "check_bit", check_bit_str, sizeof(check_bit_str), "0");
     json_string_or_number_to_buf(json, "stop_bit", stop_bit_str, sizeof(stop_bit_str), "1");
-    json_string_or_number_to_buf(json, "frame_time", frame_time_str, sizeof(frame_time_str), "50");
+    json_string_or_number_to_buf(json, "frame_time", frame_time_str, sizeof(frame_time_str), "100");
     json_string_or_number_to_buf(json, "frame_len", frame_len_str, sizeof(frame_len_str), "512");
 
     sx_serial_port_config_t tcp_cfg;
@@ -1795,7 +1807,7 @@ static esp_err_t get_serial_set_info_get_handler(httpd_req_t *req)
 
         serial_port_nvs_key(key, sizeof(key), port, "ftime");
         cJSON_AddStringToObject(root, "frame_time",
-                                nvs_get_string_or_default(nvs, key, "50", value, sizeof(value)));
+                                nvs_get_string_or_default(nvs, key, "100", value, sizeof(value)));
 
         serial_port_nvs_key(key, sizeof(key), port, "flen");
         cJSON_AddStringToObject(root, "frame_len",
@@ -1890,11 +1902,12 @@ static esp_err_t get_system_logs_get_handler(httpd_req_t *req)
         return ESP_ERR_NO_MEM;
     }
 
+    cJSON_AddBoolToObject(root, "enabled", s_system_log_enabled);
     size_t count;
     size_t next;
     size_t capacity;
     portENTER_CRITICAL(&s_system_log_spinlock);
-    count = s_system_log_count;
+    count = s_system_log_enabled ? s_system_log_count : 0;
     next = s_system_log_next;
     capacity = s_system_log_capacity;
     portEXIT_CRITICAL(&s_system_log_spinlock);
@@ -1917,6 +1930,43 @@ static esp_err_t get_system_logs_get_handler(httpd_req_t *req)
     cJSON_AddItemToObject(root, "logs", logs);
     http_json_reply(req, root);
     cJSON_Delete(root);
+    return ESP_OK;
+}
+
+static esp_err_t set_system_logs_post_handler(httpd_req_t *req)
+{
+    cJSON *json = NULL;
+    if (read_json_request(req, &json) != ESP_OK) {
+        http_reply_code_msg(req, 400, "invalid request");
+        return ESP_OK;
+    }
+    cJSON *enabled = cJSON_GetObjectItemCaseSensitive(json, "enabled");
+    if (!cJSON_IsBool(enabled)) {
+        cJSON_Delete(json);
+        http_reply_code_msg(req, 400, "enabled must be boolean");
+        return ESP_OK;
+    }
+    const bool value = cJSON_IsTrue(enabled);
+    cJSON_Delete(json);
+
+    nvs_handle_t nvs = 0;
+    esp_err_t err = nvs_open(NVS_NAMESPACE, NVS_READWRITE, &nvs);
+    if (err == ESP_OK) err = nvs_set_u8(nvs, "syslog_en", value ? 1 : 0);
+    if (err == ESP_OK) err = nvs_commit(nvs);
+    if (nvs != 0) nvs_close(nvs);
+    if (err != ESP_OK) {
+        http_reply_code_msg(req, 500, "save system log setting failed");
+        return ESP_OK;
+    }
+
+    s_system_log_enabled = value;
+    if (!value) {
+        portENTER_CRITICAL(&s_system_log_spinlock);
+        s_system_log_count = 0;
+        s_system_log_next = 0;
+        portEXIT_CRITICAL(&s_system_log_spinlock);
+    }
+    http_reply_code_msg(req, 200, "success");
     return ESP_OK;
 }
 
@@ -3273,6 +3323,12 @@ static const httpd_uri_t system_logs_uri = {
     .handler = get_system_logs_get_handler,
 };
 
+static const httpd_uri_t system_logs_set_uri = {
+    .uri = "/system_logs",
+    .method = HTTP_POST,
+    .handler = set_system_logs_post_handler,
+};
+
 static const httpd_uri_t serial_ctl_uri = {
     .uri = "/serial_ctl",
     .method = HTTP_POST,
@@ -3460,6 +3516,7 @@ void http_server_init(void)
     register_protected_route(s_http_server, &serial_set_info_uri);
     register_protected_route(s_http_server, &serial_runtime_status_uri);
     register_protected_route(s_http_server, &system_logs_uri);
+    register_protected_route(s_http_server, &system_logs_set_uri);
     register_protected_route(s_http_server, &serial_ctl_uri);
 
     register_protected_route(s_http_server, &mode_set_uri);

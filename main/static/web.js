@@ -216,6 +216,13 @@ function getIndependentSerialPorts() {
     return orderSp603SerialPorts(ports.filter(port => available.has(port)), layout);
 }
 
+function getDefaultSerialListenPort(port, layout = getSelectedSp603SerialLayout()) {
+    if (layout === 'rs422') return 8887 + Number(port);
+    if (Number(port) === 3) return 8888;
+    if (Number(port) === 1) return 8889;
+    return 8890;
+}
+
 function reorderSp603PortChoices() {
     const orderedPorts = orderSp603SerialPorts(ALL_SERIAL_PORTS);
     const reorderChildren = (containerSelector, itemSelector, inputPrefix, trailingSelector) => {
@@ -393,20 +400,20 @@ async function fetportData(url = '') {
 function initializeToggle(toggleId, contentId) {
     const toggleBtn = document.getElementById(toggleId);
     const contentArea = document.getElementById(contentId);
+    if (!toggleBtn || !contentArea) return;
+    const title = toggleBtn.closest('.title-text');
     let isCollapsed = false;
 
-    toggleBtn.addEventListener('click', () => {
+    const toggle = () => {
         isCollapsed = !isCollapsed;
-        toggleBtn.classList.toggle('collapsed');
+        toggleBtn.classList.toggle('collapsed', isCollapsed);
+        contentArea.classList.toggle('collapsed', isCollapsed);
+        contentArea.hidden = isCollapsed;
+        contentArea.style.maxHeight = isCollapsed ? '0' : contentArea.scrollHeight + 'px';
+    };
 
-        if (isCollapsed) {
-            contentArea.style.maxHeight = '0';
-            contentArea.classList.add('collapsed');
-        } else {
-            contentArea.style.maxHeight = contentArea.scrollHeight + 'px';
-            contentArea.classList.remove('collapsed');
-        }
-    });
+    // 标题和箭头共用同一个切换动作。
+    (title || toggleBtn).addEventListener('click', toggle);
 }
 
 // 自动智能缓存控制相关变量和函数
@@ -3948,7 +3955,7 @@ function renderIndependentSerialCards() {
                     ? 'COM2（A2 B2）'
                     : getSp603PortLabel(port);
         return `<section class="serial-port-card" data-port="${port}">
-            <div class="container serial-port-heading"><div class="title-text"><span>${label}</span><button type="button" class="serial-collapse" aria-expanded="true" aria-label="折叠${label}配置"><i class="iconfont iconxiajiantou2"></i></button></div></div>
+            <div class="container serial-port-heading"><div class="title-text" role="button" tabindex="0" aria-expanded="true"><span>${label}</span><button type="button" class="serial-collapse" aria-expanded="true" aria-label="折叠${label}配置"><i class="iconfont iconxiajiantou2"></i></button></div><button type="button" class="main-btn serial-save-btn" aria-label="保存${label}配置"><div class="btn-container">保存</div></button></div>
             <div class="serial-port-body">
                 <section class="serial-settings-section serial-network-settings">
                     <h3>网络设置</h3>
@@ -3956,8 +3963,8 @@ function renderIndependentSerialCards() {
                         ['tcp_server','TCP Server 透传'], ['tcp_client','TCP Client 透传'],
                         ['mqtt','MQTT'], ['modbus_tcp_rtu','Modbus TCP 转 Modbus RTU']
                     ], '')}
-                    <div data-protocols="tcp_server modbus_tcp_rtu">${serialField('监听端口', `serial_local_port_${port}`, 'number', 8887 + port, null, '')}<div class="serial-runtime-uplink" id="serial_local_ip_${port}">本机 IP：读取中</div></div>
-                    <div data-protocols="tcp_client" hidden>${serialField('目标 IP 地址', `serial_remote_ip_${port}`, 'text', '', null, '')}${serialField('目标端口', `serial_remote_port_${port}`, 'number', 8887 + port, null, '')}</div>
+                    <div data-protocols="tcp_server modbus_tcp_rtu">${serialField('监听端口', `serial_local_port_${port}`, 'number', getDefaultSerialListenPort(port, layout), null, '')}<div class="serial-runtime-uplink" id="serial_local_ip_${port}">本机 IP：读取中</div></div>
+                    <div data-protocols="tcp_client" hidden>${serialField('目标 IP 地址', `serial_remote_ip_${port}`, 'text', '', null, '')}${serialField('目标端口', `serial_remote_port_${port}`, 'number', getDefaultSerialListenPort(port, layout), null, '')}</div>
                     <div data-protocols="mqtt" hidden>
                         ${serialField('Broker 地址', `serial_mqtt_host_${port}`, 'text', 'mqtt.likong-iot.com', null, '')}
                         ${serialField('端口号', `serial_mqtt_port_${port}`, 'number', 1883, null, '')}
@@ -3981,7 +3988,7 @@ function renderIndependentSerialCards() {
                     ${serialField('数据位', `serial_data_${port}`, 'select', '', [[5,5],[6,6],[7,7],[8,8]], '')}
                     ${serialField('校验位', `serial_check_${port}`, 'select', '', [['0','无校验'],['1','奇校验'],['2','偶校验']], '')}
                     ${serialField('停止位', `serial_stop_${port}`, 'select', '', [['1','1位停止位'],['1.5','1.5位停止位'],['2','2位停止位']], '')}
-                    ${serialField('帧时间', `serial_frame_time_${port}`, 'number', 50, null, '毫秒')}
+                    ${serialField('间隔时间', `serial_frame_time_${port}`, 'number', 100, null, '毫秒')}
                     ${serialField('最大帧长度', `serial_frame_len_${port}`, 'number', 512, null, '字节')}
                 </section>
             </div></section>`;
@@ -3996,7 +4003,42 @@ function renderIndependentSerialCards() {
         card.addEventListener('change', () => { card.dataset.dirty = 'true'; });
         initializeSp603PasswordToggles(card);
         updateSerialProtocolFields(card);
-        card.querySelector('.serial-collapse').addEventListener('click', () => { const body = card.querySelector('.serial-port-body'); const open = !body.hidden; body.hidden = open; const toggle = card.querySelector('.serial-collapse'); toggle.setAttribute('aria-expanded', String(!open)); toggle.classList.toggle('collapsed', open); });
+        const title = card.querySelector('.serial-port-heading .title-text');
+        const toggle = card.querySelector('.serial-collapse');
+        const body = card.querySelector('.serial-port-body');
+        const setCollapsed = collapsed => {
+            card.classList.toggle('is-collapsed', collapsed);
+            body.hidden = collapsed;
+            title.setAttribute('aria-expanded', String(!collapsed));
+            toggle.setAttribute('aria-expanded', String(!collapsed));
+            toggle.classList.toggle('collapsed', collapsed);
+        };
+        title.addEventListener('click', event => {
+            if (event.target.closest('.serial-save-btn')) return;
+            setCollapsed(!body.hidden);
+        });
+        title.addEventListener('keydown', event => {
+            if (event.target !== title) return;
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setCollapsed(!body.hidden);
+            }
+        });
+        card.querySelector('.serial-save-btn').addEventListener('click', async event => {
+            const button = event.currentTarget;
+            const cardLabel = getSp603PortLabel(Number(card.dataset.port));
+            button.disabled = true;
+            try {
+                await saveIndependentSerialConfig(Number(card.dataset.port), card);
+                card.dataset.dirty = 'false';
+                displaySuccessMessage(`${cardLabel}配置已保存`);
+                showRestartConfirm(`${cardLabel}配置已保存，是否立即重启设备使配置生效？`);
+            } catch (error) {
+                console.error('串口配置保存失败:', error);
+            } finally {
+                button.disabled = false;
+            }
+        });
     });
 }
 
@@ -4229,7 +4271,7 @@ async function submitPortsWithCachedInterface(masterPorts, defaultPorts) {
                 data_bit: '8',
                 check_bit: '0',
                 stop_bit: '1',
-                frame_time: '50',
+                frame_time: '100',
                 frame_len: '512',
                 reply_timeout: '500'
             };
@@ -4252,7 +4294,7 @@ const SerialConfigManager = {
             transform: null  // 不需要转换，前端和后端都使用数字字符串格式
         },
         stop_bit: { default: '1', transform: null },
-        frame_time: { default: '50', transform: null },
+        frame_time: { default: '100', transform: null },
         frame_len: { default: '512', transform: null },
         reply_timeout: { default: '500', transform: null }
     },
@@ -5568,10 +5610,18 @@ async function sysfetportData() {
 }
 
 let systemLogEntries = [];
-let systemLogsPaused = false;
+let systemLogsEnabled = false;
+function updateSystemLogControls() {
+    const button = document.getElementById('toggleSystemLogs');
+    if (button) button.querySelector('.btn-container').textContent = systemLogsEnabled ? '关闭' : '开启';
+}
 function renderSystemLogs() {
     const output = document.getElementById('systemLogContent');
     if (!output) return;
+    if (!systemLogsEnabled) {
+        output.textContent = '系统日志未开启';
+        return;
+    }
     if (systemLogEntries.length === 0) {
         output.textContent = '暂无系统日志';
         return;
@@ -5587,10 +5637,12 @@ function renderSystemLogs() {
 
 async function fetchSystemLogs() {
     const logsView = document.getElementById('logsView');
-    if (systemLogsPaused || !logsView || logsView.style.display === 'none') return;
+    if (!logsView || logsView.style.display === 'none') return;
     try {
         const response = await fetportData('/system_logs');
+        systemLogsEnabled = response.enabled === true;
         systemLogEntries = Array.isArray(response.logs) ? response.logs : [];
+        updateSystemLogControls();
         renderSystemLogs();
     } catch (error) {
         console.error('系统日志读取失败:', error);
@@ -5601,9 +5653,21 @@ document.getElementById('clearSystemLogs')?.addEventListener('click', () => {
     systemLogEntries = [];
     renderSystemLogs();
 });
-document.getElementById('toggleSystemLogs')?.addEventListener('click', event => {
-    systemLogsPaused = !systemLogsPaused;
-    event.currentTarget.querySelector('.btn-container').textContent = systemLogsPaused ? '继续' : '暂停';
+document.getElementById('toggleSystemLogs')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+        await postData('/system_logs', {enabled: !systemLogsEnabled});
+        systemLogsEnabled = !systemLogsEnabled;
+        if (!systemLogsEnabled) systemLogEntries = [];
+        updateSystemLogControls();
+        renderSystemLogs();
+        if (systemLogsEnabled) await fetchSystemLogs();
+    } catch (error) {
+        console.error('系统日志设置失败:', error);
+    } finally {
+        button.disabled = false;
+    }
 });
 
 
