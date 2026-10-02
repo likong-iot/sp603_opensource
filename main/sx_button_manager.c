@@ -19,6 +19,9 @@ static const char *TAG = "button_mgr";
 #define BUTTON_SHORT_MIN_TICKS 5       /* 50 ms */
 #define BUTTON_SHORT_MAX_TICKS 100     /* 1 s */
 #define BUTTON_FACTORY_RESET_TICKS 500 /* 5 s */
+#define FACTORY_RESET_LED_ON_MS 500
+#define FACTORY_RESET_LED_OFF_MS 500
+#define FACTORY_RESET_BLINKS 3
 
 static bool s_initialized;
 static volatile bool s_action_running;
@@ -31,7 +34,8 @@ static void restart_task(void *arg)
         sx_led_manager_indicate_factory_reset();
         (void)sx_work_mode_stop_current();
         stop_all_uart_tasks();
-        vTaskDelay(pdMS_TO_TICKS(1600));
+        vTaskDelay(pdMS_TO_TICKS(FACTORY_RESET_BLINKS *
+                                 (FACTORY_RESET_LED_ON_MS + FACTORY_RESET_LED_OFF_MS)));
         esp_err_t err = nvs_flash_erase();
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "NVS erase failed: %s; rebooting without retry", esp_err_to_name(err));

@@ -1064,7 +1064,7 @@ void create_multi_uart_rx_tasks(void)
         }
         /* RS422 consumes COM1 TX + COM2 RX; UART0 is TX-only in this layout. */
         if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 &&
-            hw->port == 3) {
+            hw->logical_port == 3) {
             continue;
         }
 
@@ -1280,15 +1280,9 @@ void deinit_all_uart_drivers_for_ota(void)
 
 void uart_init(void)
 {
-    if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 &&
-        !sx_serial_port_manager_uart0_reserved()) {
-        s_port_hw[0].tx_pin = U0TXD;
-        s_port_hw[0].rx_pin = U1RXD;
-        s_port_hw[0].tx_led = LED_COM1;
-        s_port_hw[0].rx_led = LED_COM2;
-        s_port_hw[0].name = "RS422";
-        s_port_hw[2].enabled = false;
-        ESP_LOGI(TAG, "RS422 compatibility layout active: logical TX=COM1, RX=COM2");
+    const bool rs422 = sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422;
+    if (rs422) {
+        ESP_LOGI(TAG, "RS422 layout active: COM1/UART0 is TX, COM2/UART1 is RX");
     }
     uart_led_init();
 
@@ -1299,12 +1293,16 @@ void uart_init(void)
         if (hw == NULL) {
             continue;
         }
+        const int config_port = rs422 && port == 3 ? 1 : port;
         serial_port_config_t cfg;
-        esp_err_t err = get_port_uart_config_from_nvs(port, &cfg);
+        esp_err_t err = get_port_uart_config_from_nvs(config_port, &cfg);
         if (err != ESP_OK) {
-            fill_default_config(port, &cfg);
-            (void)write_port_config_to_nvs(&cfg);
+            fill_default_config(config_port, &cfg);
+            if (config_port == port) {
+                (void)write_port_config_to_nvs(&cfg);
+            }
         }
+        cfg.port = port;
 
         err = restart_single_port(port, &cfg);
         if (err != ESP_OK) {

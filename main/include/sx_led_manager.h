@@ -8,12 +8,11 @@ extern "C" {
 #endif
 
 typedef enum {
-    SX_LED_NETWORK_OFF = 0,
-    SX_LED_NETWORK_STARTING, /* enabled/available but not the active uplink */
-    SX_LED_NETWORK_PROVIDER, /* downstream network is ready and serving clients */
-    SX_LED_NETWORK_ONLINE,   /* current default uplink */
-    SX_LED_NETWORK_ONLINE_AND_PROVIDER, /* active uplink and downstream provider */
-    SX_LED_NETWORK_ERROR,
+    SX_LED_NETWORK_OFF = 0, /* interface disabled */
+    SX_LED_NETWORK_CONNECTING, /* enabled but not connected */
+    SX_LED_NETWORK_LOCAL,   /* connected without Internet reachability */
+    SX_LED_NETWORK_PROVIDER, /* serving a downstream network */
+    SX_LED_NETWORK_ONLINE,  /* Internet reachable */
 } sx_led_network_state_t;
 
 typedef enum {

@@ -67,7 +67,7 @@ function shouldResyncTime() {
 // ==================== 时间同步模块结束 ====================
 
 const basicInfoElementIds = ['host_name', 'current_time', 'uptime', 'active_interface', 'active_link',
-    'active_ip', 'gateway', 'netmask', 'active_dns', 'active_address_mode', 'active_identifier'];
+    'active_ip', 'gateway', 'netmask', 'active_dns', 'active_address_mode', 'wifi_mac', 'ethernet_mac'];
 const basicInfoElements = basicInfoElementIds.reduce((obj, id) => ({ ...obj, [id]: document.getElementById(id) }), {});
 
 async function updateBasicInfo() {
@@ -112,7 +112,8 @@ async function updateBasicInfo() {
         basicInfoElements.active_dns.textContent = data.dns_ready === false
             ? '未就绪' : (data.active_dns || '0.0.0.0');
         basicInfoElements.active_address_mode.textContent = addressModes[data.active_address_mode] || '--';
-        basicInfoElements.active_identifier.textContent = data.active_identifier || '--';
+        basicInfoElements.wifi_mac.textContent = data.wifi_mac || '--';
+        basicInfoElements.ethernet_mac.textContent = data.ethernet_mac || '--';
     } catch (error) {
         console.error('Failed to fetch data:', error);
     }
@@ -167,7 +168,13 @@ const SP603_DUAL_DISPLAY_ORDER = [3, 1, 2];
 const SP603_RS422_DISPLAY_ORDER = [1, 2];
 
 function getSp603PortLabel(port) {
-    return SP603_PORT_LABELS[Number(port)] || '串口';
+    const number = Number(port);
+    const layout = typeof getSelectedSp603SerialLayout === 'function'
+        ? getSelectedSp603SerialLayout() : savedSp603SerialLayout;
+    if (layout === 'rs422' && number === 1) return 'RS422（TX+ TX- RX+ RX-）';
+    if (layout === 'dual_rs485' && number === 3) return 'COM1（A1 B1）';
+    if (layout === 'dual_rs485' && number === 1) return 'COM2（A2 B2）';
+    return SP603_PORT_LABELS[number] || '串口';
 }
 
 // 自动采集配置槽1、槽2分别绑定 COM2、COM1，不对应普通串口索引2。
@@ -2197,19 +2204,8 @@ function hideReplyTimeoutFields() {
 
 // 显示回复超时时间字段
 function showReplyTimeoutFields() {
-    // 显示分别配置模式的回复超时时间字段
-    for (const port of getActiveSerialPorts()) {
-        const replyTimeoutField = document.getElementById(`reply_timeout_${port}`)?.closest('.label-view');
-        if (replyTimeoutField) {
-            replyTimeoutField.style.display = 'flex';
-        }
-    }
-
-    // 显示统一配置模式的回复超时时间字段
-    const unifiedReplyTimeoutField = document.getElementById('unified_reply_timeout')?.closest('.label-view');
-    if (unifiedReplyTimeoutField) {
-        unifiedReplyTimeoutField.style.display = 'flex';
-    }
+    /* Reply timeout is intentionally disabled in this firmware profile. */
+    hideReplyTimeoutFields();
 }
 
 
@@ -3943,8 +3939,14 @@ function renderIndependentSerialCards() {
         .forEach(selector => host.querySelectorAll(selector).forEach(el => { el.style.display = 'none'; }));
     const cards = document.createElement('div'); cards.id = 'serialIndependentCards'; cards.className = 'serial-independent-cards';
     cards.innerHTML = getIndependentSerialPorts().map(port => {
-        const label = getSelectedSp603SerialLayout() === 'rs422' && port === 1
-            ? 'RS422' : getSp603PortLabel(port);
+        const layout = getSelectedSp603SerialLayout();
+        const label = layout === 'rs422' && port === 1
+            ? 'RS422（TX+ TX- RX+ RX-）'
+            : layout === 'dual_rs485' && port === 3
+                ? 'COM1（A1 B1）'
+                : layout === 'dual_rs485' && port === 1
+                    ? 'COM2（A2 B2）'
+                    : getSp603PortLabel(port);
         return `<section class="serial-port-card" data-port="${port}">
             <div class="container serial-port-heading"><div class="title-text"><span>${label}</span><button type="button" class="serial-collapse" aria-expanded="true" aria-label="折叠${label}配置"><i class="iconfont iconxiajiantou2"></i></button></div></div>
             <div class="serial-port-body">
@@ -3954,10 +3956,11 @@ function renderIndependentSerialCards() {
                         ['tcp_server','TCP Server 透传'], ['tcp_client','TCP Client 透传'],
                         ['mqtt','MQTT'], ['modbus_tcp_rtu','Modbus TCP 转 Modbus RTU']
                     ], '')}
-                    <div data-protocols="tcp_server modbus_tcp_rtu">${serialField('监听端口', `serial_local_port_${port}`, 'number', 8887 + port, null, '')}</div>
+                    <div data-protocols="tcp_server modbus_tcp_rtu">${serialField('监听端口', `serial_local_port_${port}`, 'number', 8887 + port, null, '')}<div class="serial-runtime-uplink" id="serial_local_ip_${port}">本机 IP：读取中</div></div>
                     <div data-protocols="tcp_client" hidden>${serialField('目标 IP 地址', `serial_remote_ip_${port}`, 'text', '', null, '')}${serialField('目标端口', `serial_remote_port_${port}`, 'number', 8887 + port, null, '')}</div>
                     <div data-protocols="mqtt" hidden>
-                        ${serialField('Broker URI', `serial_mqtt_uri_${port}`, 'text', 'mqtt://mqtt.likong-iot.com:1883', null, '')}
+                        ${serialField('Broker 地址', `serial_mqtt_host_${port}`, 'text', 'mqtt.likong-iot.com', null, '')}
+                        ${serialField('端口号', `serial_mqtt_port_${port}`, 'number', 1883, null, '')}
                         ${serialField('Client ID', `serial_mqtt_client_id_${port}`, 'text', '', null, '')}
                         ${serialField('用户名', `serial_mqtt_username_${port}`, 'text', 'public', null, '')}
                         ${serialField('密码', `serial_mqtt_password_${port}`, 'password', '', null, '')}
@@ -3980,7 +3983,6 @@ function renderIndependentSerialCards() {
                     ${serialField('停止位', `serial_stop_${port}`, 'select', '', [['1','1位停止位'],['1.5','1.5位停止位'],['2','2位停止位']], '')}
                     ${serialField('帧时间', `serial_frame_time_${port}`, 'number', 50, null, '毫秒')}
                     ${serialField('最大帧长度', `serial_frame_len_${port}`, 'number', 512, null, '字节')}
-                    ${serialField('应答超时', `serial_timeout_${port}`, 'number', 500, null, '毫秒')}
                 </section>
             </div></section>`;
     }).join('');
@@ -4008,11 +4010,13 @@ async function refreshSerialRuntimeStatus() {
             const badge = document.getElementById(`serial_runtime_badge_${item.port}`);
             const route = document.getElementById(`serial_runtime_route_${item.port}`);
             const uplink = document.getElementById(`serial_runtime_uplink_${item.port}`);
+            const localIp = document.getElementById(`serial_local_ip_${item.port}`);
             if (!badge) return;
             badge.textContent = item.state_text || '未启动';
             badge.className = `sp603-status ${item.connected ? 'is-online' : (item.state === 2 ? 'is-waiting' : (item.state === 4 ? 'is-error' : 'is-muted'))}`;
             if (route) route.textContent = item.route || '--';
             if (uplink) uplink.textContent = `联网接口：${item.uplink || result.active_uplink || '暂无可用联网'}`;
+            if (localIp) localIp.textContent = `本机 IP：${item.local_ip || '0.0.0.0'}`;
         });
     } catch (error) {
         document.querySelectorAll('.serial-runtime-status .sp603-status').forEach(badge => {
@@ -4060,8 +4064,12 @@ async function loadIndependentSerialConfigs() {
             if (generation !== sp603SerialConfigLoadGeneration || !card.isConnected) return;
             const set = (id, value) => { const e = document.getElementById(id); if (e && value !== undefined) e.value = value; };
             set(`serial_protocol_${port}`, c.protocol || (c.tcp_mode === 'client' ? 'tcp_client' : 'tcp_server'));
-            set(`serial_baud_${port}`, c.baud_rate); set(`serial_data_${port}`, c.data_bit); set(`serial_check_${port}`, convertParityToBackend(c.check_bit)); set(`serial_stop_${port}`, c.stop_bit); set(`serial_frame_time_${port}`, c.frame_time); set(`serial_frame_len_${port}`, c.frame_len); set(`serial_timeout_${port}`, c.reply_timeout); set(`serial_local_port_${port}`, c.local_port); set(`serial_remote_ip_${port}`, c.remote_ip); set(`serial_remote_port_${port}`, c.remote_port);
-            set(`serial_mqtt_uri_${port}`, c.mqtt_uri); set(`serial_mqtt_client_id_${port}`, c.mqtt_client_id); set(`serial_mqtt_username_${port}`, c.mqtt_username); set(`serial_mqtt_password_${port}`, c.mqtt_password); set(`serial_mqtt_pub_${port}`, c.mqtt_publish_topic); set(`serial_mqtt_sub_${port}`, c.mqtt_subscribe_topic); set(`serial_mqtt_qos_${port}`, c.mqtt_qos); set(`serial_mqtt_retain_${port}`, c.mqtt_retain ? '1' : '0');
+            set(`serial_baud_${port}`, c.baud_rate); set(`serial_data_${port}`, c.data_bit); set(`serial_check_${port}`, convertParityToBackend(c.check_bit)); set(`serial_stop_${port}`, c.stop_bit); set(`serial_frame_time_${port}`, c.frame_time); set(`serial_frame_len_${port}`, c.frame_len); set(`serial_local_port_${port}`, c.local_port); set(`serial_remote_ip_${port}`, c.remote_ip); set(`serial_remote_port_${port}`, c.remote_port);
+            let mqttUri;
+            try { mqttUri = new URL(c.mqtt_uri || 'mqtt://mqtt.likong-iot.com:1883'); }
+            catch (_) { mqttUri = new URL('mqtt://mqtt.likong-iot.com:1883'); }
+            set(`serial_mqtt_host_${port}`, mqttUri.hostname); set(`serial_mqtt_port_${port}`, mqttUri.port || (mqttUri.protocol === 'mqtts:' ? 8883 : 1883));
+            set(`serial_mqtt_client_id_${port}`, c.mqtt_client_id); set(`serial_mqtt_username_${port}`, c.mqtt_username); set(`serial_mqtt_password_${port}`, c.mqtt_password); set(`serial_mqtt_pub_${port}`, c.mqtt_publish_topic); set(`serial_mqtt_sub_${port}`, c.mqtt_subscribe_topic); set(`serial_mqtt_qos_${port}`, c.mqtt_qos); set(`serial_mqtt_retain_${port}`, c.mqtt_retain ? '1' : '0');
             updateSerialProtocolFields(card);
             card.dataset.dirty = 'false';
         } catch (e) { console.warn('串口配置读取失败', port, e); }
@@ -4073,7 +4081,9 @@ async function saveIndependentSerialConfig(port, card) {
     const value = id => document.getElementById(id)?.value || '';
     const protocol = value(`serial_protocol_${port}`) || 'tcp_server';
     const localPort = Number(value(`serial_local_port_${port}`));
-    const payload = { serial_port: port, protocol, local_port: localPort, remote_ip: value(`serial_remote_ip_${port}`).trim(), remote_port: protocol === 'tcp_client' ? Number(value(`serial_remote_port_${port}`)) : localPort, mqtt_uri: value(`serial_mqtt_uri_${port}`).trim(), mqtt_client_id: value(`serial_mqtt_client_id_${port}`).trim(), mqtt_username: value(`serial_mqtt_username_${port}`).trim(), mqtt_password: value(`serial_mqtt_password_${port}`), mqtt_publish_topic: value(`serial_mqtt_pub_${port}`).trim(), mqtt_subscribe_topic: value(`serial_mqtt_sub_${port}`).trim(), mqtt_qos: Number(value(`serial_mqtt_qos_${port}`)), mqtt_retain: value(`serial_mqtt_retain_${port}`) === '1', baud_rate: value(`serial_baud_${port}`), data_bit: value(`serial_data_${port}`), check_bit: value(`serial_check_${port}`), stop_bit: value(`serial_stop_${port}`), frame_time: value(`serial_frame_time_${port}`), frame_len: value(`serial_frame_len_${port}`), reply_timeout: value(`serial_timeout_${port}`) };
+    const mqttHost = value(`serial_mqtt_host_${port}`).trim();
+    const mqttPort = Number(value(`serial_mqtt_port_${port}`)) || 1883;
+    const payload = { serial_port: port, protocol, local_port: localPort, remote_ip: value(`serial_remote_ip_${port}`).trim(), remote_port: protocol === 'tcp_client' ? Number(value(`serial_remote_port_${port}`)) : localPort, mqtt_uri: `mqtt://${mqttHost}:${mqttPort}`, mqtt_client_id: value(`serial_mqtt_client_id_${port}`).trim(), mqtt_username: value(`serial_mqtt_username_${port}`).trim(), mqtt_password: value(`serial_mqtt_password_${port}`), mqtt_publish_topic: value(`serial_mqtt_pub_${port}`).trim(), mqtt_subscribe_topic: value(`serial_mqtt_sub_${port}`).trim(), mqtt_qos: Number(value(`serial_mqtt_qos_${port}`)), mqtt_retain: value(`serial_mqtt_retain_${port}`) === '1', baud_rate: value(`serial_baud_${port}`), data_bit: value(`serial_data_${port}`), check_bit: value(`serial_check_${port}`), stop_bit: value(`serial_stop_${port}`), frame_time: value(`serial_frame_time_${port}`), frame_len: value(`serial_frame_len_${port}`) };
     try {
         await postData('/serial_set', payload);
     } catch (e) {

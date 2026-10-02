@@ -56,7 +56,8 @@
 #define HW_FEATURE_MODBUS_FILTER 0
 #define HW_FEATURE_SLAVE_MAPPING 0
 #define AUTH_SESSION_TOKEN_BYTES 16
-#define AUTH_SESSION_TIMEOUT_US (30LL * 60LL * 1000000LL)
+#define AUTH_SESSION_TIMEOUT_US (7LL * 24LL * 60LL * 60LL * 1000000LL)
+#define MAX_AUTH_SESSIONS 8
 #define MAX_PROTECTED_ROUTES 64
 #define SYSTEM_LOG_CAPACITY 256
 #define SYSTEM_LOG_FALLBACK_CAPACITY 16
@@ -86,8 +87,12 @@ extern const uint8_t web_css_gz_start[] asm("_binary_web_css_gz_start");
 extern const uint8_t web_css_gz_end[] asm("_binary_web_css_gz_end");
 
 static httpd_handle_t s_http_server = NULL;
-static char s_session_token[AUTH_SESSION_TOKEN_BYTES * 2 + 1];
-static int64_t s_session_last_seen_us;
+typedef struct {
+    char token[AUTH_SESSION_TOKEN_BYTES * 2 + 1];
+    int64_t last_seen_us;
+} auth_session_t;
+
+static auth_session_t s_sessions[MAX_AUTH_SESSIONS];
 static portMUX_TYPE s_auth_lock = portMUX_INITIALIZER_UNLOCKED;
 
 typedef struct {
@@ -478,16 +483,50 @@ static bool request_has_valid_session(httpd_req_t *req)
             size_t token_len = strcspn(value, "; ");
             int64_t now = esp_timer_get_time();
             portENTER_CRITICAL(&s_auth_lock);
-            valid = s_session_token[0] != '\0' &&
-                    token_len == strlen(s_session_token) &&
-                    memcmp(value, s_session_token, token_len) == 0 &&
-                    now - s_session_last_seen_us <= AUTH_SESSION_TIMEOUT_US;
-            if (valid) s_session_last_seen_us = now;
+            for (size_t i = 0; i < MAX_AUTH_SESSIONS; ++i) {
+                if (s_sessions[i].token[0] != '\0' &&
+                    now - s_sessions[i].last_seen_us > AUTH_SESSION_TIMEOUT_US) {
+                    memset(&s_sessions[i], 0, sizeof(s_sessions[i]));
+                }
+                if (s_sessions[i].token[0] != '\0' &&
+                    token_len == strlen(s_sessions[i].token) &&
+                    memcmp(value, s_sessions[i].token, token_len) == 0) {
+                    valid = true;
+                    s_sessions[i].last_seen_us = now;
+                    break;
+                }
+            }
             portEXIT_CRITICAL(&s_auth_lock);
         }
     }
     free(cookie);
     return valid;
+}
+
+static void remove_session_from_request(httpd_req_t *req)
+{
+    size_t cookie_len = httpd_req_get_hdr_value_len(req, "Cookie");
+    if (cookie_len == 0 || cookie_len > 1024) return;
+    char *cookie = calloc(1, cookie_len + 1);
+    if (cookie == NULL) return;
+    if (httpd_req_get_hdr_value_str(req, "Cookie", cookie, cookie_len + 1) == ESP_OK) {
+        const char *key = "SP603_SESSION=";
+        char *value = strstr(cookie, key);
+        if (value != NULL) {
+            value += strlen(key);
+            size_t token_len = strcspn(value, "; ");
+            portENTER_CRITICAL(&s_auth_lock);
+            for (size_t i = 0; i < MAX_AUTH_SESSIONS; ++i) {
+                if (token_len == strlen(s_sessions[i].token) &&
+                    token_len > 0 && memcmp(value, s_sessions[i].token, token_len) == 0) {
+                    memset(&s_sessions[i], 0, sizeof(s_sessions[i]));
+                    break;
+                }
+            }
+            portEXIT_CRITICAL(&s_auth_lock);
+        }
+    }
+    free(cookie);
 }
 
 static esp_err_t redirect_to(httpd_req_t *req, const char *location)
@@ -922,6 +961,7 @@ static esp_err_t get_devinfo_get_handler(httpd_req_t *req)
     snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
              mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     cJSON_AddStringToObject(root, "device_sta_mac", mac_str);
+    cJSON_AddStringToObject(root, "wifi_mac", mac_str);
 
     esp_netif_ip_info_t ip = {0};
     bool ip_found = false;
@@ -975,14 +1015,27 @@ static esp_err_t get_devinfo_get_handler(httpd_req_t *req)
     bool active_link = false;
     esp_netif_t *active_netif = NULL;
     char active_identifier[24] = "--";
+    char ethernet_mac_str[24];
+    uint8_t eth_mac[6] = {0};
+    esp_eth_handle_t eth_handle = w5500_manager_get_handle();
+    bool have_ethernet_mac = eth_handle != NULL &&
+        esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, eth_mac) == ESP_OK;
+    if (!have_ethernet_mac && esp_efuse_mac_get_default(eth_mac) == ESP_OK) {
+        eth_mac[5] ^= 0x02;
+        have_ethernet_mac = true;
+    }
+    if (have_ethernet_mac) {
+        snprintf(ethernet_mac_str, sizeof(ethernet_mac_str),
+                 "%02X:%02X:%02X:%02X:%02X:%02X",
+                 eth_mac[0], eth_mac[1], eth_mac[2], eth_mac[3], eth_mac[4], eth_mac[5]);
+    } else {
+        snprintf(ethernet_mac_str, sizeof(ethernet_mac_str), "--");
+    }
     if (net_status.active_interface == SX_NETWORK_IF_W5500) {
         address_mode = net_config.ethernet_static ? "static" : "dhcp";
         active_link = net_status.w5500_got_ip && net_status.dns_ready;
         active_netif = w5500_manager_get_netif();
-        uint8_t eth_mac[6] = {0};
-        esp_eth_handle_t eth_handle = w5500_manager_get_handle();
-        if (eth_handle != NULL &&
-            esp_eth_ioctl(eth_handle, ETH_CMD_G_MAC_ADDR, eth_mac) == ESP_OK) {
+        if (have_ethernet_mac) {
             snprintf(active_identifier, sizeof(active_identifier),
                      "%02X:%02X:%02X:%02X:%02X:%02X",
                      eth_mac[0], eth_mac[1], eth_mac[2], eth_mac[3], eth_mac[4], eth_mac[5]);
@@ -1010,6 +1063,7 @@ static esp_err_t get_devinfo_get_handler(httpd_req_t *req)
     cJSON_AddStringToObject(root, "active_dns", dns_text);
     cJSON_AddStringToObject(root, "active_address_mode", address_mode);
     cJSON_AddStringToObject(root, "active_identifier", active_identifier);
+    cJSON_AddStringToObject(root, "ethernet_mac", ethernet_mac_str);
 
     http_json_reply(req, root);
     cJSON_Delete(root);
@@ -1127,13 +1181,23 @@ static esp_err_t login_post_handler(httpd_req_t *req)
     char token[AUTH_SESSION_TOKEN_BYTES * 2 + 1];
     create_session_token(token);
     portENTER_CRITICAL(&s_auth_lock);
-    snprintf(s_session_token, sizeof(s_session_token), "%s", token);
-    s_session_last_seen_us = esp_timer_get_time();
+    size_t slot = MAX_AUTH_SESSIONS;
+    int64_t now = esp_timer_get_time();
+    for (size_t i = 0; i < MAX_AUTH_SESSIONS; ++i) {
+        if (s_sessions[i].token[0] == '\0' ||
+            now - s_sessions[i].last_seen_us > AUTH_SESSION_TIMEOUT_US) {
+            slot = i;
+            break;
+        }
+    }
+    if (slot == MAX_AUTH_SESSIONS) slot = 0;
+    snprintf(s_sessions[slot].token, sizeof(s_sessions[slot].token), "%s", token);
+    s_sessions[slot].last_seen_us = now;
     portEXIT_CRITICAL(&s_auth_lock);
 
     char cookie[160];
     snprintf(cookie, sizeof(cookie),
-             "SP603_SESSION=%s; Path=/; HttpOnly; SameSite=Strict; Max-Age=1800",
+        "SP603_SESSION=%s; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800",
              token);
     httpd_resp_set_hdr(req, "Set-Cookie", cookie);
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
@@ -1142,10 +1206,7 @@ static esp_err_t login_post_handler(httpd_req_t *req)
 
 static esp_err_t logout_post_handler(httpd_req_t *req)
 {
-    portENTER_CRITICAL(&s_auth_lock);
-    memset(s_session_token, 0, sizeof(s_session_token));
-    s_session_last_seen_us = 0;
-    portEXIT_CRITICAL(&s_auth_lock);
+    remove_session_from_request(req);
     httpd_resp_set_hdr(req, "Set-Cookie",
                        "SP603_SESSION=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
@@ -1574,7 +1635,6 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
     char stop_bit_str[8] = "1";
     char frame_time_str[16] = "50";
     char frame_len_str[16] = "512";
-    char timeout_str[16] = "500";
 
     json_string_or_number_to_buf(json, "baud_rate", baud_str, sizeof(baud_str), "9600");
     json_string_or_number_to_buf(json, "data_bit", data_bit_str, sizeof(data_bit_str), "8");
@@ -1582,7 +1642,6 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
     json_string_or_number_to_buf(json, "stop_bit", stop_bit_str, sizeof(stop_bit_str), "1");
     json_string_or_number_to_buf(json, "frame_time", frame_time_str, sizeof(frame_time_str), "50");
     json_string_or_number_to_buf(json, "frame_len", frame_len_str, sizeof(frame_len_str), "512");
-    json_string_or_number_to_buf(json, "reply_timeout", timeout_str, sizeof(timeout_str), "500");
 
     sx_serial_port_config_t tcp_cfg;
     sx_serial_server_get_config(port, &tcp_cfg);
@@ -1592,7 +1651,6 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
     const int previous_stop_bit = tcp_cfg.stop_bit;
     const int previous_frame_time = tcp_cfg.frame_time;
     const int previous_frame_len = tcp_cfg.frame_len;
-    const int previous_timeout = tcp_cfg.timeout;
     cJSON *protocol = cJSON_GetObjectItemCaseSensitive(json, "protocol");
     if (protocol == NULL) protocol = cJSON_GetObjectItemCaseSensitive(json, "tcp_mode");
     if (cJSON_IsString(protocol) && protocol->valuestring &&
@@ -1629,7 +1687,8 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
     tcp_cfg.port = port; tcp_cfg.baud_rate = atoi(baud_str); tcp_cfg.data_bit = atoi(data_bit_str);
     tcp_cfg.check_bit = atoi(check_bit_str);
     tcp_cfg.stop_bit = strcmp(stop_bit_str, "1.5") == 0 ? 15 : atoi(stop_bit_str);
-    tcp_cfg.frame_time = atoi(frame_time_str); tcp_cfg.frame_len = atoi(frame_len_str); tcp_cfg.timeout = atoi(timeout_str);
+    tcp_cfg.frame_time = atoi(frame_time_str); tcp_cfg.frame_len = atoi(frame_len_str);
+    tcp_cfg.timeout = DEFAULT_REPLY_TIMEOUT_MS;
     esp_err_t save_err = sx_serial_server_save_config(&tcp_cfg);
     if (save_err != ESP_OK) {
         cJSON_Delete(json);
@@ -1646,8 +1705,7 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
                         previous_check_bit != tcp_cfg.check_bit ||
                         previous_stop_bit != tcp_cfg.stop_bit ||
                         previous_frame_time != tcp_cfg.frame_time ||
-                        previous_frame_len != tcp_cfg.frame_len ||
-                        previous_timeout != tcp_cfg.timeout;
+                        previous_frame_len != tcp_cfg.frame_len;
     if (uart_changed && port_supported_for_hw(runtime_port)) {
         serial_port_config_t cfg = {
             .port = runtime_port,
@@ -1657,11 +1715,8 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
             .stop_bits = parse_stop_bits(stop_bit_str),
             .frame_time = atoi(frame_time_str),
             .frame_len = atoi(frame_len_str),
-            .timeout = atoi(timeout_str),
+            .timeout = DEFAULT_REPLY_TIMEOUT_MS,
         };
-        if (cfg.timeout <= 0) {
-            cfg.timeout = DEFAULT_REPLY_TIMEOUT_MS;
-        }
         esp_err_t runtime_err = quick_reconfigure_port(runtime_port, &cfg);
         if (runtime_err != ESP_OK) {
             cJSON_Delete(json);
@@ -1669,6 +1724,17 @@ static esp_err_t get_serial_set_handler(httpd_req_t *req)
             return ESP_OK;
         }
         set_current_runtime_config(runtime_port, &cfg);
+        if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 && port == 1) {
+            serial_port_config_t tx_cfg = cfg;
+            tx_cfg.port = 3;
+            esp_err_t tx_err = quick_reconfigure_port(3, &tx_cfg);
+            if (tx_err != ESP_OK) {
+                cJSON_Delete(json);
+                http_reply_code_msg(req, 500, "RS422 TX runtime reconfigure failed");
+                return ESP_OK;
+            }
+            set_current_runtime_config(3, &tx_cfg);
+        }
     }
 
     cJSON_Delete(json);
@@ -1735,10 +1801,6 @@ static esp_err_t get_serial_set_info_get_handler(httpd_req_t *req)
         cJSON_AddStringToObject(root, "frame_len",
                                 nvs_get_string_or_default(nvs, key, "512", value, sizeof(value)));
 
-        serial_port_nvs_key(key, sizeof(key), port, "timeout");
-        cJSON_AddStringToObject(root, "reply_timeout",
-                                nvs_get_string_or_default(nvs, key, "500", value, sizeof(value)));
-
         nvs_close(nvs);
     }
 
@@ -1786,8 +1848,9 @@ static esp_err_t get_serial_runtime_status_get_handler(httpd_req_t *req)
         const char *protocol = sx_serial_protocol_name(runtime.protocol);
         char route[256];
         if (runtime.protocol == SX_SERIAL_TCP_SERVER) {
-            snprintf(route, sizeof(route), "%s ↔ TCP Server :%u（监听全部网络接口）",
-                     label, runtime.local_port);
+            const char *local_ip = network.ip[0] ? network.ip : "0.0.0.0";
+            snprintf(route, sizeof(route), "%s ↔ TCP Server %s:%u（当前联网网口）",
+                     label, local_ip, runtime.local_port);
         } else if (runtime.protocol == SX_SERIAL_TCP_CLIENT) {
             snprintf(route, sizeof(route), "%s ↔ TCP Client %s:%u，经 %s",
                      label, runtime.remote_ip[0] ? runtime.remote_ip : "--",
@@ -1805,6 +1868,7 @@ static esp_err_t get_serial_runtime_status_get_handler(httpd_req_t *req)
         cJSON_AddNumberToObject(item, "state", runtime.state);
         cJSON_AddStringToObject(item, "state_text", serial_runtime_state_text(runtime.state));
         cJSON_AddStringToObject(item, "route", route);
+        cJSON_AddStringToObject(item, "local_ip", network.ip[0] ? network.ip : "0.0.0.0");
         cJSON_AddStringToObject(item, "uplink", uplink_text);
         cJSON_AddBoolToObject(item, "listening", runtime.listening);
         cJSON_AddBoolToObject(item, "connected", runtime.connected || runtime.mqtt_connected);
@@ -2937,9 +3001,10 @@ static esp_err_t get_restore_get_handler(httpd_req_t *req)
     http_json_reply(req, root);
     cJSON_Delete(root);
 
-    /* Keep reset behavior consistent with restart and let the response flush. */
+    /* Keep reset behavior consistent with the hardware key: three 0.5 s
+     * flashes before erasing NVS. */
     sx_led_manager_indicate_factory_reset();
-    vTaskDelay(pdMS_TO_TICKS(1600));
+    vTaskDelay(pdMS_TO_TICKS(3000));
     nvs_flash_erase();
     esp_restart();
     return ESP_OK;

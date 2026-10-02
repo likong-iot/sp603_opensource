@@ -27,7 +27,10 @@ size_t sx_serial_resource_get_all(sx_serial_resource_info_t *resources, size_t c
 
 int sx_serial_resource_tx_port(int logical_port)
 {
-    /* async-uart keeps the RS422 direction split inside internal index 1. */
+    /* RS422 uses UART0 (the COM1 pins) for TX and UART1 (the COM2 pins) for RX. */
+    if (sx_serial_port_manager_get_layout() == SX_SERIAL_LAYOUT_RS422 && logical_port == 1) {
+        return 3;
+    }
     return logical_port;
 }
 

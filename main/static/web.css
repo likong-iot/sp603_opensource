@@ -11,6 +11,8 @@
 #serialConfigContent > #serialUnifiedConfig,
 #serialConfigContent > .separate-config-panel,
 #serialConfigContent > .label-view:has(#serialButton) { display: none !important; }
+#serialConfigContent .label-view:has(#unified_reply_timeout),
+#serialConfigContent .label-view:has([id^="reply_timeout_"]) { display: none !important; }
 .serial-port-card { border: 1px solid var(--BG-2); border-radius: var(--RADIUS-0); background: var(--BG-1); overflow: hidden; }
 .serial-port-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; min-height: 50px; background: var(--BG-1); border-bottom: 1px solid var(--BG-2); }
 .serial-port-heading .title-text { display: flex; align-items: center; gap: 12px; font-weight: 600; }

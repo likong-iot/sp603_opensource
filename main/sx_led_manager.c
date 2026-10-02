@@ -20,7 +20,7 @@ static bool s_initialized = false;
 
 #define SERIAL_LED_HOLD_US 100000LL
 #define LED_SCAN_MS 10
-#define NETWORK_LED_TICK_MS 250
+#define NETWORK_LED_TICK_MS 100
 
 typedef struct {
     gpio_num_t pin;
@@ -118,18 +118,22 @@ void sx_led_manager_serial_clear(gpio_num_t pin)
 static int state_level(sx_led_network_state_t state, unsigned tick)
 {
     switch (state) {
-    case SX_LED_NETWORK_ONLINE: return SX_LED_ON_LEVEL;
-    /* 1 s on / 1 s off: available provider or standby uplink. */
-    case SX_LED_NETWORK_STARTING: return (tick % 8U) < 4U ? SX_LED_ON_LEVEL : SX_LED_OFF_LEVEL;
-    /* 1 s on / 1 s off: interface is serving the downstream network. */
-    case SX_LED_NETWORK_PROVIDER: return (tick % 8U) < 4U ? SX_LED_ON_LEVEL : SX_LED_OFF_LEVEL;
-    /* Two 250 ms pulses every 2 s: Wi-Fi STA is the uplink and AP provides service. */
-    case SX_LED_NETWORK_ONLINE_AND_PROVIDER:
-        return (tick % 8U) == 0U || (tick % 8U) == 2U
+    case SX_LED_NETWORK_ONLINE:
+        return SX_LED_ON_LEVEL;
+    /* Three quick 100 ms flashes, repeated once per second. */
+    case SX_LED_NETWORK_CONNECTING:
+        return (tick % 10U) == 0U || (tick % 10U) == 2U ||
+               (tick % 10U) == 4U
                    ? SX_LED_ON_LEVEL : SX_LED_OFF_LEVEL;
-    /* 250 ms on / 750 ms off: interface error. */
-    case SX_LED_NETWORK_ERROR: return (tick % 4U) == 0U ? SX_LED_ON_LEVEL : SX_LED_OFF_LEVEL;
-    default: return SX_LED_OFF_LEVEL;
+    /* Two quick 100 ms flashes, repeated once per second. */
+    case SX_LED_NETWORK_LOCAL:
+        return (tick % 10U) == 0U || (tick % 10U) == 2U
+                   ? SX_LED_ON_LEVEL : SX_LED_OFF_LEVEL;
+    /* One slow flash: 1 s on, 1 s off. */
+    case SX_LED_NETWORK_PROVIDER:
+        return (tick % 20U) < 10U ? SX_LED_ON_LEVEL : SX_LED_OFF_LEVEL;
+    default:
+        return SX_LED_OFF_LEVEL;
     }
 }
 
@@ -191,7 +195,8 @@ static void led_task(void *arg)
             if (now >= next_action_update_us) {
                 action_on = !action_on;
                 set_all_leds_level(action_on ? SX_LED_ON_LEVEL : SX_LED_OFF_LEVEL);
-                next_action_update_us = now + NETWORK_LED_TICK_MS * 1000LL;
+                /* Restart/factory-reset indication: 0.5 s on, 0.5 s off. */
+                next_action_update_us = now + 500000LL;
                 if (!action_on && --action_blinks == 0) s_action_active = false;
             }
             vTaskDelay(pdMS_TO_TICKS(LED_SCAN_MS));
