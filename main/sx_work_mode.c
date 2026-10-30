@@ -1,6 +1,9 @@
 #include "sx_work_mode.h"
 
 #include <string.h>
+#include <stdatomic.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 #include "esp_check.h"
 #include "esp_log.h"
@@ -9,7 +12,9 @@
 #include "sx_serial_server.h"
 
 static const char *TAG = "work_mode";
-static const char *s_current_mode;
+static _Atomic(const char *) s_current_mode;
+static atomic_bool s_mode_started;
+static SemaphoreHandle_t s_mode_mutex;
 static const char *const s_supported_modes[] = {"serial_server", "auto_collect"};
 static bool s_initialized;
 
@@ -17,6 +22,8 @@ esp_err_t sx_work_mode_init(void)
 {
     if (s_initialized) return ESP_OK;
     ESP_RETURN_ON_ERROR(sx_serial_server_init(), TAG, "serial server init failed");
+    if (s_mode_mutex == NULL) s_mode_mutex = xSemaphoreCreateMutex();
+    if (s_mode_mutex == NULL) return ESP_ERR_NO_MEM;
     s_initialized = true;
     return ESP_OK;
 }
@@ -33,13 +40,45 @@ bool sx_work_mode_is_valid(const char *name)
     return false;
 }
 
+/* Mode transitions are serialized; UART callbacks never take this long lock. */
+static esp_err_t stop_current_locked(void)
+{
+    const char *current = atomic_load(&s_current_mode);
+    if (current == NULL) return ESP_OK;
+    atomic_store(&s_mode_started, false);
+    esp_err_t err = strcmp(current, "auto_collect") == 0
+                        ? sx_auto_collect_deinit() : sx_serial_server_stop();
+    if (err == ESP_OK) atomic_store(&s_current_mode, NULL);
+    return err;
+}
+
 esp_err_t sx_work_mode_stop_current(void)
 {
-    if (s_current_mode == NULL) return ESP_OK;
-    esp_err_t err = strcmp(s_current_mode, "auto_collect") == 0
-                        ? sx_auto_collect_deinit() : sx_serial_server_stop();
-    s_current_mode = NULL;
+    if (!s_initialized) return ESP_OK;
+    xSemaphoreTake(s_mode_mutex, portMAX_DELAY);
+    esp_err_t err = stop_current_locked();
+    xSemaphoreGive(s_mode_mutex);
     return err;
+}
+
+static esp_err_t start_mode_locked(const char *name)
+{
+    esp_err_t err = stop_current_locked();
+    if (err != ESP_OK) return err;
+    const char *mode = strcmp(name, "auto_collect") == 0
+                         ? "auto_collect" : "serial_server";
+    /* Retain ownership on failure so a timed-out cleanup can be retried. */
+    atomic_store(&s_current_mode, mode);
+    err = strcmp(mode, "auto_collect") == 0
+              ? sx_auto_collect_init() : sx_serial_server_start();
+    if (err != ESP_OK) {
+        (void)stop_current_locked();
+        ESP_LOGE(TAG, "start mode %s failed: %s", mode, esp_err_to_name(err));
+        return err;
+    }
+    atomic_store(&s_mode_started, true);
+    ESP_LOGI(TAG, "current mode: %s", mode);
+    return ESP_OK;
 }
 
 esp_err_t sx_work_mode_start_by_name(const char *name)
@@ -47,25 +86,30 @@ esp_err_t sx_work_mode_start_by_name(const char *name)
     if (!s_initialized)
         ESP_RETURN_ON_ERROR(sx_work_mode_init(), TAG, "mode init failed");
     if (!sx_work_mode_is_valid(name)) return ESP_ERR_NOT_FOUND;
-    if (s_current_mode != NULL && strcmp(s_current_mode, name) == 0)
-        return ESP_OK;
+    xSemaphoreTake(s_mode_mutex, portMAX_DELAY);
+    const char *current = atomic_load(&s_current_mode);
+    esp_err_t err = ESP_OK;
+    if (!atomic_load(&s_mode_started) || current == NULL || strcmp(current, name) != 0)
+        err = start_mode_locked(name);
+    xSemaphoreGive(s_mode_mutex);
+    return err;
+}
 
-    ESP_RETURN_ON_ERROR(sx_work_mode_stop_current(), TAG, "stop mode failed");
-    esp_err_t err = strcmp(name, "auto_collect") == 0
-                        ? sx_auto_collect_init() : sx_serial_server_start();
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "start mode %s failed: %s", name, esp_err_to_name(err));
-        return err;
-    }
-    s_current_mode = strcmp(name, "auto_collect") == 0
-                         ? "auto_collect" : "serial_server";
-    ESP_LOGI(TAG, "current mode: %s", s_current_mode);
-    return ESP_OK;
+esp_err_t sx_work_mode_reload_auto_collect(void)
+{
+    if (!s_initialized) return ESP_OK;
+    xSemaphoreTake(s_mode_mutex, portMAX_DELAY);
+    const char *current = atomic_load(&s_current_mode);
+    esp_err_t err = ESP_OK;
+    if (current != NULL && strcmp(current, "auto_collect") == 0)
+        err = start_mode_locked("auto_collect");
+    xSemaphoreGive(s_mode_mutex);
+    return err;
 }
 
 const char *sx_work_mode_get_current_name(void)
 {
-    return s_current_mode;
+    return atomic_load(&s_current_mode);
 }
 
 size_t sx_work_mode_get_supported_names(const char **names, size_t capacity)
@@ -81,7 +125,8 @@ size_t sx_work_mode_get_supported_names(const char **names, size_t capacity)
 
 sx_work_mode_uart_handler_t sx_work_mode_get_uart_handler(void)
 {
-    return s_current_mode != NULL && strcmp(s_current_mode, "serial_server") == 0
+    const char *current = atomic_load(&s_current_mode);
+    return atomic_load(&s_mode_started) && current != NULL && strcmp(current, "serial_server") == 0
                ? sx_serial_server_handle_uart_data : NULL;
 }
 

@@ -636,7 +636,7 @@ esp_err_t get_port_uart_config_from_nvs(int port, serial_port_config_t *config)
 
     serial_port_nvs_key(key, sizeof(key), port, "stop");
     ESP_GOTO_ON_ERROR(nvs_get_str_fixed(handle, key, value, sizeof(value)), out, TAG, "%s not found", key);
-    if (strcmp(value, "1.5") == 0) {
+    if ((strcmp(value, "1.5") == 0 || strcmp(value, "15") == 0)) {
         cfg.stop_bits = UART_STOP_BITS_1_5;
     } else if (strcmp(value, "2") == 0) {
         cfg.stop_bits = UART_STOP_BITS_2;

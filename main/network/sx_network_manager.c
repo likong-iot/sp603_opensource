@@ -20,14 +20,20 @@
 
 static const char *TAG = "network_mgr";
 static SemaphoreHandle_t s_mutex;
+static SemaphoreHandle_t s_save_mutex;
+static SemaphoreHandle_t s_start_mutex;
 static sx_network_status_t s_status;
+/* Active configuration is immutable until reboot. */
 static sx_network_config_t s_config;
+static sx_network_config_t s_saved_config;
 static esp_netif_ip_info_t s_wifi_ip;
 static esp_netif_ip_info_t s_w5500_ip;
 static esp_netif_ip_info_t s_modem_ip;
 static esp_netif_t *s_napt_netif;
 static bool s_management_started;
 static bool s_remaining_started;
+static esp_err_t s_management_start_result;
+static esp_err_t s_remaining_start_result;
 static bool s_application_ready;
 static bool s_wifi_start_error;
 static bool s_w5500_start_error;
@@ -39,6 +45,7 @@ static bool s_internet_reachable;
 static sx_network_interface_t s_internet_interface = SX_NETWORK_IF_NONE;
 
 static void update_network_leds_locked(void);
+static void update_system_indicator_locked(void);
 
 static void wifi_ap_timeout_cb(void *arg)
 {
@@ -63,6 +70,7 @@ static void wifi_ap_timeout_cb(void *arg)
     } else {
         s_wifi_start_error = true;
         update_network_leds_locked();
+        update_system_indicator_locked();
         ESP_LOGE(TAG, "close Wi-Fi local-management AP failed: %s",
                  esp_err_to_name(err));
     }
@@ -295,7 +303,7 @@ static void refresh_active_dns_locked(sx_network_interface_t id, esp_netif_t *ne
             }
         }
     }
-    if (!usable_ipv4_dns(&dns)) return;
+    if (err != ESP_OK || !usable_ipv4_dns(&dns)) return;
 
     inet_ntoa_r(dns.ip.u_addr.ip4, s_status.active_dns,
                 sizeof(s_status.active_dns));
@@ -492,6 +500,20 @@ esp_err_t sx_network_manager_init(void)
     if (s_mutex != NULL) return ESP_OK;
     s_mutex = xSemaphoreCreateMutex();
     if (s_mutex == NULL) return ESP_ERR_NO_MEM;
+    s_save_mutex = xSemaphoreCreateMutex();
+    if (s_save_mutex == NULL) {
+        vSemaphoreDelete(s_mutex);
+        s_mutex = NULL;
+        return ESP_ERR_NO_MEM;
+    }
+    s_start_mutex = xSemaphoreCreateMutex();
+    if (s_start_mutex == NULL) {
+        vSemaphoreDelete(s_save_mutex);
+        s_save_mutex = NULL;
+        vSemaphoreDelete(s_mutex);
+        s_mutex = NULL;
+        return ESP_ERR_NO_MEM;
+    }
     const esp_timer_create_args_t ap_timer_args = {
         .callback = wifi_ap_timeout_cb,
         .name = "wifi_ap_timeout",
@@ -499,13 +521,29 @@ esp_err_t sx_network_manager_init(void)
     esp_err_t timer_err = esp_timer_create(&ap_timer_args,
                                            &s_wifi_ap_timeout_timer);
     if (timer_err != ESP_OK) {
+        vSemaphoreDelete(s_start_mutex);
+        s_start_mutex = NULL;
+        vSemaphoreDelete(s_save_mutex);
+        s_save_mutex = NULL;
         vSemaphoreDelete(s_mutex);
         s_mutex = NULL;
         return timer_err;
     }
     memset(&s_status, 0, sizeof(s_status));
-    ESP_RETURN_ON_ERROR(sx_network_config_load(&s_config), TAG, "load config failed");
+    esp_err_t load_err = sx_network_config_load(&s_config);
+    if (load_err != ESP_OK) {
+        esp_timer_delete(s_wifi_ap_timeout_timer);
+        s_wifi_ap_timeout_timer = NULL;
+        vSemaphoreDelete(s_start_mutex);
+        s_start_mutex = NULL;
+        vSemaphoreDelete(s_save_mutex);
+        s_save_mutex = NULL;
+        vSemaphoreDelete(s_mutex);
+        s_mutex = NULL;
+        return load_err;
+    }
     sx_network_config_normalize(&s_config);
+    s_saved_config = s_config;
     s_status.routing_enabled = s_config.routing_enabled;
     ESP_LOGI(TAG, "SP603 config: Ethernet=%d WiFi-STA=%d WiFi-AP=%d 4G=%d route=%d",
              s_config.ethernet_enabled, s_config.wifi_sta_enabled,
@@ -513,6 +551,10 @@ esp_err_t sx_network_manager_init(void)
     if (xTaskCreate(internet_probe_task, "internet_probe", 4096, NULL, 3, NULL) != pdPASS) {
         esp_timer_delete(s_wifi_ap_timeout_timer);
         s_wifi_ap_timeout_timer = NULL;
+        vSemaphoreDelete(s_start_mutex);
+        s_start_mutex = NULL;
+        vSemaphoreDelete(s_save_mutex);
+        s_save_mutex = NULL;
         vSemaphoreDelete(s_mutex);
         s_mutex = NULL;
         return ESP_ERR_NO_MEM;
@@ -523,11 +565,16 @@ esp_err_t sx_network_manager_init(void)
 esp_err_t sx_network_manager_start_management_network(void)
 {
     if (s_mutex == NULL) return ESP_ERR_INVALID_STATE;
-    if (s_management_started) return ESP_OK;
+    xSemaphoreTake(s_start_mutex, portMAX_DELAY);
+    if (s_management_started) {
+        esp_err_t result = s_management_start_result;
+        xSemaphoreGive(s_start_mutex);
+        return result;
+    }
     s_management_started = true;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
     s_wifi_start_error = false;
     esp_err_t first_error = ESP_OK;
-    xSemaphoreTake(s_mutex, portMAX_DELAY);
     update_network_leds_locked();
     xSemaphoreGive(s_mutex);
 
@@ -554,27 +601,41 @@ esp_err_t sx_network_manager_start_management_network(void)
             s_status.wifi_ap_timed_out = false;
             esp_err_t timer_err = schedule_wifi_ap_timeout_locked();
             if (timer_err != ESP_OK) {
+                s_wifi_start_error = true;
                 ESP_LOGE(TAG, "start Wi-Fi AP timeout failed: %s",
                          esp_err_to_name(timer_err));
                 if (first_error == ESP_OK) first_error = timer_err;
             }
             update_network_leds_locked();
+            update_system_indicator_locked();
             xSemaphoreGive(s_mutex);
         } else {
+            xSemaphoreTake(s_mutex, portMAX_DELAY);
             s_wifi_start_error = true;
+            update_system_indicator_locked();
+            xSemaphoreGive(s_mutex);
         }
     }
 
+    s_management_start_result = first_error;
+    xSemaphoreGive(s_start_mutex);
     return first_error;
 }
 
 esp_err_t sx_network_manager_start_remaining_networks(void)
 {
     if (s_mutex == NULL) return ESP_ERR_INVALID_STATE;
-    if (s_remaining_started) return ESP_OK;
+    xSemaphoreTake(s_start_mutex, portMAX_DELAY);
+    if (s_remaining_started) {
+        esp_err_t result = s_remaining_start_result;
+        xSemaphoreGive(s_start_mutex);
+        return result;
+    }
     s_remaining_started = true;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
     s_w5500_start_error = false;
     s_modem_start_error = false;
+    xSemaphoreGive(s_mutex);
     esp_err_t first_error = ESP_OK;
 
     sx_led_manager_set_lan(SX_LED_NETWORK_OFF);
@@ -593,7 +654,11 @@ esp_err_t sx_network_manager_start_remaining_networks(void)
             update_network_leds_locked();
             xSemaphoreGive(s_mutex);
         }
-        if (err != ESP_OK) s_w5500_start_error = true;
+        if (err != ESP_OK) {
+            xSemaphoreTake(s_mutex, portMAX_DELAY);
+            s_w5500_start_error = true;
+            xSemaphoreGive(s_mutex);
+        }
     }
 
     sx_led_manager_set_4g(SX_LED_NETWORK_OFF);
@@ -608,11 +673,18 @@ esp_err_t sx_network_manager_start_remaining_networks(void)
             update_network_leds_locked();
             xSemaphoreGive(s_mutex);
         }
-        if (err != ESP_OK) s_modem_start_error = true;
+        if (err != ESP_OK) {
+            xSemaphoreTake(s_mutex, portMAX_DELAY);
+            s_modem_start_error = true;
+            xSemaphoreGive(s_mutex);
+        }
     }
     xSemaphoreTake(s_mutex, portMAX_DELAY);
     update_network_leds_locked();
+    update_system_indicator_locked();
     xSemaphoreGive(s_mutex);
+    s_remaining_start_result = first_error;
+    xSemaphoreGive(s_start_mutex);
     return first_error;
 }
 
@@ -644,6 +716,14 @@ void sx_network_manager_get_config(sx_network_config_t *config)
 {
     if (config == NULL || s_mutex == NULL) return;
     xSemaphoreTake(s_mutex, portMAX_DELAY);
+    *config = s_saved_config;
+    xSemaphoreGive(s_mutex);
+}
+
+void sx_network_manager_get_active_config(sx_network_config_t *config)
+{
+    if (config == NULL || s_mutex == NULL) return;
+    xSemaphoreTake(s_mutex, portMAX_DELAY);
     *config = s_config;
     xSemaphoreGive(s_mutex);
 }
@@ -654,18 +734,18 @@ esp_err_t sx_network_manager_save_config(const sx_network_config_t *config)
     if (config == NULL) return ESP_ERR_INVALID_ARG;
     sx_network_config_t normalized = *config;
     sx_network_config_normalize(&normalized);
-    ESP_LOGI(TAG, "[NETSAVE] NVS save begin");
+    /* Serialize persistence and its read-back snapshot without blocking events
+     * on NVS flash writes. Never apply pending roles to existing netifs. */
+    xSemaphoreTake(s_save_mutex, portMAX_DELAY);
     esp_err_t err = sx_network_config_save(&normalized);
-    ESP_LOGI(TAG, "[NETSAVE] NVS save result=%s", esp_err_to_name(err));
-    if (err != ESP_OK) return err;
-    ESP_LOGI(TAG, "[NETSAVE] state lock wait");
-    xSemaphoreTake(s_mutex, portMAX_DELAY);
-    ESP_LOGI(TAG, "[NETSAVE] state lock acquired");
-    s_config = normalized;
-    s_status.routing_enabled = normalized.routing_enabled;
-    s_status.reboot_required = true;
-    xSemaphoreGive(s_mutex);
-    return ESP_OK;
+    if (err == ESP_OK) {
+        xSemaphoreTake(s_mutex, portMAX_DELAY);
+        s_saved_config = normalized;
+        s_status.reboot_required = true;
+        xSemaphoreGive(s_mutex);
+    }
+    xSemaphoreGive(s_save_mutex);
+    return err;
 }
 
 void sx_network_manager_mark_application_ready(bool startup_ok)

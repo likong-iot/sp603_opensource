@@ -144,14 +144,14 @@ int main(void) {
     assert(gpio_writes == before);
     puts("PASS unavailable ports cannot affect another LED");
 
-    for (unsigned t = 0; t < 8; ++t) {
+    for (unsigned t = 0; t < 40; ++t) {
         assert(state_level(SX_LED_NETWORK_OFF, t) == 0);
         assert(state_level(SX_LED_NETWORK_ONLINE, t) == 1);
-        assert(state_level(SX_LED_NETWORK_STARTING, t) == (t % 8 < 4));
-        assert(state_level(SX_LED_NETWORK_PROVIDER, t) == (t % 8 < 4));
-        assert(state_level(SX_LED_NETWORK_ONLINE_AND_PROVIDER, t) ==
-               (t % 8 == 0 || t % 8 == 2));
-        assert(state_level(SX_LED_NETWORK_ERROR, t) == (t % 4 == 0));
+        assert(state_level(SX_LED_NETWORK_CONNECTING, t) ==
+               (t % 10 == 0 || t % 10 == 2 || t % 10 == 4));
+        assert(state_level(SX_LED_NETWORK_LOCAL, t) ==
+               (t % 10 == 0 || t % 10 == 2));
+        assert(state_level(SX_LED_NETWORK_PROVIDER, t) == (t % 20 < 10));
     }
     puts("PASS network polarity preserves existing status patterns");
 
@@ -197,7 +197,7 @@ int main(void) {
 def main():
     source = (ROOT / 'main/async_uart.c').read_text()
     start = source.index('int sendDataToUart(')
-    end = source.index('\nvoid tx_tasks_to_channel(', start)
+    end = source.index('\nvoid tx_tasks_to_port(', start)
     with tempfile.TemporaryDirectory(prefix='sp603-led-test-') as temp:
         out = Path(temp)
         gpio_numbers = '\n'.join(f'#define GPIO_NUM_{n} {n}' for n in range(49))

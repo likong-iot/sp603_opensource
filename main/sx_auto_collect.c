@@ -1,6 +1,7 @@
 #include "sx_auto_collect.h"
 
 #include <stdbool.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,12 +27,16 @@ typedef struct {
     ac_runtime_item_t items[AC_MAX_ITEMS_PER_PORT];
     SemaphoreHandle_t mutex;
     TaskHandle_t polling_task;
+    bool task_created;
+    atomic_bool exited;
+    serial_port_config_t saved_uart;
+    bool saved_uart_valid;
 } ac_port_runtime_t;
 
 /* SP603 双 RS485：配置槽依次绑定 COM2、COM1。 */
 static const int s_ac_collect_ports[AC_COLLECT_PORT_COUNT] = {1, 3};
 static ac_port_runtime_t s_runtime[AC_COLLECT_PORT_COUNT] = {0};
-static bool s_running = false;
+static atomic_bool s_running;
 
 static uint16_t modbus_crc16(const uint8_t *data, size_t len)
 {
@@ -160,7 +165,7 @@ static esp_err_t load_port_config_from_nvs(nvs_handle_t nvs,
         }
 
         snprintf(key, sizeof(key), "%s_item%d_rn", prefix, i);
-        if (nvs_get_u16(nvs, key, &u16) == ESP_OK && u16 > 0) {
+        if (nvs_get_u16(nvs, key, &u16) == ESP_OK && u16 > 0 && u16 <= 125) {
             it->register_num = u16;
         }
 
@@ -230,16 +235,12 @@ static void ac_polling_task(void *arg)
     }
 
     uint8_t rx_buf[1024];
-    while (1) {
-        if (!s_running) {
-            vTaskDelay(pdMS_TO_TICKS(100));
-            continue;
-        }
+    while (atomic_load(&s_running)) {
 
         xSemaphoreTake(runtime->mutex, portMAX_DELAY);
         int items_count = runtime->items_count;
 
-        for (int i = 0; i < items_count; i++) {
+        for (int i = 0; i < items_count && atomic_load(&s_running); i++) {
             ac_runtime_item_t *rt = &runtime->items[i];
             if (!rt->cfg.enabled) {
                 continue;
@@ -274,7 +275,7 @@ static void ac_polling_task(void *arg)
             if (send_ret == ESP_OK) {
                 bool got = false;
                 int waited = 0;
-                while (waited < (int)rt->cfg.timeout_ms) {
+                while (atomic_load(&s_running) && (uint32_t)waited < rt->cfg.timeout_ms) {
                     uint64_t ts = 0;
                     int n = take_port_data(runtime->port, rx_buf, sizeof(rx_buf), &ts);
                     if (n > 0 && n >= 5 && verify_crc(rx_buf, n)) {
@@ -309,45 +310,49 @@ static void ac_polling_task(void *arg)
         }
 
         xSemaphoreGive(runtime->mutex);
-        vTaskDelay(pdMS_TO_TICKS(50));
+        if (atomic_load(&s_running)) vTaskDelay(pdMS_TO_TICKS(50));
     }
+    atomic_store(&runtime->exited, true);
+    delete_self_app_task_with_caps();
 }
 
 esp_err_t sx_auto_collect_deinit(void)
 {
+    atomic_store(&s_running, false);
+    /* Let polling finish its UART operation and release its mutex itself. */
+    for (int waited = 0; waited < 10000; waited += 10) {
+        bool active = false;
+        for (int i = 0; i < AC_COLLECT_PORT_COUNT; ++i)
+            active |= s_runtime[i].task_created && !atomic_load(&s_runtime[i].exited);
+        if (!active) break;
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+    for (int i = 0; i < AC_COLLECT_PORT_COUNT; ++i)
+        if (s_runtime[i].task_created && !atomic_load(&s_runtime[i].exited))
+            return ESP_ERR_TIMEOUT;
+
     for (int i = 0; i < AC_COLLECT_PORT_COUNT; i++) {
-        if (s_runtime[i].polling_task != NULL) {
-            delete_app_task_with_caps(s_runtime[i].polling_task);
-            s_runtime[i].polling_task = NULL;
+        if (s_runtime[i].saved_uart_valid) {
+            esp_err_t err = quick_reconfigure_port(s_runtime[i].port, &s_runtime[i].saved_uart);
+            if (err != ESP_OK) return err;
+            s_runtime[i].saved_uart_valid = false;
         }
-        if (s_runtime[i].mutex != NULL) {
-            vSemaphoreDelete(s_runtime[i].mutex);
-            s_runtime[i].mutex = NULL;
-        }
+        if (s_runtime[i].mutex != NULL) vSemaphoreDelete(s_runtime[i].mutex);
         memset(&s_runtime[i], 0, sizeof(s_runtime[i]));
     }
-    s_running = false;
     return ESP_OK;
 }
 
 esp_err_t sx_auto_collect_init(void)
 {
-    sx_auto_collect_deinit();
+    esp_err_t cleanup_err = sx_auto_collect_deinit();
+    if (cleanup_err != ESP_OK) return cleanup_err;
 
     nvs_handle_t nvs;
     esp_err_t err = nvs_open("storage", NVS_READONLY, &nvs);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "open NVS failed: %s", esp_err_to_name(err));
         return err;
-    }
-
-    char mode[32] = {0};
-    size_t mode_len = sizeof(mode);
-    err = nvs_get_str(nvs, "w_mode", mode, &mode_len);
-    if (err != ESP_OK || strcmp(mode, "auto_collect") != 0) {
-        nvs_close(nvs);
-        ESP_LOGI(TAG, "work mode is not auto_collect, skip start");
-        return ESP_OK;
     }
 
     ac_port_config_t *cfg = (ac_port_config_t *)calloc(1, sizeof(ac_port_config_t));
@@ -357,6 +362,7 @@ esp_err_t sx_auto_collect_init(void)
         return ESP_ERR_NO_MEM;
     }
 
+    atomic_store(&s_running, true);
     for (int i = 0; i < AC_COLLECT_PORT_COUNT; i++) {
         char prefix[8];
         snprintf(prefix, sizeof(prefix), "ac%d", i + 1);
@@ -365,6 +371,9 @@ esp_err_t sx_auto_collect_init(void)
         load_port_config_from_nvs(nvs, prefix, port, cfg);
 
         s_runtime[i].port = port;
+        err = get_current_runtime_config(port, &s_runtime[i].saved_uart);
+        if (err != ESP_OK) break;
+        s_runtime[i].saved_uart_valid = true;
         s_runtime[i].mapped_slave_addr = cfg->mapped_slave_addr;
         s_runtime[i].items_count = cfg->items_count;
         if (s_runtime[i].items_count > AC_MAX_ITEMS_PER_PORT) {
@@ -381,11 +390,13 @@ esp_err_t sx_auto_collect_init(void)
         s_runtime[i].mutex = xSemaphoreCreateMutex();
         if (s_runtime[i].mutex == NULL) {
             ESP_LOGE(TAG, "create mutex failed for AC port %d", port);
-            continue;
+            err = ESP_ERR_NO_MEM;
+            break;
         }
 
         char task_name[16];
         snprintf(task_name, sizeof(task_name), "ac_poll_ch%d", port);
+        atomic_store(&s_runtime[i].exited, false);
         BaseType_t ok = create_app_task_psram(ac_polling_task,
                                               task_name,
                                               8192,
@@ -398,7 +409,10 @@ esp_err_t sx_auto_collect_init(void)
             s_runtime[i].mutex = NULL;
             s_runtime[i].polling_task = NULL;
             ESP_LOGE(TAG, "create polling task failed for AC port %d", port);
+            err = ESP_ERR_NO_MEM;
+            break;
         } else {
+            s_runtime[i].task_created = true;
             ESP_LOGI(TAG, "auto collect polling started on %s (items=%d)",
                      port == 1 ? "COM2" : "COM1",
                      s_runtime[i].items_count);
@@ -407,7 +421,10 @@ esp_err_t sx_auto_collect_init(void)
 
     free(cfg);
     nvs_close(nvs);
-    s_running = true;
+    if (err != ESP_OK) {
+        (void)sx_auto_collect_deinit();
+        return err;
+    }
     return ESP_OK;
 }
 

@@ -17,6 +17,8 @@ typedef void (*sx_work_mode_uart_handler_t)(int port,
 esp_err_t sx_work_mode_init(void);
 esp_err_t sx_work_mode_start_by_name(const char *name);
 esp_err_t sx_work_mode_stop_current(void);
+/* Reload saved collection settings only when that mode owns the ports. */
+esp_err_t sx_work_mode_reload_auto_collect(void);
 const char *sx_work_mode_get_current_name(void);
 bool sx_work_mode_is_valid(const char *name);
 size_t sx_work_mode_get_supported_names(const char **names, size_t capacity);

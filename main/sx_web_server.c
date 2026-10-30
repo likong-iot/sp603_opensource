@@ -1001,7 +1001,7 @@ static esp_err_t get_devinfo_get_handler(httpd_req_t *req)
     sx_network_status_t net_status = {0};
     sx_network_config_t net_config = {0};
     sx_network_manager_get_status(&net_status);
-    sx_network_manager_get_config(&net_config);
+    sx_network_manager_get_active_config(&net_config);
     cJSON_AddStringToObject(root, "wifi_sta_ip",
                             net_status.wifi_ip[0] ? net_status.wifi_ip
                                                   : (net_config.wifi_sta_enabled && net_config.wifi_sta_static
@@ -2446,7 +2446,7 @@ static esp_err_t get_network_status_handler(httpd_req_t *req)
     sx_network_status_t status = {0};
     sx_network_config_t config = {0};
     sx_network_manager_get_status(&status);
-    sx_network_manager_get_config(&config);
+    sx_network_manager_get_active_config(&config);
     cJSON *root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "active_interface", sx_network_interface_name(status.active_interface));
     cJSON_AddBoolToObject(root, "wifi_connected", status.wifi_connected);
@@ -2875,7 +2875,12 @@ static esp_err_t auto_collect_set_handler(httpd_req_t *req)
         return ESP_OK;
     }
 
-    sx_auto_collect_init();
+    esp_err_t reload_err = sx_work_mode_reload_auto_collect();
+    if (reload_err != ESP_OK) {
+        cJSON_Delete(json);
+        http_reply_code_msg(req, 500, "saved, but auto-collect restart failed");
+        return ESP_OK;
+    }
 
     cJSON_Delete(json);
     http_reply_code_msg(req, 200, "auto_collect 保存成功");

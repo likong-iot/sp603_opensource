@@ -54,7 +54,10 @@ esp_err_t sx_network_manager_start_remaining_networks(void);
 esp_err_t sx_network_manager_start_configured(void);
 void sx_network_manager_mark_application_ready(bool startup_ok);
 void sx_network_manager_get_status(sx_network_status_t *status);
+/* Saved configuration for editing; changes take effect after reboot. */
 void sx_network_manager_get_config(sx_network_config_t *config);
+/* Configuration used by the running interfaces and status pages. */
+void sx_network_manager_get_active_config(sx_network_config_t *config);
 esp_err_t sx_network_manager_save_config(const sx_network_config_t *config);
 const char *sx_network_interface_name(sx_network_interface_t interface_id);
 
