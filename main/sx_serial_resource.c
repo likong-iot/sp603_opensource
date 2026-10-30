@@ -12,7 +12,7 @@ size_t sx_serial_resource_get_all(sx_serial_resource_info_t *resources, size_t c
         {"rs232", "RS232", 2, 2, 2, true},
     };
     const sx_serial_resource_info_t rs422_resources[] = {
-        {"rs422", "RS422", 1, 1, 1, !debug_console},
+        {"rs422", "RS422", 1, 3, 1, !debug_console},
         {"rs232", "RS232", 2, 2, 2, true},
     };
     const sx_serial_resource_info_t *source = rs422 ? rs422_resources : dual;
